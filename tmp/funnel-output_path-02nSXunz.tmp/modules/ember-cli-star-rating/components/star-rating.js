@@ -1,0 +1,1 @@
+/Users/julian/web/workspace/ember/placist/placist/tmp/funnel-input_base_path-a2Wjik38.tmp/0/components/star-rating.js

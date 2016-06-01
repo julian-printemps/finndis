@@ -1,0 +1,1 @@
+/Users/julian/web/workspace/ember/placist/placist/tmp/funnel-input_base_path-dQ03Gq8Y.tmp/0/lib/system/inflector.js

@@ -1,0 +1,1 @@
+/Users/julian/web/workspace/placist/placist/bower_components/ember-cli-test-loader/test-loader.js

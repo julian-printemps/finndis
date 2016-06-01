@@ -1,0 +1,22 @@
+<div class="page-wrapper row">
+  <div class="columns">
+    <div class="row">
+      <div class="columns">
+          Welcome {{session.data.authenticated.profile.name}}
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="columns">
+        <a class="button" {{action "logout"}}>
+          <i class="fa fa-sign-out"></i> Sign out
+        </a>
+      </div>
+    </div>
+
+
+    {{#if session.isAuthenticated}}
+      {{tool-box}}
+    {{/if}}
+  </div>
+</div>

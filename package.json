@@ -1,0 +1,60 @@
+{
+  "name": "finndis",
+  "version": "0.0.0",
+  "description": "Small description for finndis goes here",
+  "private": true,
+  "directories": {
+    "doc": "doc",
+    "test": "tests"
+  },
+  "scripts": {
+    "build": "ember build",
+    "start": "ember server",
+    "test": "ember test"
+  },
+  "repository": "",
+  "engines": {
+    "node": ">= 0.10.0"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "active-model-adapter": "2.1.1",
+    "auth0-ember-simple-auth": "git://github.com/auth0/auth0-ember-simple-auth.git#a4c0964c8285994893ade3351c477cb470bdf39f",
+    "broccoli-asset-rev": "^2.2.0",
+    "broccoli-clean-css": "1.1.0",
+    "ember-ajax": "0.7.1",
+    "ember-cli": "2.3.0",
+    "ember-cli-app-version": "^1.0.0",
+    "ember-cli-babel": "^5.1.5",
+    "ember-cli-cordova": "0.0.19",
+    "ember-cli-dependency-checker": "^1.2.0",
+    "ember-cli-deploy": "0.5.1",
+    "ember-cli-foundation-6-sass": "0.0.8",
+    "ember-cli-htmlbars": "^1.0.1",
+    "ember-cli-htmlbars-inline-precompile": "^0.3.1",
+    "ember-cli-ic-ajax": "0.2.4",
+    "ember-cli-inject-live-reload": "^1.3.1",
+    "ember-cli-qunit": "^1.2.1",
+    "ember-cli-release": "0.2.8",
+    "ember-cli-sass": "5.3.1",
+    "ember-cli-sri": "^2.0.0",
+    "ember-cli-star-rating": "0.4.0",
+    "ember-cli-uglify": "^1.2.0",
+    "ember-cp-validations": "2.6.1",
+    "ember-data": "^2.3.0",
+    "ember-disable-proxy-controllers": "^1.0.1",
+    "ember-export-application-global": "^1.0.4",
+    "ember-load-initializers": "^0.5.0",
+    "ember-masonry-grid": "1.1.0",
+    "ember-pagefront": "0.11.1",
+    "ember-radio-button": "1.0.7",
+    "ember-resolver": "^2.0.3",
+    "ember-simple-auth": "1.0.1",
+    "loader.js": "^4.0.0",
+    "rails-csrf": "2.0.1"
+  },
+  "dependencies": {
+    "rails-csrf": "^2.0.1"
+  }
+}

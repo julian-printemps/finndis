@@ -1,0 +1,31 @@
+/*
+** Header
+*/
+
+// Site titles
+
+.site-title {
+  font-size: rem-calc(32px);
+  margin: 0;
+}
+
+// Logo
+.logo {
+  font-family: $logo-font;
+
+  & a {
+    color: $nav-font-color;
+    @include setTransition();
+
+    &:hover {
+      color: darken($nav-font-color, 10);
+      @include setTransition();
+    }
+  }
+
+  &--svg {
+    position: relative;
+    top: -6px;
+    height: 32px;
+  }
+}

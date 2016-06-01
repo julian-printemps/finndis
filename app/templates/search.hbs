@@ -1,0 +1,13 @@
+<div class="page-wrapper row">
+  <div class="columns">
+    <div class="row">
+      <div class="columns medium-12">
+        {{search-box}}
+      </div>
+    </div>
+
+    {{#if session.isAuthenticated}}
+      {{tool-box}}
+    {{/if}}
+  </div>
+</div>

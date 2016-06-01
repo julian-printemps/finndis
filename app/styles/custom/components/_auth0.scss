@@ -1,0 +1,19 @@
+#a0-lock .a0-panel {
+  width: 100% !important;
+  min-width: 280px;
+  max-width: 480px;
+}
+
+#a0-lock.a0-theme-default .a0-zocial:before,
+#a0-lock.a0-theme-default .a0-zocial span, #a0-lock.a0-theme-default a.a0-zocial span {
+  font-size: 16px !important;
+  line-height: 50px !important;
+}
+
+#a0-lock.a0-theme-default .a0-equal-viewport .a0-zocial:before, #a0-lock.a0-theme-default .a0-zocial.a0-icon:before {
+  width: 50px !important;
+}
+
+#a0-lock.a0-theme-default .a0-panel .a0-header h1 {
+  font-size: 20px !important;
+}

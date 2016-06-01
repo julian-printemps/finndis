@@ -1,0 +1,99 @@
+%edition-button {
+  position: absolute;
+  top: 0;
+  margin: 0;
+
+  &:hover, &:active, &:focus {
+    background: transparent;
+    border-bottom: 1px solid $place-header-color;
+  }
+}
+
+.edit-button {
+  @extend %edition-button;
+  right: 0;
+
+  .panel--section & {
+    padding: 2rem 0.8rem 0.8rem;
+    font-size: rem-calc(14px);
+  }
+}
+
+.delete-button {
+  @extend %edition-button;
+  left: 0;
+}
+
+.cancel-button {
+  @extend %edition-button;
+  right: 6rem;
+}
+
+.share-button {
+  @extend %edition-button;
+  left: 0;
+}
+
+.close-button {
+  @extend %edition-button;
+  font-size: rem-calc(18px);
+  padding: 0.8rem;
+  right: 0;
+  color: $close-panel-color;
+  @include setTransition();
+
+  &:hover, &:active, &:focus  {
+    background: transparent;
+    border-bottom: none;
+    color: darken($close-panel-color, 10);
+    @include setTransition();
+  }
+}
+
+.user-button {
+  @extend %edition-button;
+  top: initial;
+  bottom: 0;
+  border-bottom: none;
+  font-size: rem-calc(12px);
+
+  &:hover, &:active, &:focus  {
+    background: transparent;
+    border-bottom: none;
+    color: darken($close-panel-color, 10);
+  }
+
+  &.right {
+    right: 0;
+  }
+  &.left {
+    left: 1rem;
+  }
+  &.middle {
+    margin-left: 1.4rem;
+  }
+}
+
+
+// back button
+.back-button {
+  padding: 0.6rem;
+  cursor: pointer;
+  color: $panel-action-color;
+
+  &--holder {
+    text-align: center;
+  }
+}
+
+// Labels
+.button_label {
+  margin: 0 0.3rem 1rem;
+}
+
+
+// Login
+
+.button_login {
+    margin-bottom: 0;
+}

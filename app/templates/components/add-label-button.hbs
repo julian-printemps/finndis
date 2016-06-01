@@ -1,0 +1,8 @@
+<form class="label-add--holder row" {{action "addLabel" bubbles=false on="submit"}}>
+  <div class="columns small-10">
+    {{input type="text" class="label-editor--input" placeholder="Add a new label" value=newLabel}}
+  </div>
+  <div class="columns small-1 label-add--button--holder" {{action "addLabel" bubbles=false on="click"}}>
+    <button type="submit" class="label-add--icon--holder"><i class="label-add--icon fa fa-plus"></i></button>
+  </div>
+</form>

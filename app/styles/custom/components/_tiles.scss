@@ -1,0 +1,13 @@
+.grid {
+  position: absolute;
+  width: calc(100% - 14px);
+  max-width: $global-width;
+  height: 100%;
+  margin-bottom: 2rem;
+  overflow: hidden;
+
+  & > div {
+    background-color: $card-backgound-color;
+    position: absolute;
+  }
+}

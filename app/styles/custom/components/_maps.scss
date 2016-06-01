@@ -1,0 +1,64 @@
+/*
+** Maps
+*/
+.map {
+  &-canvas {
+      height: 250px;
+      width: 100%;
+      margin-bottom: 1rem;
+      margin-top: 1rem;
+
+      @media screen and #{breakpoint(medium)} {
+        height: 500px;
+      }
+  }
+
+  &-place {
+      height: 240px;
+      width: 100%;
+      margin-bottom: 0rem;
+
+      @media screen and #{breakpoint(medium)} {
+        height: 350px;
+      }
+  }
+}
+
+.map_search {
+  position: absolute;
+  top: 2rem;
+  left: 0;
+  width: 100%;
+  height: calc(100% - 82px);
+}
+
+// Special field for Maps
+#searchKeyword {
+  display: none;
+  width: calc(100% - 40px);
+
+  position: absolute;
+  top: 3.6rem !important;
+  z-index: 800;
+  left: 20px;
+
+  @media screen and #{breakpoint(medium)} {
+    width: 50%;
+  }
+}
+
+// #maps_button {
+//   display: none;
+//   top: 10px !important;
+//   margin-left: 10px;
+//
+//   @media #{$mobile-medium} {
+//     top: 55px !important;
+//     margin-left: 10px;
+//     left: 0 !important;
+//   }
+// }
+
+.pac-container {
+  top: 96px !important;
+}

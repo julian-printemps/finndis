@@ -1,0 +1,1 @@
+/Users/julian/web/workspace/ember/placist/placist/app/app.js

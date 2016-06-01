@@ -1,0 +1,1 @@
+/Users/julian/web/workspace/placist/placist/tmp/broccoli_merge_trees-input_base_path-hG8e60YS.tmp/1/serializer.js

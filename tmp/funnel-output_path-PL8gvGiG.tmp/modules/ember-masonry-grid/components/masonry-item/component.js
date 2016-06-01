@@ -1,0 +1,1 @@
+/Users/julian/web/workspace/ember/placist/placist/tmp/funnel-input_base_path-Be5WPN9z.tmp/0/components/masonry-item/component.js

@@ -1,0 +1,67 @@
+/*
+** Cards
+*/
+
+.card {
+  position: relative;;
+  height: auto;
+  margin: 0.6rem;
+
+  padding: 1rem;
+  background-color: $card-backgound-color;
+  border: 1px solid $card-border-color;
+  @include setTransition();
+
+  &:hover {
+    background-color: lighten($card-backgound-color, 3);
+    @include setTransition();
+  }
+
+  &--title {
+    margin-bottom: 1.6rem;
+    font-size: rem-calc(16px);
+    font-weight: bold;
+    color: $card-font-color-blue;
+  }
+
+  &--main {
+    font-size: rem-calc(12px);
+    color: $card-font-color-black;
+
+    &--icon {
+      margin-right: 0.4rem;
+      font-size: rem-calc(14px);
+    }
+  }
+
+  // section
+  &--section {
+    margin-top: 1rem;
+  }
+
+  // Icon
+  &--icon {
+    margin-right: 0.4rem;
+
+    &--holder {
+      font-size: 0.7rem;
+      color: #7D7D7D;
+    }
+  }
+}
+
+.masonry-item {
+  width: 100%;
+
+  @media screen and #{breakpoint(xsmall)} {
+    width: 50%;
+  }
+
+  @media screen and #{breakpoint(medium)} {
+    width: 33.333333%;
+  }
+
+  @media screen and #{breakpoint(large)} {
+    width: 25%;
+  }
+}

@@ -1,0 +1,201 @@
+<div class="page-wrapper row">
+  <div class="columns">
+    <div class="place_edition row">
+      <div class="large-8 large-offset-2 columns">
+
+        {{!-- Add label panel --}}
+        <div class="panel right {{labelPanelDisplayed}}">
+          <form class="add-label--form">
+            <div class="row">
+              <div class="back-button--holder small-2 columns">
+                <a {{action "closeMenuPanel"}}><i class="back-button fa fa-arrow-left"></i></a>
+              </div>
+              <div class="small-10 columns">
+                {{add-label}}
+              </div>
+            </div>
+            <div class="row">
+              <div class="medium-12 columns">
+                <ul class="label--list">
+                  {{#each userLabels as |label|}}
+                    <li class="label-editor--holder">
+                      <label class="label--listitem--label">
+                        <div class="label--listitem label-editor collapse align-middle row">
+                          <div class="label--icon-holder small-1 columns">
+                            <i class="label--icon fa fa-tag"></i>
+                          </div>
+                          <div class="small-10 columns">
+                            {{label.name}}
+                          </div>
+                          <div class="label--icon-holder small-1 columns">
+                            {{!-- {{input type="checkbox" id=label.id name=label.id checked=label.checked}} --}}
+
+                            {{radio-button
+                              id=label.id
+                              value=label.id
+                              groupValue=labelValue
+                              changed="addLabel"
+                              name="label"}}
+                          </div>
+                        </div>
+                      </label>
+                    </li>
+                  {{/each}}
+                </ul>
+              </div>
+            </div>
+          </form>
+        </div>
+        <a class="panel-overlay right {{labelPanelDisplayed}}" {{action "closeMenuPanel"}}></a>
+        {{!-- End add label panel --}}
+
+        {{!-- Add place form --}}
+        <form {{action "addPlace" model on="submit"}}>
+          <div class="edition row">
+            <div class="columns">
+              <div class="place--holder">
+                <article class="place">
+                  <header class="place--header">
+                    <button type="submit" class="button edit-button" {{bind-attr disabled="isInvalid"}}><i class="place--action--icon fa fa-check"></i>Save</button>
+
+                    <h2 class="place--title">
+                      {{input type="text" class="place--input" value=model.name}}
+                      {{#if (v-get model 'name' 'isInvalid')}}
+                        <div class="error">
+                          {{v-get model 'name' 'message'}}
+                        </div>
+                      {{/if}}
+
+                      {{!-- {{validated-input model=model type="text" class="place--input" valuePath='name' placeholder='Place name'}} --}}
+                    </h2>
+                    <i class="place--labels--icon fa fa-tag" {{action "showAddLabel" bubbles="false"}}></i>
+                    <ul class="place--labels clearfix" {{action "showAddLabel" bubbles="false"}}>
+                      <li class="place--labelitem">{{model.label.name}}</li>
+                      <li class="place--labelitem">
+                        <i class="place--add--icon fa fa-plus"></i>
+                      </li>
+                    </ul>
+                  </header>
+                  <main class="place--main">
+                    <div class="place--info--holder collapse row">
+                      {{!-- Address --}}
+                      <div class="small-12 columns">
+                        <div class="row align-middle place--address">
+                          <div class="small-12 medium-5 columns">
+                            <a class="button expanded place--address--elem" {{action "setAutoAddress"}}><i class="fa fa-street-view"></i>Geolocate me</a>
+                          </div>
+                          <div class="small-12 medium-1 columns">
+                            <div class="place--address--separate place--address--elem">
+                              <span class="place--address--separate--content">or</span>
+                            </div>
+                          </div>
+                          <div class="small-12 medium-6 columns">
+                            {{address-panel place=model}}
+                          </div>
+                        </div>
+                      </div>
+                      {{!-- End address --}}
+                    </div>
+
+                    <div class="place--info--holder row">
+                      <div class="columns small-12 medium-6">
+                        <div class="place--website align-middle row">
+                          <div class="medium-12 columns">
+                            <label><i class="fa fa-globe"></i> Website
+                              {{input value=model.website class="place--main-input" type="tel"}}
+                              {{#if (v-get model 'website' 'isInvalid')}}
+                                <div class="error">
+                                  {{v-get model 'website' 'message'}}
+                                </div>
+                              {{/if}}
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="columns small-12 medium-6">
+                        <div class="place--phone align-middle row">
+                          <div class="medium-12 columns">
+                            <label><i class="fa fa-phone"></i> Phone number
+                              {{input value=model.phone class="place--main-input" type="text"}}
+                              {{#if (v-get model 'phone' 'isInvalid')}}
+                                <div class="error">
+                                  {{v-get model 'phone' 'message'}}
+                                </div>
+                              {{/if}}
+                            </label>
+                            {{#if errors.model.phone}}
+                                <span class="error errorForValidation"><<i class="fa fa-exclamation-circle"></i> {{errors.newFirstname}}</span>
+                            {{/if}}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="place--info--holder row">
+                      <div class="columns medium-6">
+                        <div class="place--phone align-middle row">
+                          <div class="medium-12 columns">
+                            <label><i class="fa fa-usd"></i> Price range
+                              {{#star-rating-fa  item=model rating=model.pricerange on-click=(action "setPrice") as |stars set|}}
+                                {{#each stars as |star|}}
+                                  {{#if star.full}}
+                                    <a class="price-rating fa fa-square" {{action set star.rating}}></a>
+                                  {{else}}
+                                    <a class="price-rating fa fa-square-o" {{action set star.rating}}></a>
+                                  {{/if}}
+                                {{/each}}
+                              {{/star-rating-fa}}
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="place--info--holder row">
+                      <div class="columns">
+                        <div class="place--phone align-middle row">
+                          <div class="medium-12 columns">
+                            <label><i class="fa fa-info"></i> Description
+                              {{textarea type="text" cols="60" rows="3" class="place--main-input" value=model.description}}
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="place--info--holder row">
+                      <div class="columns">
+                        <div class="place--rating">
+                          {{#star-rating-fa  item=model rating=model.rating on-click=(action "setRating")  as |stars set|}}
+                            {{#each stars as |star|}}
+                              {{#if star.full}}
+                                <a class="star-rating fa fa-star" {{action set star.rating}}></a>
+                              {{else}}
+                                <a class="star-rating fa fa-star-o" {{action set star.rating}}></a>
+                              {{/if}}
+                            {{/each}}
+                          {{/star-rating-fa}}
+                        </div>
+                      </div>
+                    </div>
+                  </main>
+                </article>
+              </div>
+            </div>
+          </div>
+          <div class="place--info--holder row">
+            <div class="columns">
+              <button type="submit" class="button expanded"><i class="place--action--icon fa fa-check"></i> Save</button>
+            </div>
+          </div>
+        </form>
+        {{!-- End Add place form --}}
+
+      </div>
+    </div>
+
+    {{#if session.isAuthenticated}}
+      {{tool-box}}
+    {{/if}}
+  </div>
+</div>

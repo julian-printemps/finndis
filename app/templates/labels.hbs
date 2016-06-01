@@ -1,0 +1,42 @@
+<div class="page-wrapper row">
+  <div class="columns">
+    <div class="row">
+      <div class="medium-6 medium-offset-3 columns">
+        <div class="row">
+          <div class="medium-12 columns">
+            <div class="row">
+              <div class="columns medium-12">
+                {{#link-to "edit-labels" class="button"}}Edit{{/link-to}}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="columns">
+            <ul class="label--list">
+              {{#each session.user.labels as |label|}}
+                <li id="{{label.labelId}}" class="label-editor--holder">
+                  {{#link-to "label" label}}
+                  <div class="label--listitem label-editor row">
+                    <div class="label--icon-holder medium-1 columns">
+                      <i class="label--icon fa fa-tag"></i>
+                    </div>
+                    <div class="medium-11 columns">
+                      {{label.name}}
+                    </div>
+                  </div>
+                  {{/link-to}}
+                </li>
+              {{/each}}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {{#if session.isAuthenticated}}
+      {{tool-box}}
+    {{/if}}
+  </div>
+</div>

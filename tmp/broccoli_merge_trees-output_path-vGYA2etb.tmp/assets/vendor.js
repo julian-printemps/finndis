@@ -1,0 +1,1 @@
+/Users/julian/web/workspace/placist/placist/tmp/broccoli_merge_trees-input_base_path-oytaQYeQ.tmp/0/assets/vendor.js

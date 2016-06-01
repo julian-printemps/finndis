@@ -1,0 +1,165 @@
+/*
+** Labels
+*/
+
+// Start general Label
+.label {
+
+  &--list {
+    list-style: none;
+    margin: 0;
+    margin-top: 1rem;
+  }
+
+  &--icon-holder {
+    text-align: center;
+  }
+}
+// End general Label
+
+
+// Start label selector
+.label-selector {
+  display: inline-block;
+  position: relative;
+  margin-right: 0.3rem;
+  box-sizing: border-box;
+
+  [type='checkbox'] + &--label {
+    display: inline-block;
+    padding: 0.4rem 1rem;
+    margin: 0;
+    cursor: pointer;
+    text-align: center;
+    border: 1px solid $label-block-backgound;
+    color: $label-block-backgound;
+    font-size: rem-calc(14px);
+    font-weight: bold;
+    @include setTransition();
+
+    &:hover {
+      background-color: $label-block-backgound;
+      color: $font-color-white;
+      @include setTransition();
+    }
+  }
+
+  &--input {
+    position: absolute;
+    left: -999%;
+    visibility: hidden;
+
+    &[type=checkbox]:checked + label {
+      color: $font-color-white;
+      border-color: darken($label-block-backgound, 10);
+      background-color: darken($label-block-backgound, 10);
+    }
+  }
+}
+// End label selector
+
+
+// Start label editor
+.label-editor {
+
+  &--holder {
+    padding: 0.4rem 0;
+    margin-bottom: 0.4rem;
+    cursor: pointer;
+    @include setTransition();
+
+    @media screen and #{breakpoint(medium)} {
+      padding: 0.4rem 1rem;
+    }
+
+    &:hover, &:focus, &:active {
+      @include setTransition();
+      background-color: $label-editor-backgound;
+    }
+
+    &.edition {
+      cursor: default;
+
+      &:hover, &:focus, &:active {
+        background-color: transparent;
+      }
+    }
+  }
+
+  &--input,
+  &--input:hover,
+  &--input:focus {
+    margin: 0;
+    height: auto;
+    padding: 1px 0.5rem;
+    border: 0;
+    box-shadow: none;
+    border-bottom: 1px solid $label-editor-backgound;
+        font-size: 0.85rem;
+  }
+
+  &--delete,
+  &--save {
+
+    &:hover, &:focus, &:active {
+      cursor: pointer;
+      background-color: $label-editor-backgound;
+    }
+  }
+}
+// End label editor
+
+// Start label add
+.label-add {
+
+  &--holder {
+    padding: 0.4rem 1rem;
+
+    .form--add-place & {
+      margin-top: 1rem;
+      margin-bottom: 1rem;
+    }
+  }
+
+  &--icon {
+    color: $label-font-color-blue;
+
+    &--holder {
+      text-align: center;
+    }
+  }
+
+  &--button {
+    &--holder {
+      cursor: pointer;
+    }
+  }
+}
+// End label add
+
+
+.label_edition {
+  border: 1px solid #2199e8;
+  background-color: transparent;
+  color: #2199e8;
+
+  &:hover, &:focus, &:active {
+    background-color: $color-light-grey;
+  }
+
+  &.__hidden {
+    display: none;
+  }
+
+  &--icon {
+    color: $color-blue;
+  }
+
+  &--content {
+    display: none;
+
+    &.__edition {
+      display: block;
+    }
+  }
+}

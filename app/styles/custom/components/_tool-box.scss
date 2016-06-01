@@ -1,0 +1,61 @@
+.tool_box {
+
+  &--holder {
+    position: fixed;
+    z-index: 800;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 0;
+    background-color: $tool-background-color;
+    -webkit-box-shadow: 0 -1px 10px 0 rgba(0,0,0,0.3);
+    box-shadow: 0 -1px 10px 0 rgba(0,0,0,0.3);
+
+    & > .row {
+      margin: 0 auto;
+    }
+
+    &.search_tool {
+      z-index: 1200;
+    }
+  }
+
+  // Button
+  &--button-group {
+    margin: 0;
+    text-align: right;
+
+    & .button:not(:last-child) {
+      border-left: 1px solid $tool-font-color;
+      border-right: none;
+    }
+
+    & .button {
+      float: right;
+      font-size: 0.75rem;
+    }
+  }
+
+  &--button {
+    margin: 0;
+    color: $tool-font-color;
+    background-color: transparent;
+
+    &:hover, &:focus {
+      color: darken($tool-font-color, 25);
+      background-color: $tool-background-color;
+
+    }
+  }
+
+  // icons
+  &--icon {
+    margin-right: 0.4rem;
+  }
+}
+
+.google_footer > img {
+  max-width: 160px;
+  margin-top: -4px;
+  margin-left: 0.5rem;
+}

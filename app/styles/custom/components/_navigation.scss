@@ -1,0 +1,59 @@
+/*
+** Navigation
+*/
+
+.navigation {
+
+  &.top-bar {
+    padding: 0 0.5rem;
+  }
+
+  &--holder {
+    position: fixed;
+    z-index: 900;
+    width: 100%;
+    top: 0;
+    background-color: $nav-background-color;
+    // border-bottom: 1px solid $nav-font-color;
+    -webkit-box-shadow: 0 1px 10px 0 rgba(0,0,0,0.5);
+    box-shadow: 0 1px 10px 0 rgba(0,0,0,0.5);
+
+    @include setTransition();
+
+    &.__hidden {
+      top: -3rem;
+      @include setTransition();
+    }
+  }
+
+  .menu &--listitem {
+    display: inline-block;
+    text-align: right;
+  }
+
+  .menu &--link,
+  .menu &--user-link {
+    padding: 1rem 1rem;
+    color: $nav-font-color;
+    @include setTransition();
+
+    &:hover, &:focus, &:active {
+      background-color: darken($nav-background-color, 5);
+      // color: darken($nav-font-color, 10);
+      // border-bottom: 1px solid $nav-font-color;;
+      @include setTransition();
+    }
+  }
+
+  .menu &--icon {
+    margin-right: 0.5rem;
+    margin-top: -4px
+  }
+
+  // Button
+  &--button {
+    &-holder {
+      text-align: right;
+    }
+  }
+}

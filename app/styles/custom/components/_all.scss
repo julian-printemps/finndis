@@ -1,0 +1,27 @@
+@mixin setTransition {
+  -webkit-transition: all 0.2s ease-in-out;
+  -moz-transition: all 0.2s ease-in-out;
+  -ms-transition: all 0.2s ease-in-out;
+  -o-transition: all 0.2s ease-in-out;
+  transition: all 0.2s ease-in-out;
+}
+
+
+body {
+  position: relative;
+  overflow-x: hidden;
+
+  &.__noscroll {
+    overflow: hidden;
+  }
+}
+
+.page-wrapper {
+  margin-top: 3rem;
+  margin-bottom: 2rem;
+
+  &.__fix {
+    margin-top: 0;
+    padding-bottom: 0;
+  }
+}

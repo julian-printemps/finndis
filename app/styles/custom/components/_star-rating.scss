@@ -1,0 +1,30 @@
+.star-rating {
+  &.fa {
+    font-size: 2rem;
+    margin: 0 0.4rem;
+    color: $color-blue;
+  }
+}
+
+.place--rating {
+  text-align: center;
+  padding-top: 2rem;
+}
+
+.price-rating {
+  .__edition & {
+    padding-top: 0.8rem;
+  }
+
+  &.fa {
+    position: relative;
+    font-size: 1.6rem;
+    margin: 0;
+    margin-left: -1px;
+    color: $color-dark-grey;
+
+    &.fa-square-o {
+      bottom: -1px;
+    }
+  }
+}

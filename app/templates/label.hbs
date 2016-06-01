@@ -1,0 +1,49 @@
+<div class="page-wrapper row">
+  <div class="columns">
+    <div class="row">
+      <div class="columns">
+        {{#masonry-grid items=model.places customLayout=true as |place index grid|}}
+          {{#masonry-item item=place grid=grid }}
+            {{#link-to "place" place}}
+              <article id="card_{{index}}" class="card">
+                <h3 class="card--title">{{place.name}}</h3>
+                <main class="card--main">
+                  {{#if place.formattedaddress}}
+                    <div class="card--address card--section row">
+                      <div class="small-1 columns">
+                        <i class="place--main--icon fa fa-map-marker"></i>
+                      </div>
+                      <div class="small-11 columns">
+                        {{place.formattedaddress}}
+                      </div>
+                    </div>
+                  {{/if}}
+
+                  {{#if place.phone}}
+                    <div class="card--phone card--section row">
+                      <div class="small-1 columns">
+                        <i class="place--main--icon fa fa-phone"></i>
+                      </div>
+                      <div class="small-11 columns">
+                        {{place.phone}}
+                      </div>
+                    </div>
+                  {{/if}}
+                  <div class="card--icon--holder card--section">
+                    <i class="card--icon fa fa-tag"></i>{{place.label.name}}
+                  </div>
+                </main>
+              </article>
+            {{/link-to}}
+          {{/masonry-item}}
+        {{/masonry-grid}}
+
+        {{outlet}}
+      </div>
+    </div>
+
+    {{#if session.isAuthenticated}}
+      {{tool-box}}
+    {{/if}}
+  </div>
+</div>

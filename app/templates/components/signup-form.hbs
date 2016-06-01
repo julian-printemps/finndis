@@ -1,0 +1,60 @@
+<nav id="panel-sigup" class="panel-menu panel left {{signupPanelClass}}">
+
+  {{!-- User --}}
+  <div class="panel--section user-section" {{action "closeMenuPanel" on="click"}}>
+    {{!-- Close button --}}
+      <a class="close-button" {{action "closeMenuPanel"}}><i class="fa fa-times"></i></a>
+    {{!-- end Close button --}}
+
+    {{#link-to "users" class="navigation--user-link"}}
+      <span class="user-section--name">Have fun :)</span>
+    {{/link-to}}
+  </div>
+  {{!-- end User --}}
+
+
+  {{!-- Signup form --}}
+  <div class="panel--section">
+    <form {{action "signup" on="submit"}} class="signup-form">
+      <div class="input-holder row">
+        <div class="small-12 medium-6 columns">
+          {{input value=model.firstname type="text" placeholder="Your first name"}}
+          <small class="legend">(optional)</small>
+        </div>
+        <div class="small-12 medium-6 columns">
+          {{input value=model.lastname type="text" placeholder="Your last name"}}
+          <small class="legend">(optional)</small>
+        </div>
+      </div>
+      <div class="input-holder row">
+        <div class="small-12 columns">
+          {{input value=model.email type="email" placeholder="e-mail address"}}
+          {{#if (v-get model 'email' 'isInvalid')}}
+            <small class="legend">
+              {{v-get model 'email' 'message'}}
+            </small>
+          {{/if}}
+        </div>
+      </div>
+      <div class="input-holder row">
+        <div class="small-12 medium-12 columns">
+          {{input value=model.password type="password" placeholder="Password"}}
+          {{#if (v-get model 'password' 'isInvalid')}}
+            <small class="legend">
+              {{v-get model 'password' 'message'}}
+            </small>
+          {{/if}}
+        </div>
+      </div>
+      <div class="login-form--button-holder row">
+        <div class="small-12 columns">
+          <button type="submit" class="button expanded"><i class="fa fa-user-plus"></i> Sign up</button>
+        </div>
+      </div>
+    </form>
+  </div>
+  {{!-- end Signup form --}}
+
+
+</nav>
+<a class="panel-overlay left {{signupPanelClass}}" {{action "closeMenuPanel"}}></a>

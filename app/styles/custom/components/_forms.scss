@@ -1,0 +1,95 @@
+/*
+** Login form
+*/
+
+.login-form {
+
+  &--button-holder {
+    text-align: right;
+  }
+}
+
+.signup-form {
+  margin-top: 2rem;
+
+  & .row.input-holder {
+    margin-bottom: 1rem;
+  }
+
+  & .legend {
+    font-size: rem-calc(12px);
+    color: darken($panel-title-color, 25);
+  }
+
+  & [type='text'], & [type='password'], & [type='date'], & [type='datetime'],
+  & [type='datetime-local'], & [type='month'], & [type='week'], & [type='email'],
+  & [type='number'], & [type='search'], & [type='tel'], & [type='time'], & [type='url'],
+  & [type='color'], & textarea {
+    margin: 0;
+  }
+}
+
+
+/*
+** Panel form
+*/
+.panel_form {
+
+  &--search {
+    margin-bottom: 2rem;
+
+    & [type='text'], & [type='password'], & [type='date'], & [type='datetime'],
+    & [type='datetime-local'], & [type='month'], & [type='week'], & [type='email'],
+    & [type='number'], & [type='search'], & [type='tel'], & [type='time'], & [type='url'],
+    & [type='color'], & textarea {
+      box-shadow: none;
+      border: none;
+      border-bottom: 1px solid $color-grey;
+    }
+
+    &--button {
+      padding: 0.7rem 0;
+    }
+  }
+}
+
+
+/*
+** Search box
+*/
+.search_box {
+
+  & [type='text'], & [type='password'], & [type='date'], & [type='datetime'],
+  & [type='datetime-local'], & [type='month'], & [type='week'], & [type='email'],
+  & [type='number'], & [type='search'], & [type='tel'], & [type='time'], & [type='url'],
+  & [type='color'], & textarea {
+    box-shadow: none;
+    border: none;
+    border-bottom: 1px solid $color-grey;
+  }
+}
+
+
+/*
+** Range
+*/
+input[type="range"] {
+    position: relative;
+    display: block;
+    margin-left: 0;
+    width: 100%;
+}
+input[type="range"]:after,
+input[type="range"]:before {
+    position: absolute;
+    top: 1.8em;
+    color: $color-blue;
+}
+input[type="range"]:before {
+    left:0em;
+    content: attr(min)' 'attr(data-currency);
+}
+input[type="range"]:after {
+    right: 0em;
+    content: attr(max)'$';
+}

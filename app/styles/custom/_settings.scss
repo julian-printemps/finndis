@@ -1,0 +1,76 @@
+
+// 35. Custom
+// -----------
+
+// Default
+$font-color-white: #fefefe;
+$color-blue: #3d95d2;
+$color-light-blue: lighten($color-blue, 25);
+$color-orange: #FF9E36;
+$color-red: #fefefe;
+$color-grey: #e6e6e6;
+$color-light-grey: lighten($color-grey, 5);
+$color-dark-grey: #616161;
+$color-black: #222;
+$color-white: #fefefe;
+
+$mobile-medium: "(max-width: 640px)";
+
+
+// Logo
+$logo-font: "Pacifico";
+
+
+// Navigation
+$nav-background-color: $color-blue;
+$nav-font-color: $color-white;
+$nav-button-color: $color-white;
+
+// Tool box
+$tool-background-color: #F3F3F3;
+$tool-font-color: #838383;
+
+
+// Label
+$label-font-color-blue: $color-blue;
+
+$label-block-backgound: $color-orange;
+$label-editor-backgound: #f6f6f6;
+
+
+// Card
+$card-font-color-blue: $color-blue;
+$card-font-color-black: $color-black;
+
+$card-backgound-color: #F3F3F3;
+$card-border-color: darken($card-backgound-color, 5);;
+
+
+// Place
+$place-font-color-blue: $color-blue;
+$place-font-color-black: $color-black;
+
+$place-header-backgound-color: $color-blue;
+$place-header-backgound-edition-color: $color-grey;
+$place-header-color: #fefefe;
+$place-header-edition-color: $color-black;
+$place-border-color: $color-grey;
+
+$place-input-border-color: $color-blue;
+
+$place-error-color: #E26200;
+
+
+// Panel
+$panel-backgound-color: $color-white;
+$panel-border-color: $color-orange;
+$panel-border-color-blue: $color-blue;
+$panel-border-top-color: $color-grey;
+$panel-action-color: $color-blue;
+
+$panel-user-section-background-color: $color-blue;
+$panel-user-section-color: $color-white;
+
+$panel-title-color: $color-grey;
+
+$close-panel-color: $color-white;

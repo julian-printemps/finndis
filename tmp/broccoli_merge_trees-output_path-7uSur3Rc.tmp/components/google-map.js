@@ -1,0 +1,1 @@
+/Users/julian/web/workspace/placist/placist/app/components/google-map.js
