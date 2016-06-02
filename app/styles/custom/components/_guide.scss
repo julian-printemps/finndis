@@ -1,0 +1,43 @@
+/*
+** Guide
+*/
+.guide {
+
+  &--article {
+    margin-top: 3rem;
+    margin-bottom: 3rem;
+    padding-left: 0.8rem;
+    padding-right: 0.8rem;
+
+    &.reversed {
+      direction: rtl;
+
+      & * {
+        direction: ltr;
+      }
+    }
+  }
+
+  &--title {
+    font-size: 1rem;
+    font-weight: bold;
+
+    @media screen and #{breakpoint(medium)} {
+      font-size: 1.5rem;
+    }
+  }
+
+  &--content {
+    font-size: 0.8rem;
+
+    @media screen and #{breakpoint(medium)} {
+      font-size: 1.1rem;
+    }
+  }
+
+  &--image {
+    display: block;
+    width: 100%;
+  }
+
+}

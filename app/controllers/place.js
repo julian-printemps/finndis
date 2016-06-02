@@ -212,11 +212,14 @@ export default Ember.Controller.extend({
     },
 
     deletePlace(model) {
+      var self = this;
       model.deleteRecord();
       model.get('isDeleted');
-      model.save();
-      this.set('isEditing', false);
-      this.transitionToRoute('places');
+      model.save().then(function(){
+        self.set('isEditing', false);
+        self.transitionToRoute('places');
+      });
+
     },
 
   }
