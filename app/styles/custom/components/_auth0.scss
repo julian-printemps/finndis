@@ -17,3 +17,29 @@
 #a0-lock.a0-theme-default .a0-panel .a0-header h1 {
   font-size: 20px !important;
 }
+
+.a0-footer {
+  display: none !important;
+}
+
+// buttons
+.a0-forgot-pass {
+  display: block !important;
+  width: 120px !important;
+  margin: 1rem auto 0 !important;
+}
+
+.a0-sign-up {
+  border-radius: 0px !important;
+  border: none !important;
+  background-color: #569BD8 !important;
+  color: white !important;
+  padding: 1rem 2rem !important;
+  font-size: 0.7rem !important;
+}
+
+#a0-lock.a0-theme-default .a0-panel button.a0-primary,
+#a0-lock.a0-theme-default .a0-panel .a0-email input,
+#a0-lock.a0-theme-default .a0-panel .a0-inputs {
+  border-radius: 0 !important;
+}

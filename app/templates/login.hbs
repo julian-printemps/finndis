@@ -9,11 +9,14 @@
       </div>
     </div>
 
+    {{#if session.isAuthenticated}}
+    {{else}}
     <div class="row">
       <div class="small-6 small-offset-3 medium-4 medium-offset-4 large-4 large-offset-4 columns">
         <a class="button expanded button_login" {{action 'login'}}>Login / Signup</a>
       </div>
     </div>
+    {{/if}}
 
     {{start-guide}}
 

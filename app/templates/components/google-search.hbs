@@ -12,11 +12,12 @@
         <a href="#" class="button edit-button" {{action "savePlace"}}><i class="place--action--icon fa fa-star"></i>Save</a>
         <a href="#" class="button delete-button" {{action "closeMenuPanel"}}><i class="place--action--icon fa fa-times"></i>Cancel</a>
         {{input class="place--title __input" type="text" placeholder="Name" value=place.name}}
-        <i class="place--labels--icon fa fa-tag"></i>
-        <ul class="place--labels clearfix">
-          {{#each place.types as |type|}}
-            <li class="place--labelitem">{{type}}</li>
-          {{/each}}
+        <i class="place--labels--icon fa fa-tag" {{action "showAddLabel" bubbles="false"}}></i>
+        <ul class="place--labels clearfix" {{action "showAddLabel" bubbles="false"}}>
+          <li class="place--labelitem">{{place.label.name}}</li>
+          <li class="place--labelitem">
+            <i class="place--add--icon fa fa-plus" ></i>
+          </li>
         </ul>
       </header>
 
@@ -157,3 +158,6 @@
 </div>
 <a class="panel-overlay right {{searchPanelDisplayed}}" {{action "closeMenuPanel"}}></a>
 {{!-- End Search panel --}}
+
+{{!-- Label panel --}}
+{{label-panel userLabels=userLabels labelPanelDisplayed=labelPanelDisplayed model=place autoSaveLabel=false}}

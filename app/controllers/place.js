@@ -41,7 +41,6 @@ export default Ember.Controller.extend({
       this.set('labelPanelDisplayed', '');
     },
 
-
     toggleEdition() {
       var self = this;
       this.set('isEditing', true);
@@ -52,15 +51,6 @@ export default Ember.Controller.extend({
         }
       });
     },
-
-    updateLabel(labelValue) {
-      var self = this;
-      this.get('store').findRecord('label', labelValue ).then( function(label){
-        self.set('model.label', label);
-        self.get('model').save();
-      });
-    },
-
 
     setRating(params){
       var place = this.get('model');

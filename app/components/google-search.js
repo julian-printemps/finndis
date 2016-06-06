@@ -15,6 +15,7 @@ export default Ember.Component.extend({
   searchPanelDisplayed: '',
   labelAdd: '',
   labelAddButton: '',
+  labelPanelDisplayed: '',
   queryType: '',
   map: '',
   markerUser: '',
@@ -68,6 +69,11 @@ export default Ember.Component.extend({
     types: ''
   },
 
+  userLabels: Ember.computed(function() {
+    var labels = this.get('store').peekAll('label');
+    return labels;
+  }),
+
   didInsertElement() {
     this._super(...arguments);
     var self = this;
@@ -84,6 +90,10 @@ export default Ember.Component.extend({
 
 
   actions: {
+    showAddLabel() {
+      this.set('labelPanelDisplayed', 'show');
+    },
+
     searchMaps(param){
       var self = this;
       var map = '';
@@ -126,6 +136,7 @@ export default Ember.Component.extend({
             },
             mapTypeId: google.maps.MapTypeId.ROADMAP
           });
+
 
           var marker = new google.maps.Marker({
             position: map.getCenter(),
@@ -523,7 +534,7 @@ export default Ember.Component.extend({
         openinghours: '',
         pricerange: place.pricerange,
         uid: self.get('session.uid'),
-        label: '',
+        label: place.label
       });
 
       newPlace.save().then(function() {

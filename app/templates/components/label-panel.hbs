@@ -1,0 +1,41 @@
+<div class="panel right {{labelPanelDisplayed}}">
+  <form class="add-label--form">
+    <div class="row">
+      <div class="back-button--holder small-2 columns">
+        <a {{action "closeMenuPanel"}}><i class="back-button fa fa-times"></i></a>
+      </div>
+      <div class="small-10 columns">
+        {{add-label}}
+      </div>
+    </div>
+    <div class="row">
+      <div class="medium-12 columns">
+        <ul class="label--list">
+          {{#each userLabels as |label|}}
+            <li class="label-editor--holder">
+              <label class="label--listitem--label">
+                <div class="label--listitem label-editor collapse align-middle row">
+                  <div class="label--icon-holder small-1 columns">
+                    <i class="label--icon fa fa-tag"></i>
+                  </div>
+                  <div class="small-10 columns">
+                    {{label.name}}
+                  </div>
+                  <div class="label--icon-holder small-1 columns">
+                    {{radio-button
+                      id=label.id
+                      value=label.id
+                      groupValue=labelValue
+                      changed="updateLabel"
+                      name="label"}}
+                  </div>
+                </div>
+              </label>
+            </li>
+          {{/each}}
+        </ul>
+      </div>
+    </div>
+  </form>
+</div>
+<a class="panel-overlay right {{labelPanelDisplayed}}" {{action "closeMenuPanel"}}></a>

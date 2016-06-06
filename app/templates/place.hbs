@@ -1,46 +1,6 @@
 <div class="page-wrapper row big">
   <div class="columns">
-    <div class="panel right {{labelPanelDisplayed}}">
-      <form class="add-label--form">
-        <div class="row">
-          <div class="back-button--holder small-2 columns">
-            <a {{action "closeMenuPanel"}}><i class="back-button fa fa-arrow-left"></i></a>
-          </div>
-          <div class="small-10 columns">
-            {{add-label}}
-          </div>
-        </div>
-        <div class="row">
-          <div class="medium-12 columns">
-            <ul class="label--list">
-              {{#each userLabels as |label|}}
-                <li class="label-editor--holder">
-                  <label class="label--listitem--label">
-                    <div class="label--listitem label-editor collapse align-middle row">
-                      <div class="label--icon-holder small-1 columns">
-                        <i class="label--icon fa fa-tag"></i>
-                      </div>
-                      <div class="small-10 columns">
-                        {{label.name}}
-                      </div>
-                      <div class="label--icon-holder small-1 columns">
-                        {{radio-button
-                          id=label.id
-                          value=label.id
-                          groupValue=labelValue
-                          changed="updateLabel"
-                          name="label"}}
-                      </div>
-                    </div>
-                  </label>
-                </li>
-              {{/each}}
-            </ul>
-          </div>
-        </div>
-      </form>
-    </div>
-    <a class="panel-overlay right {{labelPanelDisplayed}}" {{action "closeMenuPanel"}}></a>
+    {{label-panel userLabels=userLabels labelPanelDisplayed=labelPanelDisplayed model=model autoSaveLabel=true}}
 
 {{#if isEditing}}
 
@@ -60,11 +20,11 @@
                   <h2 class="place--title">
                     {{input type="text" class="place--input" value=model.name}}
                   </h2>
-                  <i class="place--labels--icon fa fa-tag"></i>
-                  <ul class="place--labels clearfix">
+                  <i class="place--labels--icon fa fa-tag" {{action "showAddLabel" bubbles="false"}}></i>
+                  <ul class="place--labels clearfix" {{action "showAddLabel" bubbles="false"}}>
                     <li class="place--labelitem">{{model.label.name}}</li>
                     <li class="place--labelitem">
-                      <i class="place--add--icon fa fa-plus" {{action "showAddLabel" bubbles="false"}}></i>
+                      <i class="place--add--icon fa fa-plus"></i>
                     </li>
                   </ul>
                 </header>
@@ -194,11 +154,11 @@
                 <a href="#" class="button edit-button" {{action "toggleEdition"}}><i class="place--action--icon fa fa-pencil-square-o"></i>Edit</a>
 
                 {{input class="place--title __input" type="text" placeholder="Name" value=model.name}}
-                <i class="place--labels--icon fa fa-tag"></i>
-                <ul class="place--labels clearfix">
+                <i class="place--labels--icon fa fa-tag" {{action "showAddLabel" bubbles="false"}}></i>
+                <ul class="place--labels clearfix" {{action "showAddLabel" bubbles="false"}}>
                   <li class="place--labelitem">{{model.label.name}}</li>
                   <li class="place--labelitem">
-                    <i class="place--add--icon fa fa-plus" {{action "showAddLabel" bubbles="false"}}></i>
+                    <i class="place--add--icon fa fa-plus" ></i>
                   </li>
                 </ul>
               </header>
