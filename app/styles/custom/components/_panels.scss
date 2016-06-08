@@ -11,6 +11,11 @@
   background-color: $panel-backgound-color;
   @include setTransition();
 
+  &.place_map {
+    padding-top: 0;
+    z-index: 1100;
+  }
+
   & form > .row { margin: 0; }
 
   &.left {
@@ -59,12 +64,14 @@
     left: 0;
     bottom: -50%;
     padding-bottom: 3rem;
+    padding-top: 1rem;
     -webkit-box-shadow: -1px 0 10px 0 rgba(0,0,0,0.3);
     box-shadow: -1px 0 10px 0 rgba(0,0,0,0.3);
 
 
     @media screen and #{breakpoint(medium)} {
       max-height: 50%;
+      padding-top: 3rem;
       bottom: calc(-50% - 34px);
     }
 
@@ -145,7 +152,7 @@
     position: fixed;
     top: 0;
     left: 0;
-    z-index: 1000;
+    z-index: 1200;
     height: 100%;
     width: 100%;
     background-color: rgba($color-black, 0.3);
@@ -156,6 +163,11 @@
 
     &.__nav {
       z-index: 1300;
+    }
+
+    &.bottom,
+    &.place_map {
+      z-index: 1000;
     }
   }
   // end of overlay

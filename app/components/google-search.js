@@ -16,6 +16,7 @@ export default Ember.Component.extend({
   labelAdd: '',
   labelAddButton: '',
   labelPanelDisplayed: '',
+  placePanelDisplayed: '',
   queryType: '',
   map: '',
   markerUser: '',
@@ -79,7 +80,7 @@ export default Ember.Component.extend({
     var self = this;
     $(document).keyup(function(e) {
       if (e.keyCode === 27) {
-        self.set('showPlaceDetails', false);
+        self.set('placePanelDisplayed', '');
         self.set('searchPanelIsDisplayed', false);
         self.set('searchPanelDisplayed', '');
       }
@@ -150,6 +151,13 @@ export default Ember.Component.extend({
             map: map
           });
 
+          var markerUser = new google.maps.Marker({
+            draggable: true,
+            map: map,
+            icon: finndis
+          });
+
+
           var infoWindow = new google.maps.InfoWindow();
           infoWindow.setPosition(geolocation);
           var service = new google.maps.places.PlacesService(map);
@@ -171,6 +179,22 @@ export default Ember.Component.extend({
           }
 
 
+
+          /*
+          ** POI click
+          */
+          var set = google.maps.InfoWindow.prototype.set;
+          google.maps.InfoWindow.prototype.set = function (key, val) {
+            if (key === 'map' && ! this.get('noSuppress')) {
+              var geocoder = new google.maps.Geocoder();
+              var location = this.getPosition();
+              placeMarker(location);
+              return;
+            }
+            set.apply(this, arguments);
+          }
+
+
           /*
           ** Add marker on click & save new custon place
           */
@@ -179,48 +203,35 @@ export default Ember.Component.extend({
           });
 
           function placeMarker(location) {
-            if( self.get('markerUser') ) {
-              markerUser = self.get('markerUser');
-              markerUser.setPosition(location);
-              loadPlace(location);
-            }
-            else {
-              var markerUser = new google.maps.Marker({
-                position: location,
-                draggable: true,
-                map: map,
-                icon: finndis
-              });
-              loadPlace(location);
-              self.set('markerUser', markerUser);
-            }
+            markerUser.setPosition(location);
 
+            loadPlace(location);
             google.maps.event.addListener(markerUser, 'click', function() {
-              self.set('showPlaceDetails', true);
+              self.set('placePanelDisplayed', 'show');
+              loadPlace(event.latLng);
             });
 
             google.maps.event.addListener(markerUser, 'dragend', function(event) {
               markerUser.setPosition(event.latLng);
               loadPlace(event.latLng);
             });
+          }
 
-
-            function loadPlace(location){
-              var geocoder = new google.maps.Geocoder();
-              geocoder.geocode({'location': location }, function(result, status) {
-                if (status === google.maps.GeocoderStatus.OK) {
-                  // Set info
-                  var service = new google.maps.places.PlacesService(map);
-                  service.getDetails({
-                    placeId: result[0].place_id
-                  }, function(place, status) {
-                    if (status === google.maps.places.PlacesServiceStatus.OK) {
-                      self.send('setPlaceMaps', place);
-                    }
-                  });
-                }
-              });
-            }
+          function loadPlace(location){
+            var geocoder = new google.maps.Geocoder();
+            geocoder.geocode({'location': location }, function(result, status) {
+              if (status === google.maps.GeocoderStatus.OK) {
+                // Set info
+                var service = new google.maps.places.PlacesService(map);
+                service.getDetails({
+                  placeId: result[0].place_id
+                }, function(place, status) {
+                  if (status === google.maps.places.PlacesServiceStatus.OK) {
+                    self.send('setPlaceMaps', place);
+                  }
+                });
+              }
+            });
           }
 
 
@@ -290,7 +301,7 @@ export default Ember.Component.extend({
                   console.error(status);
                   return;
                 }
-                self.set('showPlaceDetails', true);
+                self.set('placePanelDisplayed', 'show');
                 infoWindow.setContent('<div><strong id="placeName">' + result.name + '</strong></div>' +
                   '<div>' +
                   result.formatted_address + '</div>');
@@ -339,16 +350,6 @@ export default Ember.Component.extend({
       if(result.website){
         self.set('place.website', result.website);
       }
-
-      // if(result.types){
-      //   var types = [];
-      //   result.types.forEach(function(type){
-      //     if( type !== 'point_of_interest' && type !== 'establishment' ){
-      //       types.addObject(type);
-      //     }
-      //   });
-      //   self.set('place.types', types);
-      // }
 
       self.set('place.formattedaddress', result.formatted_address);
 
@@ -455,14 +456,14 @@ export default Ember.Component.extend({
     showSearchPanel() {
       this.set('searchPanelDisplayed', 'show');
       $('body').toggleClass('__noscroll');
-      this.set('showPlaceDetails', false);
+      this.set('placePanelDisplayed', '');
       this.set('searchPanelIsDisplayed', true);
     },
 
     closeMenuPanel() {
       this.set('searchPanelDisplayed', '');
       this.set('searchPanelIsDisplayed', false);
-      this.set('showPlaceDetails', false);
+      this.set('placePanelDisplayed', '');
       if( $('body').hasClass('__noscroll') ){
         $('body').removeClass('__noscroll');
       }
@@ -475,7 +476,7 @@ export default Ember.Component.extend({
       $(document).keyup(function(e) {
         if (e.keyCode === 27) {
           self.set('searchPanelIsDisplayed', false);
-          this.set('showPlaceDetails', false);
+          self.set('placePanelDisplayed', '');
         }
       });
     },

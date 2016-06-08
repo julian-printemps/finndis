@@ -3,14 +3,12 @@
 <div id="map" class="map-canvas map_search"></div>
 
 {{!-- Display place information --}}
-{{#if showPlaceDetails}}
-
-<div id="place_map" class="place_map">
+<div id="place_map" class="place_map panel left {{placePanelDisplayed}}">
   <div class="place_map--inner">
     <article class="place">
       <header class="place--header">
         <a href="#" class="button edit-button" {{action "savePlace"}}><i class="place--action--icon fa fa-star"></i>Save</a>
-        <a href="#" class="button delete-button" {{action "closeMenuPanel"}}><i class="place--action--icon fa fa-times"></i>Cancel</a>
+        <a href="#" class="button delete-button" {{action "closeMenuPanel"}}><i class="place--action--icon fa fa-times"></i>Close</a>
         {{input class="place--title __input" type="text" placeholder="Name" value=place.name}}
         <i class="place--labels--icon fa fa-tag" {{action "showAddLabel" bubbles="false"}}></i>
         <ul class="place--labels clearfix" {{action "showAddLabel" bubbles="false"}}>
@@ -24,7 +22,7 @@
       <main class="place--main">
         <div class="place--info--holder row">
           {{#if place.formattedaddress}}
-          <div class="columns small-12 medium-6">
+          <div class="columns small-12">
             <div class="place--address row">
               <div class="small-1 columns">
                 <i class="place--main--icon fa fa-map-marker"></i>
@@ -36,7 +34,7 @@
           </div>
           {{/if}}
           {{#if place.phone}}
-          <div class="columns small-12 medium-6">
+          <div class="columns small-12">
             <a href="tel:{{place.phone}}">
               <div class="place--phone row">
                 <div class="small-1 columns">
@@ -54,7 +52,7 @@
 
         <div class="place--info--holder row">
           {{#if place.website}}
-          <div class="columns small-12 medium-6">
+          <div class="columns small-12">
             <a href="{{place.website}}">
               <div class="place--website row">
                 <div class="small-1 columns">
@@ -68,7 +66,7 @@
           </div>
           {{/if}}
           {{#if place.url}}
-          <div class="columns small-12 medium-6">
+          <div class="columns small-12">
             <a href="{{place.url}}">
               <div class="place--url row">
                 <div class="small-1 columns">
@@ -84,7 +82,7 @@
         </div>
 
         <div class="place--info--holder row">
-          <div class="columns small-12 medium-6">
+          <div class="columns small-12">
             <a href="http://maps.google.com/maps?daddr={{place.locationlat}},{{place.locationlng}}&amp;ll=" target="_blank">
               <div class="place--direction row">
                 <div class="small-1 columns">
@@ -111,7 +109,6 @@
     </article>
   </div>
 </div>
-{{/if}}
 
 
 
@@ -138,7 +135,7 @@
   {{!-- Search places --}}
   <div class="row">
     <div class="small-12 medium-8 medium-offset-2 columns">
-      <h3 class="panel--section--title">Choose a label to search for a place around you</h3>
+      <h3 class="panel--section--title">Choose a label</h3>
     </div>
   </div>
   <div class="row label-panel--list--holder">
@@ -156,8 +153,10 @@
     </div>
   </div>
 </div>
-<a class="panel-overlay right {{searchPanelDisplayed}}" {{action "closeMenuPanel"}}></a>
 {{!-- End Search panel --}}
 
 {{!-- Label panel --}}
 {{label-panel userLabels=userLabels labelPanelDisplayed=labelPanelDisplayed model=place autoSaveLabel=false}}
+
+<a class="panel-overlay bottom {{searchPanelDisplayed}}" {{action "closeMenuPanel"}}></a>
+<a class="panel-overlay place_map {{placePanelDisplayed}}" {{action "closeMenuPanel"}}></a>

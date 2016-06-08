@@ -13,6 +13,7 @@ export default Ember.Component.extend({
         if( self.get('autoSaveLabel') ){
           self.get('model').save();
         }
+        self.set('labelPanelDisplayed', '');
       });
     },
 
