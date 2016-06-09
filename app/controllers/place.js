@@ -35,6 +35,7 @@ export default Ember.Controller.extend({
 
     showAddLabel() {
       this.set('labelPanelDisplayed', 'show');
+      $('body').toggleClass('__noscroll');
     },
 
     closeMenuPanel() {

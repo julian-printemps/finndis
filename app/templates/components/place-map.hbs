@@ -1,5 +1,3 @@
-{{input id="searchKeyword" type="text" placeholder="Search with Google Map" value=searchText}}
-{{input id="searchKeyword2" type="text" placeholder="Search with Google Map" value=searchText}}
 <div id="map" class="map-canvas map_search"></div>
 
 {{!-- Display place information --}}
@@ -7,14 +5,9 @@
   <div class="place_map--inner">
     <article class="place">
       <header class="place--header">
-        {{#if placeExist}}
-          {{#link-to "place" place class="button edit-button"}}<i class="place--action--icon fa fa-info-circle"></i>View details{{/link-to}}
-        {{else}}
-          <a href="#" class="button edit-button" {{action "savePlace"}}><i class="place--action--icon fa fa-star"></i>Save</a>
-        {{/if}}
-
+        {{#link-to "place" place class="button edit-button"}}<i class="place--action--icon fa fa-info-circle"></i>View details{{/link-to}}
         <a href="#" class="button delete-button" {{action "closeMenuPanel"}}><i class="place--action--icon fa fa-times"></i>Close</a>
-        {{input class="place--title __input" type="text" placeholder="Name" value=place.name}}
+        <h2 class="place--title">{{place.name}}</h2>
         <i class="place--labels--icon fa fa-tag" {{action "showAddLabel" bubbles="false"}}></i>
         <ul class="place--labels clearfix" {{action "showAddLabel" bubbles="false"}}>
           <li class="place--labelitem">{{place.label.name}}</li>
@@ -25,28 +18,14 @@
       </header>
 
       <main class="place--main">
-
-        {{#if placeExist}}
-        {{#link-to "place" place}}
-        <div class="place--info--holder row">
-          <div class="shrink columns">
-            <i class="place--action--icon fa fa-info-circle"></i>
-          </div>
-          <div class="columns">
-            This place is already in you list.
-          </div>
-        </div>
-        {{/link-to}}
-        {{/if}}
-
         <div class="place--info--holder row">
           {{#if place.formattedaddress}}
           <div class="columns small-12">
             <div class="place--address row">
-              <div class="shrink columns">
+              <div class="small-1 columns">
                 <i class="place--main--icon fa fa-map-marker"></i>
               </div>
-              <div class="columns">
+              <div class="small-11 columns">
                 {{place.formattedaddress}}
               </div>
             </div>
@@ -56,10 +35,10 @@
           <div class="columns small-12">
             <a href="tel:{{place.phone}}">
               <div class="place--phone row">
-                <div class="shrink columns">
+                <div class="small-1 columns">
                   <i class="place--main--icon fa fa-phone"></i>
                 </div>
-                <div class="columns">
+                <div class="small-11 columns">
                   {{place.phone}}
                 </div>
               </div>
@@ -74,10 +53,10 @@
           <div class="columns small-12">
             <a href="{{place.website}}">
               <div class="place--website row">
-                <div class="shrink columns">
+                <div class="small-1 columns">
                   <i class="place--main--icon fa fa-globe"></i>
                 </div>
-                <div class="columns">
+                <div class="small-11 columns">
                   {{place.website}}
                 </div>
               </div>
@@ -88,10 +67,10 @@
           <div class="columns small-12">
             <a href="{{place.url}}">
               <div class="place--url row">
-                <div class="shrink columns">
+                <div class="small-1 columns">
                   <i class="place--main--icon fa fa-google"></i>
                 </div>
-                <div class="columns">
+                <div class="small-11 columns">
                   Google Map
                 </div>
               </div>
@@ -104,10 +83,10 @@
           <div class="columns small-12">
             <a href="http://maps.google.com/maps?daddr={{place.locationlat}},{{place.locationlng}}&amp;ll=" target="_blank">
               <div class="place--direction row">
-                <div class="shrink columns">
+                <div class="small-1 columns">
                   <i class="place--main--icon fa fa-location-arrow"></i>
                 </div>
-                <div class="columns">
+                <div class="small-11 columns">
                   Get direction
                 </div>
               </div>
@@ -129,53 +108,7 @@
   </div>
 </div>
 
-
-
-<div class="tool_box--holder search_tool">
-  <div class="row align-middle align-right">
-    <div class="google_footer small-4 medium-5 columns">
-      <img src="assets/images/powered-by-google/android/res/drawable-hdpi/powered_by_google_on_white.png" alt="powered-by-google" >
-    </div>
-    <div class="tool_box small-8 medium-7 columns">
-      <div class="button-group tool_box--button-group">
-        {{#if searchPanelIsDisplayed}}
-          <a class="button tool_box--button" {{action "closeMenuPanel"}}><i class="tool_box--icon fa fa-times"></i> Close</a>
-        {{else}}
-          <a class="button tool_box--button" {{action "showSearchPanel"}}><i class="tool_box--icon fa fa-search"></i> Search around me</a>
-        {{/if}}
-      </div>
-    </div>
-  </div>
-</div>
-
-
-{{!-- Search panel --}}
-<div class="panel search_panel bottom {{searchPanelDisplayed}}">
-  {{!-- Search places --}}
-  <div class="row">
-    <div class="small-12 medium-8 medium-offset-2 columns">
-      <h3 class="panel--section--title">Choose a label</h3>
-    </div>
-  </div>
-  <div class="row label-panel--list--holder">
-    <div class="small-12 medium-8 medium-offset-2 columns">
-      <div class="row">
-          <a class="button button_label label_edition {{labelAddButton}}" {{action "showLabelAdd" label}}><i class="label_edition--icon fa fa-plus"></i></a>
-          <div class="label_edition--content {{labelAdd}}">
-            {{add-label-button action="hideLabelAdd"}}
-          </div>
-
-        {{#each userLabels as |label|}}
-          <a class="button button_label" {{action "searchMaps" label}}>{{label.name}}</a>
-        {{/each}}
-    </div>
-    </div>
-  </div>
-</div>
-{{!-- End Search panel --}}
-
 {{!-- Label panel --}}
-{{label-panel userLabels=userLabels labelPanelDisplayed=labelPanelDisplayed model=place autoSaveLabel=false}}
+{{label-panel userLabels=userLabels labelPanelDisplayed=labelPanelDisplayed model=place autoSaveLabel=true}}
 
-<a class="panel-overlay bottom {{searchPanelDisplayed}}" {{action "closeMenuPanel"}}></a>
 <a class="panel-overlay place_map {{placePanelDisplayed}}" {{action "closeMenuPanel"}}></a>

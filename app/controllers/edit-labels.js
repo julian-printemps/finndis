@@ -5,12 +5,11 @@ export default Ember.Controller.extend({
   session: Ember.inject.service('session'),
   labelsController: Ember.inject.controller('labels'),
 
+  sortProps: ['numericId:desc'],
+  sortedLabels: Ember.computed.sort('model', 'sortProps'),
+
   isEditing: false,
   labelName: '',
-
-  userLabels: Ember.computed(function() {
-    return this.get('store').peekAll('label');
-  }),
 
   actions: {
     toggleEdition(id) {

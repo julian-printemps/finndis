@@ -43,7 +43,7 @@ export default Ember.Component.extend({
       $('body').toggleClass('__noscroll');
     },
 
-    logout () {
+    logout() {
       this.get('session').invalidate();
     },
 

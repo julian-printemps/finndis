@@ -33,7 +33,7 @@
 
   .menu &--link,
   .menu &--user-link {
-    padding: 1rem 1rem;
+    padding: 1rem 0.5rem;
     color: $nav-font-color;
     @include setTransition();
 
@@ -43,17 +43,37 @@
       // border-bottom: 1px solid $nav-font-color;;
       @include setTransition();
     }
+
+    &.no_text {
+      padding: 1rem;
+    }
+
+    @media screen and #{breakpoint(medium)} {
+      padding: 1rem 1rem;
+
+      &.no_text {
+        padding: 1rem 2rem;
+      }
+    }
   }
 
   .menu &--icon {
     margin-right: 0.5rem;
-    margin-top: -4px
+    margin-top: -4px;
+
+    &.no_text {
+      margin-right: 0;
+    }
   }
 
   // Button
   &--button {
     &-holder {
       text-align: right;
+
+      &.left {
+        text-align: left;
+      }
     }
   }
 }

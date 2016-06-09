@@ -12,14 +12,15 @@ export default Ember.Component.extend({
 
   showPlaceDetails: false,
   searchPanelIsDisplayed: false,
+  placeExist: false,
   searchPanelDisplayed: '',
   labelAdd: '',
   labelAddButton: '',
   labelPanelDisplayed: '',
   placePanelDisplayed: '',
   queryType: '',
-  map: '',
-  markerUser: '',
+  warningMessage: '',
+
 
   place: {
     mapid: '',
@@ -69,11 +70,6 @@ export default Ember.Component.extend({
     label: '',
     types: ''
   },
-
-  userLabels: Ember.computed(function() {
-    var labels = this.get('store').peekAll('label');
-    return labels;
-  }),
 
   didInsertElement() {
     this._super(...arguments);
@@ -318,10 +314,28 @@ export default Ember.Component.extend({
     },
     // End of searchMaps
 
-    setPlaceMaps(param) {
+    setPlaceMaps(result) {
       var self = this;
-      var result = param;
 
+      self.get('store').query('place', { filter: { uid: self.get('session.uid'), mapid: result.place_id } }).then(function(currentPlace) {
+        var placeCount = 0;
+        currentPlace.forEach(function(elem) {
+          placeCount++;
+        });
+
+        if(placeCount === 0){
+          self.send('loadPlaceMaps', result);
+          self.set('placeExist', false);
+        }
+        else {
+          sself.send('loadPlaceMaps', result);
+          self.set('placeExist', true);
+        }
+      });
+    },
+
+
+    loadPlaceMaps(result) {
       if(result.place_id){
         self.set('place.mapid', result.place_id);
       }
@@ -350,7 +364,6 @@ export default Ember.Component.extend({
       if(result.website){
         self.set('place.website', result.website);
       }
-
       self.set('place.formattedaddress', result.formatted_address);
 
       // Set current address
@@ -491,7 +504,7 @@ export default Ember.Component.extend({
       var self = this;
       var place = this.get('place');
 
-      var newPlace = this.get('store').createRecord('place', {
+      var newPlace = self.get('store').createRecord('place', {
         name: place.name,
         mapid: place.mapid,
         locationlat: place.locationlat,
@@ -542,6 +555,5 @@ export default Ember.Component.extend({
         self.get('routing').transitionTo('places');
       });
     }
-
   }
 });

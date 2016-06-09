@@ -3,13 +3,28 @@
   <div class="row">
     <div class="columns small-12">
       <nav class="row navigation">
-        <div class="navigation--title small-7 columns">
+        {{#if menuShowLogo}}
+        <div class="navigation--title columns">
           <h1 class="site-title"><strong class="logo">{{#link-to "places"}}<img class="logo--svg"src="assets/images/finndis-icon.svg" alt="Finndis"> Finndis{{/link-to}}</strong></h1>
         </div>
-        <div class="small-5 columns end navigation--button-holder">
+        {{else}}
+        <div class="columns navigation--button-holder left">
           <ul class="dropdown menu navigation--list">
-            <li class="navigation--listitem" {{action "showMenuPanel" on="click"}}><a class="navigation--link"><i class="navigation--icon fa fa-bars"></i>Menu</a></li>
+            <li class="navigation--listitem">{{#link-to "places" class="navigation--link no_text"}}<i class="navigation--icon no_text fa fa-arrow-left"></i>{{/link-to}}</li>
           </ul>
+        </div>
+        {{/if}}
+        <div class="shrink columns end navigation--button-holder">
+          {{#if menuHideAddNew}}
+            <ul class="dropdown menu navigation--list">
+              <li class="navigation--listitem" {{action "showMenuPanel" on="click"}}><a class="navigation--link"><i class="navigation--icon fa fa-bars"></i>Menu</a></li>
+            </ul>
+          {{else}}
+            <ul class="dropdown menu navigation--list">
+              <li class="navigation--listitem">{{#link-to "add-place" class="navigation--link"}}<i class="navigation--icon fa fa-plus"></i>New{{/link-to}}</li>
+              <li class="navigation--listitem" {{action "showMenuPanel" on="click"}}><a class="navigation--link"><i class="navigation--icon fa fa-bars"></i>Menu</a></li>
+            </ul>
+          {{/if}}
         </div>
       </nav>
     </div>
@@ -17,6 +32,8 @@
 </div>
 
 
+
+{{!-- Menu panel --}}
 <nav id="panel-menu" class="panel-menu panel left {{labelPanelClass}}">
 
   {{!-- User --}}
@@ -51,18 +68,18 @@
   {{!-- end User --}}
 
 
+  {{!-- Places --}}
+  <div class="panel--section" {{action "closeMenuPanel" on="click"}}>
+    {{#link-to "places" class="navigation--link"}}<i class="navigation--icon fa fa-map-marker"></i>My places{{/link-to}}
+  </div>
+  {{!-- end Places --}}
+
+
   {{!-- Map --}}
   <div class="panel--section" {{action "closeMenuPanel" on="click"}}>
-    {{#link-to "map" class="navigation--link"}}<i class="navigation--icon fa fa-plus"></i>Add new{{/link-to}}
+    {{#link-to "add-place" class="navigation--link"}}<i class="navigation--icon fa fa-plus"></i>Add new{{/link-to}}
   </div>
   {{!-- end Map --}}
-
-
-  {{!-- Add place --}}
-  {{!-- <div class="panel--section" {{action "closeMenuPanel" on="click"}}>
-    {{#link-to "add-place" class="navigation--link"}}<i class="navigation--icon fa fa-plus"></i>Add new{{/link-to}}
-  </div> --}}
-  {{!-- end Add place --}}
 
 
   {{!-- Search --}}
@@ -71,6 +88,12 @@
   </div>
   {{!-- end Search --}}
 
+
+  {{!-- Help --}}
+  <div class="panel--section" {{action "closeMenuPanel" on="click"}}>
+    {{#link-to "help" class="navigation--link"}}<i class="navigation--icon fa fa-question"></i>Help{{/link-to}}
+  </div>
+  {{!-- end Help --}}
 
   {{!-- Label list --}}
   <div class="panel--section label-section" {{action "closeMenuPanel" on="click"}}>
@@ -95,5 +118,6 @@
     </ul>
   </div>
   {{!-- End label list --}}
+
 </nav>
 <a class="panel-overlay left __nav {{labelPanelClass}}" {{action "closeMenuPanel"}}></a>
