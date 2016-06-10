@@ -1,5 +1,19 @@
+<div id="load_overlay" class="load_overlay"></div>
+
+{{#if showErrorLocation}}
+<div class="map_error--holder row">
+  <div class="columns shrink">
+    <i class="map_error--icon fa fa-exclamation-circle" aria-hidden="true"></i>
+  </div>
+  <div class="columns">
+    <div class="map_error">
+      It seems like there is a problem with the geolocation. Please make sure it is enabled in your settings.
+    </div>
+  </div>
+</div>
+{{/if}}
+
 {{input id="searchKeyword" type="text" placeholder="Search with Google Map" value=searchText}}
-{{input id="searchKeyword2" type="text" placeholder="Search with Google Map" value=searchText}}
 <div id="map" class="map-canvas map_search"></div>
 
 {{!-- Display place information --}}
@@ -7,12 +21,7 @@
   <div class="place_map--inner">
     <article class="place">
       <header class="place--header">
-        {{#if placeExist}}
-          {{#link-to "place" place class="button edit-button"}}<i class="place--action--icon fa fa-info-circle"></i>View details{{/link-to}}
-        {{else}}
-          <a href="#" class="button edit-button" {{action "savePlace"}}><i class="place--action--icon fa fa-star"></i>Save</a>
-        {{/if}}
-
+        <a href="#" class="button edit-button" {{action "savePlace"}}><i class="place--action--icon fa fa-star"></i>Save</a>
         <a href="#" class="button delete-button" {{action "closeMenuPanel"}}><i class="place--action--icon fa fa-times"></i>Close</a>
         {{input class="place--title __input" type="text" placeholder="Name" value=place.name}}
         <i class="place--labels--icon fa fa-tag" {{action "showAddLabel" bubbles="false"}}></i>
@@ -27,16 +36,14 @@
       <main class="place--main">
 
         {{#if placeExist}}
-        {{#link-to "place" place}}
         <div class="place--info--holder row">
           <div class="shrink columns">
-            <i class="place--action--icon fa fa-info-circle"></i>
+            <i class="place--action--icon fa fa-exclamation-circle"></i>
           </div>
           <div class="columns">
-            This place is already in you list.
+            This place seems to be in your list.
           </div>
         </div>
-        {{/link-to}}
         {{/if}}
 
         <div class="place--info--holder row">

@@ -7,7 +7,7 @@ export default Ember.Component.extend({
     this._super(...arguments);
     var self = this;
     var map = '';
-    var finndis = "assets/images/finndis-icon.svg";
+    var finndis = "assets/images/finndis-icon.png";
 
     map = new google.maps.Map(document.getElementById('map'), {
       zoom: 16,

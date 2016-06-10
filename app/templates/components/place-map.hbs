@@ -1,3 +1,18 @@
+<div id="load_overlay" class="load_overlay"></div>
+
+{{#if showErrorLocation}}
+<div class="map_error--holder row">
+  <div class="columns shrink">
+    <i class="map_error--icon fa fa-exclamation-circle" aria-hidden="true"></i>
+  </div>
+  <div class="columns">
+    <div class="map_error">
+      It seems like there is a problem with the geolocation. Please make sure it is enabled in your settings.
+    </div>
+  </div>
+</div>
+{{/if}}
+
 <div id="map" class="map-canvas map_search"></div>
 
 {{!-- Display place information --}}

@@ -11,6 +11,7 @@ export default Ember.Component.extend({
   }),
 
   showPlaceDetails: false,
+  showErrorLocation: false,
   labelAdd: '',
   labelAddButton: '',
   labelPanelDisplayed: '',
@@ -92,7 +93,7 @@ export default Ember.Component.extend({
       var self = this;
       var map = '';
       var model = this.get('model');
-      var finndis = "assets/images/finndis-icon.svg";
+      var finndis = "assets/images/finndis-icon.png";
       this.send('closeMenuPanel');
 
       if (navigator.geolocation) {
@@ -140,7 +141,12 @@ export default Ember.Component.extend({
               self.set('placePanelDisplayed', 'show');
             });
           }
-
+        },
+        function (error) {
+          if (error.code == error.PERMISSION_DENIED){
+            $('#load_overlay').hide();
+            self.set('showErrorLocation', true);
+          }
         });
         // End geolocation
 

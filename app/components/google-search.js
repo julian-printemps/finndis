@@ -13,6 +13,7 @@ export default Ember.Component.extend({
   showPlaceDetails: false,
   searchPanelIsDisplayed: false,
   placeExist: false,
+  showErrorLocation: false,
   searchPanelDisplayed: '',
   labelAdd: '',
   labelAddButton: '',
@@ -109,6 +110,7 @@ export default Ember.Component.extend({
 
       this.send('closeMenuPanel');
       self.set('searchPanelDisplayed', '');
+
 
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(function(position) {
@@ -309,6 +311,12 @@ export default Ember.Component.extend({
             });
           }
 
+        },
+        function (error) {
+          if (error.code == error.PERMISSION_DENIED){
+            $('#load_overlay').hide();
+            self.set('showErrorLocation', true);
+          }
         });
       }
     },
@@ -324,18 +332,20 @@ export default Ember.Component.extend({
         });
 
         if(placeCount === 0){
-          self.send('loadPlaceMaps', result);
           self.set('placeExist', false);
         }
         else {
-          sself.send('loadPlaceMaps', result);
           self.set('placeExist', true);
         }
       });
+
+      self.send('loadPlaceMaps', result);
     },
 
 
     loadPlaceMaps(result) {
+      var self = this;
+
       if(result.place_id){
         self.set('place.mapid', result.place_id);
       }

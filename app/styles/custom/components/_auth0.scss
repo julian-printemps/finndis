@@ -1,17 +1,30 @@
 #a0-lock .a0-panel {
   width: 100% !important;
-  min-width: 280px;
-  max-width: 480px;
+  min-width: 280px !important;
+  max-width: 480px !important;
 }
 
+#a0-lock.a0-theme-default .a0-panel .a0-mode {
+  padding-bottom: 110px !important;
+}
+
+// Social
 #a0-lock.a0-theme-default .a0-zocial:before,
 #a0-lock.a0-theme-default .a0-zocial span, #a0-lock.a0-theme-default a.a0-zocial span {
   font-size: 16px !important;
   line-height: 50px !important;
 }
+#a0-lock.a0-theme-default .a0-zocial, #a0-lock.a0-theme-default a.a0-zocial {
+  border-radius: 0 !important;
+}
+
+#a0-lock.a0-theme-default .a0-zocial.a0-icon {
+  width: 50% !important;
+  margin: 0 !important;
+}
 
 #a0-lock.a0-theme-default .a0-equal-viewport .a0-zocial:before, #a0-lock.a0-theme-default .a0-zocial.a0-icon:before {
-  width: 50px !important;
+  width: 100% !important;
 }
 
 #a0-lock.a0-theme-default .a0-panel .a0-header h1 {
@@ -22,20 +35,50 @@
   display: none !important;
 }
 
-// buttons
-.a0-forgot-pass {
-  display: block !important;
-  width: 120px !important;
-  margin: 1rem auto 0 !important;
+#a0-lock.a0-theme-default .a0-btn-small {
+  font-size: 11px !important;
 }
 
-.a0-sign-up {
-  border-radius: 0px !important;
-  border: none !important;
-  background-color: #569BD8 !important;
-  color: white !important;
-  padding: 1rem 2rem !important;
-  font-size: 0.7rem !important;
+// separator
+#a0-lock.a0-theme-default .a0-panel .a0-separator {
+  margin-bottom: 12px !important;
+  margin-top: 12px !important;
+}
+// buttons
+.a0-db-actions,
+.a0-options {
+  margin-top: 20px;
+  direction: rtl;
+}
+
+// .a0-forgot-pass {
+//   display: block !important;
+//   width: 120px !important;
+//   margin: 1rem auto 0 !important;
+// }
+
+// .a0-sign-up {
+//   border-radius: 0px !important;
+//   border: none !important;
+//   background-color: #569BD8 !important;
+//   color: white !important;
+//   padding: 1rem 2rem !important;
+//   font-size: 0.7rem !important;
+// }
+
+// button login
+#a0-lock.a0-theme-default .a0-panel button.a0-primary {
+  position: absolute !important;
+  bottom: 0 !important;
+  margin: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 90px !important;
+  background-color: #3d95d2 !important;
+
+  &:hover {
+    background-color: darken(#3d95d2, 10) !important;
+  }
 }
 
 #a0-lock.a0-theme-default .a0-panel button.a0-primary,
