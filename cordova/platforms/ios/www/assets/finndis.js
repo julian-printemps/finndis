@@ -277,14 +277,27 @@ define('finndis/components/google-map', ['exports', 'ember'], function (exports,
       this._super.apply(this, arguments);
       var self = this;
       var map = '';
+      var finndis = "assets/images/finndis-icon.png";
 
       map = new google.maps.Map(document.getElementById('map'), {
         zoom: 16,
-        center: { lat: parseFloat(self.get('latitude')), lng: parseFloat(self.get('longitude')) }
+        center: { lat: parseFloat(self.get('latitude')), lng: parseFloat(self.get('longitude')) },
+        mapTypeControlOptions: {
+          mapTypeIds: [google.maps.MapTypeId.ROADMAP, google.maps.MapTypeId.HYBRID]
+        }, // here´s the array of controls
+        disableDefaultUI: true, // a way to quickly hide all controls
+        mapTypeControl: false,
+        scaleControl: true,
+        zoomControl: true,
+        zoomControlOptions: {
+          style: google.maps.ZoomControlStyle.LARGE
+        },
+        mapTypeId: google.maps.MapTypeId.ROADMAP
       });
       var marker = new google.maps.Marker({
         map: map,
-        position: { lat: parseFloat(self.get('latitude')), lng: parseFloat(self.get('longitude')) }
+        position: { lat: parseFloat(self.get('latitude')), lng: parseFloat(self.get('longitude')) },
+        icon: finndis
       });
     },
 
@@ -317,12 +330,15 @@ define('finndis/components/google-search', ['exports', 'ember'], function (expor
 
     showPlaceDetails: false,
     searchPanelIsDisplayed: false,
+    placeExist: false,
+    showErrorLocation: false,
     searchPanelDisplayed: '',
     labelAdd: '',
     labelAddButton: '',
-    searchText: '',
+    labelPanelDisplayed: '',
+    placePanelDisplayed: '',
     queryType: '',
-    map: '',
+    warningMessage: '',
 
     place: {
       mapid: '',
@@ -369,251 +385,407 @@ define('finndis/components/google-search', ['exports', 'ember'], function (expor
       description: '',
       pricerange: '',
       uid: '',
-      label: ''
+      label: '',
+      types: ''
     },
 
     didInsertElement: function didInsertElement() {
       this._super.apply(this, arguments);
       var self = this;
-      var map = '';
-      var infoWindow = new google.maps.InfoWindow();
-
       $(document).keyup(function (e) {
         if (e.keyCode === 27) {
-          self.set('showPlaceDetails', false);
+          self.set('placePanelDisplayed', '');
           self.set('searchPanelIsDisplayed', false);
           self.set('searchPanelDisplayed', '');
         }
       });
-
       $('#navigation').addClass('__fixed');
-
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(function (position) {
-          var geolocation = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          };
-          infoWindow.setPosition(geolocation);
-
-          map = new google.maps.Map(document.getElementById('map'), {
-            zoom: 16,
-            center: geolocation,
-            mapTypeId: google.maps.MapTypeId.ROADMAP
-          });
-          var marker = new google.maps.Marker({
-            map: map,
-            position: { lat: parseFloat(self.get('latitude')), lng: parseFloat(self.get('longitude')) }
-          });
-
-          // Create the search box and link it to the UI element.
-          var input = document.getElementById('searchKeyword');
-          var button = document.getElementById('maps_button');
-
-          var searchBox = new google.maps.places.SearchBox(input);
-          map.controls[google.maps.ControlPosition.TOP_LEFT].push(input);
-          map.controls[google.maps.ControlPosition.TOP_LEFT].push(button);
-
-          map.addListener('bounds_changed', function () {
-            searchBox.setBounds(map.getBounds());
-          });
-
-          $('#searchKeyword').show();
-          $('#maps_button').show();
-
-          var markers = [];
-          // Listen for the event fired when the user selects a prediction and retrieve
-          // more details for that place.
-          searchBox.addListener('places_changed', function () {
-            var places = searchBox.getPlaces();
-
-            if (places.length == 0) {
-              return;
-            }
-
-            // Clear out the old markers.
-            markers.forEach(function (marker) {
-              marker.setMap(null);
-            });
-            markers = [];
-
-            // For each place, get the icon, name and location.
-            var bounds = new google.maps.LatLngBounds();
-            places.forEach(function (place) {
-              addMarker(place);
-
-              if (place.geometry.viewport) {
-                // Only geocodes have viewport.
-                bounds.union(place.geometry.viewport);
-              } else {
-                bounds.extend(place.geometry.location);
-              }
-
-              var service = new google.maps.places.PlacesService(map);
-
-              function addMarker(place) {
-                var marker = new google.maps.Marker({
-                  map: map,
-                  position: place.geometry.location
-                });
-
-                google.maps.event.addListener(marker, 'click', function () {
-
-                  service.getDetails(place, function (result, status) {
-                    if (status !== google.maps.places.PlacesServiceStatus.OK) {
-                      console.error(status);
-                      return;
-                    }
-
-                    self.set('showPlaceDetails', true);
-
-                    infoWindow.setContent('<a onclick="$(\'body\').scrollTop($(\'#place-info\').offset().top);"><div><strong id="placeName">' + result.name + '</strong></div>' + '<div>' + result.formatted_address + '</div></a>');
-                    infoWindow.open(map, marker);
-
-                    // Set current place
-                    if (result.place_id) {
-                      self.set('place.mapid', result.place_id);
-                    }
-                    if (result.name) {
-                      self.set('place.name', result.name);
-                    }
-                    if (result.geometry.location) {
-                      self.set('place.locationlat', result.geometry.location.lat());
-                      self.set('place.locationlng', result.geometry.location.lng());
-                    }
-                    if (result.international_phone_number) {
-                      self.set('place.phone', result.international_phone_number);
-                    }
-                    if (result.opening_hours !== undefined) {
-                      self.set('place.openinghours', result.opening_hours.periods);
-                    }
-                    if (result.permanently_closed) {
-                      self.set('place.permanentlyclosed', result.permanently_closed);
-                    }
-                    if (result.rating) {
-                      self.set('place.rating', result.rating);
-                    }
-                    if (result.url) {
-                      self.set('place.url', result.url);
-                    }
-                    if (result.website) {
-                      self.set('place.website', result.website);
-                    }
-
-                    self.set('place.formattedaddress', result.formatted_address);
-
-                    var addressComponents = result.address_components;
-                    addressComponents.forEach(function (component) {
-                      switch (component.types[0]) {
-                        case "street_address":
-                          self.set('place.streetaddress', component.long_name);
-                          break;
-                        case "country":
-                          self.set('place.country', component.long_name);
-                          break;
-                        case "intersection":
-                          self.set('place.intersection', component.long_name);
-                          break;
-                        case "route":
-                          self.set('place.route', component.long_name);
-                          break;
-                        case "sublocality_level_5":
-                          self.set('place.sublocalitylevel5', component.long_name);
-                          break;
-                        case "sublocality_level_4":
-                          self.set('place.sublocalitylevel4', component.long_name);
-                          break;
-                        case "sublocality_level_3":
-                          self.set('place.sublocalitylevel3', component.long_name);
-                          break;
-                        case "sublocality_level_2":
-                          self.set('place.sublocalitylevel2', component.long_name);
-                          break;
-                        case "sublocality_level_1":
-                          self.set('place.sublocalitylevel1', component.long_name);
-                          break;
-                        case "sublocality":
-                          self.set('place.sublocality', component.long_name);
-                          break;
-                        case "locality":
-                          self.set('place.locality', component.long_name);
-                          break;
-                        case "administrative_area_level_1":
-                          self.set('place.administrativearealevel1', component.long_name);
-                          break;
-                        case "administrative_area_level_2":
-                          self.set('place.administrativearealevel2', component.long_name);
-                          break;
-                        case "administrative_area_level_3":
-                          self.set('place.administrativearealevel3', component.long_name);
-                          break;
-                        case "administrative_area_level_4":
-                          self.set('place.administrativearealevel4', component.long_name);
-                          break;
-                        case "administrative_area_level_5":
-                          self.set('place.administrativearealevel5', component.long_name);
-                          break;
-                        case "premise":
-                          self.set('place.premise', component.long_name);
-                          break;
-                        case "subpremise":
-                          self.set('place.subpremise', component.long_name);
-                          break;
-                        case "colloquial_area":
-                          self.set('place.colloquialarea', component.long_name);
-                          break;
-                        case "postal_code":
-                          self.set('place.postalcode', component.long_name);
-                          break;
-                        case "neighborhood":
-                          self.set('place.neighborhood', component.long_name);
-                          break;
-                        case "natural_feature":
-                          self.set('place.naturalfeature', component.long_name);
-                          break;
-                        case "airport":
-                          self.set('place.airport', component.long_name);
-                          break;
-                        case "park":
-                          self.set('place.park', component.long_name);
-                          break;
-                        case "post_box":
-                          self.set('place.postbox', component.long_name);
-                          break;
-                        case "street_number":
-                          self.set('place.streetnumber', component.long_name);
-                          break;
-                        case "floor":
-                          self.set('place.floor', component.long_name);
-                          break;
-                        case "room":
-                          self.set('place.room', component.long_name);
-                          break;
-                        default:
-                          break;
-                      }
-                    });
-                  });
-                });
-              }
-            });
-            map.fitBounds(bounds);
-          });
-        });
-      }
+      this.send('searchMaps');
     },
 
     actions: {
+      showAddLabel: function showAddLabel() {
+        this.set('labelPanelDisplayed', 'show');
+      },
+
+      searchMaps: function searchMaps(param) {
+        var self = this;
+        var map = '';
+        var input = document.getElementById('searchKeyword');
+        input.value = '';
+        var finndis = "assets/images/finndis-icon.svg";
+
+        // For search around
+        if (param === undefined) {
+          var keyword = null;
+        } else {
+          var keyword = param.get('name');
+          self.set('queryType', keyword);
+        }
+
+        this.send('closeMenuPanel');
+        self.set('searchPanelDisplayed', '');
+
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(function (position) {
+            var geolocation = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            };
+
+            // Default map settings
+            map = new google.maps.Map(document.getElementById('map'), {
+              zoom: 16,
+              center: geolocation,
+              mapTypeControlOptions: {
+                mapTypeIds: [google.maps.MapTypeId.ROADMAP, google.maps.MapTypeId.HYBRID]
+              }, // here´s the array of controls
+              disableDefaultUI: true, // a way to quickly hide all controls
+              mapTypeControl: false,
+              scaleControl: true,
+              zoomControl: true,
+              zoomControlOptions: {
+                style: google.maps.ZoomControlStyle.LARGE
+              },
+              mapTypeId: google.maps.MapTypeId.ROADMAP
+            });
+
+            var marker = new google.maps.Marker({
+              position: map.getCenter(),
+              icon: {
+                path: google.maps.SymbolPath.CIRCLE,
+                scale: 5,
+                fill: '#3d95d2',
+                strokeColor: '#3d95d2',
+                strokeWeight: 16
+              },
+              map: map
+            });
+
+            var markerUser = new google.maps.Marker({
+              draggable: true,
+              map: map,
+              icon: finndis
+            });
+
+            var infoWindow = new google.maps.InfoWindow();
+            infoWindow.setPosition(geolocation);
+            var service = new google.maps.places.PlacesService(map);
+
+            // Create the search box and link it to the UI element.
+            var searchBox = new google.maps.places.SearchBox(input);
+            // map.controls[google.maps.ControlPosition.TOP_LEFT].push(input);
+            $('#searchKeyword').show();
+            var markers = [];
+
+            // Choose which function
+            if (keyword === null) {
+              map.addListener('bounds_changed', function () {
+                searchBox.setBounds(map.getBounds());
+              });
+            } else {
+              map.addListener('idle', performSearch);
+            }
+
+            /*
+            ** POI click
+            */
+            var set = google.maps.InfoWindow.prototype.set;
+            google.maps.InfoWindow.prototype.set = function (key, val) {
+              if (key === 'map' && !this.get('noSuppress')) {
+                var geocoder = new google.maps.Geocoder();
+                var location = this.getPosition();
+                placeMarker(location);
+                return;
+              }
+              set.apply(this, arguments);
+            };
+
+            /*
+            ** Add marker on click & save new custon place
+            */
+            google.maps.event.addListener(map, 'click', function (event) {
+              placeMarker(event.latLng);
+            });
+
+            function placeMarker(location) {
+              markerUser.setPosition(location);
+
+              loadPlace(location);
+              google.maps.event.addListener(markerUser, 'click', function () {
+                self.set('placePanelDisplayed', 'show');
+                loadPlace(event.latLng);
+              });
+
+              google.maps.event.addListener(markerUser, 'dragend', function (event) {
+                markerUser.setPosition(event.latLng);
+                loadPlace(event.latLng);
+              });
+            }
+
+            function loadPlace(location) {
+              var geocoder = new google.maps.Geocoder();
+              geocoder.geocode({ 'location': location }, function (result, status) {
+                if (status === google.maps.GeocoderStatus.OK) {
+                  // Set info
+                  var service = new google.maps.places.PlacesService(map);
+                  service.getDetails({
+                    placeId: result[0].place_id
+                  }, function (place, status) {
+                    if (status === google.maps.places.PlacesServiceStatus.OK) {
+                      self.send('setPlaceMaps', place);
+                    }
+                  });
+                }
+              });
+            }
+
+            /*
+            ** Listen for the event fired when the user selects a prediction and retrieve
+            */
+            searchBox.addListener('places_changed', function () {
+              var places = searchBox.getPlaces();
+              if (places.length == 0) {
+                return;
+              }
+              // Clear out the old markers.
+              markers.forEach(function (marker) {
+                marker.setMap(null);
+              });
+              markers = [];
+              // For each place, get the icon, name and location.
+              var bounds = new google.maps.LatLngBounds();
+              places.forEach(function (place) {
+                addMarker(place);
+
+                if (place.geometry.viewport) {
+                  // Only geocodes have viewport.
+                  bounds.union(place.geometry.viewport);
+                } else {
+                  bounds.extend(place.geometry.location);
+                }
+                var service = new google.maps.places.PlacesService(map);
+              });
+              map.fitBounds(bounds);
+            });
+
+            /*
+            ** Search around function// google functions
+            */
+            function performSearch() {
+              var request = {
+                bounds: map.getBounds(),
+                keyword: self.get('queryType')
+              };
+              service.radarSearch(request, callback);
+            }
+
+            function callback(results, status) {
+              if (status !== google.maps.places.PlacesServiceStatus.OK) {
+                console.error(status);
+                return;
+              }
+              for (var i = 0, result; result = results[i]; i++) {
+                addMarker(result);
+              }
+            }
+
+            /*
+            ** add marker from search
+            */
+            function addMarker(place) {
+              var marker = new google.maps.Marker({
+                map: map,
+                position: place.geometry.location,
+                icon: finndis
+              });
+
+              google.maps.event.addListener(marker, 'click', function () {
+                service.getDetails(place, function (result, status) {
+                  if (status !== google.maps.places.PlacesServiceStatus.OK) {
+                    console.error(status);
+                    return;
+                  }
+                  self.set('placePanelDisplayed', 'show');
+                  infoWindow.setContent('<div><strong id="placeName">' + result.name + '</strong></div>' + '<div>' + result.formatted_address + '</div>');
+                  infoWindow.open(map, marker);
+
+                  // Set current place
+                  self.send('setPlaceMaps', result);
+                });
+              });
+            }
+          }, function (error) {
+            if (error.code == error.PERMISSION_DENIED) {
+              $('#load_overlay').hide();
+              self.set('showErrorLocation', true);
+            }
+          });
+        }
+      },
+      // End of searchMaps
+
+      setPlaceMaps: function setPlaceMaps(result) {
+        var self = this;
+
+        self.get('store').query('place', { filter: { uid: self.get('session.uid'), mapid: result.place_id } }).then(function (currentPlace) {
+          var placeCount = 0;
+          currentPlace.forEach(function (elem) {
+            placeCount++;
+          });
+
+          if (placeCount === 0) {
+            self.set('placeExist', false);
+          } else {
+            self.set('placeExist', true);
+          }
+        });
+
+        self.send('loadPlaceMaps', result);
+      },
+
+      loadPlaceMaps: function loadPlaceMaps(result) {
+        var self = this;
+
+        if (result.place_id) {
+          self.set('place.mapid', result.place_id);
+        }
+        if (result.name) {
+          self.set('place.name', result.name);
+        }
+        if (result.geometry.location) {
+          self.set('place.locationlat', result.geometry.location.lat());
+          self.set('place.locationlng', result.geometry.location.lng());
+        }
+        if (result.international_phone_number) {
+          self.set('place.phone', result.international_phone_number);
+        }
+        if (result.opening_hours !== undefined) {
+          self.set('place.openinghours', result.opening_hours.periods);
+        }
+        if (result.permanently_closed) {
+          self.set('place.permanentlyclosed', result.permanently_closed);
+        }
+        if (result.rating) {
+          self.set('place.rating', result.rating);
+        }
+        if (result.url) {
+          self.set('place.url', result.url);
+        }
+        if (result.website) {
+          self.set('place.website', result.website);
+        }
+        self.set('place.formattedaddress', result.formatted_address);
+
+        // Set current address
+        self.send('setAddress', result.address_components);
+      },
+
+      setAddress: function setAddress(addressComponents) {
+        var self = this;
+        addressComponents.forEach(function (component) {
+          switch (component.types[0]) {
+            case "street_address":
+              self.set('place.streetaddress', component.long_name);
+              break;
+            case "country":
+              self.set('place.country', component.long_name);
+              break;
+            case "intersection":
+              self.set('place.intersection', component.long_name);
+              break;
+            case "route":
+              self.set('place.route', component.long_name);
+              break;
+            case "sublocality_level_5":
+              self.set('place.sublocalitylevel5', component.long_name);
+              break;
+            case "sublocality_level_4":
+              self.set('place.sublocalitylevel4', component.long_name);
+              break;
+            case "sublocality_level_3":
+              self.set('place.sublocalitylevel3', component.long_name);
+              break;
+            case "sublocality_level_2":
+              self.set('place.sublocalitylevel2', component.long_name);
+              break;
+            case "sublocality_level_1":
+              self.set('place.sublocalitylevel1', component.long_name);
+              break;
+            case "sublocality":
+              self.set('place.sublocality', component.long_name);
+              break;
+            case "locality":
+              self.set('place.locality', component.long_name);
+              break;
+            case "administrative_area_level_1":
+              self.set('place.administrativearealevel1', component.long_name);
+              break;
+            case "administrative_area_level_2":
+              self.set('place.administrativearealevel2', component.long_name);
+              break;
+            case "administrative_area_level_3":
+              self.set('place.administrativearealevel3', component.long_name);
+              break;
+            case "administrative_area_level_4":
+              self.set('place.administrativearealevel4', component.long_name);
+              break;
+            case "administrative_area_level_5":
+              self.set('place.administrativearealevel5', component.long_name);
+              break;
+            case "premise":
+              self.set('place.premise', component.long_name);
+              break;
+            case "subpremise":
+              self.set('place.subpremise', component.long_name);
+              break;
+            case "colloquial_area":
+              self.set('place.colloquialarea', component.long_name);
+              break;
+            case "postal_code":
+              self.set('place.postalcode', component.long_name);
+              break;
+            case "neighborhood":
+              self.set('place.neighborhood', component.long_name);
+              break;
+            case "natural_feature":
+              self.set('place.naturalfeature', component.long_name);
+              break;
+            case "airport":
+              self.set('place.airport', component.long_name);
+              break;
+            case "park":
+              self.set('place.park', component.long_name);
+              break;
+            case "post_box":
+              self.set('place.postbox', component.long_name);
+              break;
+            case "street_number":
+              self.set('place.streetnumber', component.long_name);
+              break;
+            case "floor":
+              self.set('place.floor', component.long_name);
+              break;
+            case "room":
+              self.set('place.room', component.long_name);
+              break;
+            default:
+              break;
+          }
+        });
+      },
+
       showSearchPanel: function showSearchPanel() {
         this.set('searchPanelDisplayed', 'show');
         $('body').toggleClass('__noscroll');
-        this.set('showPlaceDetails', false);
+        this.set('placePanelDisplayed', '');
         this.set('searchPanelIsDisplayed', true);
       },
 
       closeMenuPanel: function closeMenuPanel() {
         this.set('searchPanelDisplayed', '');
         this.set('searchPanelIsDisplayed', false);
+        this.set('placePanelDisplayed', '');
         if ($('body').hasClass('__noscroll')) {
           $('body').removeClass('__noscroll');
         }
@@ -622,6 +794,13 @@ define('finndis/components/google-search', ['exports', 'ember'], function (expor
       showLabelAdd: function showLabelAdd() {
         this.set('labelAdd', '__edition');
         this.set('labelAddButton', '__hidden');
+
+        $(document).keyup(function (e) {
+          if (e.keyCode === 27) {
+            self.set('searchPanelIsDisplayed', false);
+            self.set('placePanelDisplayed', '');
+          }
+        });
       },
 
       hideLabelAdd: function hideLabelAdd() {
@@ -629,417 +808,11 @@ define('finndis/components/google-search', ['exports', 'ember'], function (expor
         this.set('labelAddButton', '');
       },
 
-      // Search around by category
-      searchAround: function searchAround(param) {
-        var self = this;
-        var label = param;
-        var keyword;
-        this.send('closeMenuPanel');
-
-        var keyword = param.get('name');
-
-        self.set('searchPanelDisplayed', '');
-        self.set('queryType', keyword);
-        var map = new google.maps.Map(document.getElementById('map'), {
-          zoom: 16
-        });
-        var infoWindow = new google.maps.InfoWindow();
-
-        // Check if geolocation ok
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(function (position) {
-            var geolocation = {
-              lat: position.coords.latitude,
-              lng: position.coords.longitude
-            };
-            infoWindow.setPosition(geolocation);
-            infoWindow.setContent('Location found.');
-            map.setCenter(geolocation);
-
-            var service = new google.maps.places.PlacesService(map);
-            map.addListener('idle', performSearch);
-
-            // google functions
-            function performSearch() {
-              var request = {
-                bounds: map.getBounds(),
-                keyword: self.get('queryType')
-              };
-              service.radarSearch(request, callback);
-            }
-
-            function callback(results, status) {
-              if (status !== google.maps.places.PlacesServiceStatus.OK) {
-                console.error(status);
-                return;
-              }
-              for (var i = 0, result; result = results[i]; i++) {
-                addMarker(result);
-              }
-            }
-
-            function addMarker(place) {
-              var marker = new google.maps.Marker({
-                map: map,
-                position: place.geometry.location
-              });
-
-              google.maps.event.addListener(marker, 'click', function () {
-
-                service.getDetails(place, function (result, status) {
-                  if (status !== google.maps.places.PlacesServiceStatus.OK) {
-                    console.error(status);
-                    return;
-                  }
-
-                  self.set('showPlaceDetails', true);
-
-                  infoWindow.setContent('<a onclick="$(\'body\').scrollTop($(\'#place-info\').offset().top);"><div><strong id="placeName">' + result.name + '</strong></div>' + '<div>' + result.formatted_address + '</div></a>');
-                  infoWindow.open(map, marker);
-
-                  // Set current place
-                  self.set('place.label', label);
-
-                  if (result.place_id) {
-                    self.set('place.mapid', result.place_id);
-                  }
-                  if (result.name) {
-                    self.set('place.name', result.name);
-                  }
-                  if (result.geometry.location) {
-                    self.set('place.locationlat', result.geometry.location.lat());
-                    self.set('place.locationlng', result.geometry.location.lng());
-                  }
-                  if (result.international_phone_number) {
-                    self.set('place.phone', result.international_phone_number);
-                  }
-                  if (result.opening_hours !== undefined) {
-                    self.set('place.openinghours', result.opening_hours.periods);
-                  }
-                  if (result.permanently_closed) {
-                    self.set('place.permanentlyclosed', result.permanently_closed);
-                  }
-                  if (result.rating) {
-                    self.set('place.rating', result.rating);
-                  }
-                  if (result.url) {
-                    self.set('place.url', result.url);
-                  }
-                  if (result.website) {
-                    self.set('place.website', result.website);
-                  }
-
-                  self.set('place.formattedaddress', result.formatted_address);
-
-                  var addressComponents = result.address_components;
-                  addressComponents.forEach(function (component) {
-                    switch (component.types[0]) {
-                      case "street_address":
-                        self.set('place.streetaddress', component.long_name);
-                        break;
-                      case "country":
-                        self.set('place.country', component.long_name);
-                        break;
-                      case "intersection":
-                        self.set('place.intersection', component.long_name);
-                        break;
-                      case "route":
-                        self.set('place.route', component.long_name);
-                        break;
-                      case "sublocality_level_5":
-                        self.set('place.sublocalitylevel5', component.long_name);
-                        break;
-                      case "sublocality_level_4":
-                        self.set('place.sublocalitylevel4', component.long_name);
-                        break;
-                      case "sublocality_level_3":
-                        self.set('place.sublocalitylevel3', component.long_name);
-                        break;
-                      case "sublocality_level_2":
-                        self.set('place.sublocalitylevel2', component.long_name);
-                        break;
-                      case "sublocality_level_1":
-                        self.set('place.sublocalitylevel1', component.long_name);
-                        break;
-                      case "sublocality":
-                        self.set('place.sublocality', component.long_name);
-                        break;
-                      case "locality":
-                        self.set('place.locality', component.long_name);
-                        break;
-                      case "administrative_area_level_1":
-                        self.set('place.administrativearealevel1', component.long_name);
-                        break;
-                      case "administrative_area_level_2":
-                        self.set('place.administrativearealevel2', component.long_name);
-                        break;
-                      case "administrative_area_level_3":
-                        self.set('place.administrativearealevel3', component.long_name);
-                        break;
-                      case "administrative_area_level_4":
-                        self.set('place.administrativearealevel4', component.long_name);
-                        break;
-                      case "administrative_area_level_5":
-                        self.set('place.administrativearealevel5', component.long_name);
-                        break;
-                      case "premise":
-                        self.set('place.premise', component.long_name);
-                        break;
-                      case "subpremise":
-                        self.set('place.subpremise', component.long_name);
-                        break;
-                      case "colloquial_area":
-                        self.set('place.colloquialarea', component.long_name);
-                        break;
-                      case "postal_code":
-                        self.set('place.postalcode', component.long_name);
-                        break;
-                      case "neighborhood":
-                        self.set('place.neighborhood', component.long_name);
-                        break;
-                      case "natural_feature":
-                        self.set('place.naturalfeature', component.long_name);
-                        break;
-                      case "airport":
-                        self.set('place.airport', component.long_name);
-                        break;
-                      case "park":
-                        self.set('place.park', component.long_name);
-                        break;
-                      case "post_box":
-                        self.set('place.postbox', component.long_name);
-                        break;
-                      case "street_number":
-                        self.set('place.streetnumber', component.long_name);
-                        break;
-                      case "floor":
-                        self.set('place.floor', component.long_name);
-                        break;
-                      case "room":
-                        self.set('place.room', component.long_name);
-                        break;
-                      default:
-                        break;
-                    }
-                  });
-                });
-              });
-            }
-          });
-        }
-        self.set('map', map);
-      },
-      // End of Search around
-
-      // Search specific place
-      searchPlace: function searchPlace() {
-        var self = this;
-        this.send('closeMenuPanel');
-
-        var keyword = self.get('searchText');
-
-        self.set('searchPanelDisplayed', '');
-        self.set('queryType', keyword);
-        var map = new google.maps.Map(document.getElementById('map'), {
-          zoom: 16
-        });
-        var infoWindow = new google.maps.InfoWindow();
-
-        // Create the search box and link it to the UI element.
-        var input = document.getElementById('pac-input');
-        var searchBox = new google.maps.places.SearchBox(input);
-
-        // Check if geolocation ok
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(function (position) {
-            var geolocation = {
-              lat: position.coords.latitude,
-              lng: position.coords.longitude
-            };
-            infoWindow.setPosition(geolocation);
-            infoWindow.setContent('Location found.');
-            map.setCenter(geolocation);
-
-            var service = new google.maps.places.PlacesService(map);
-            map.addListener('idle', performSearch);
-
-            // google functions
-            function performSearch() {
-              var request = {
-                bounds: map.getBounds(),
-                keyword: self.get('queryType')
-              };
-              service.radarSearch(request, callback);
-            }
-
-            function callback(results, status) {
-              if (status !== google.maps.places.PlacesServiceStatus.OK) {
-                console.error(status);
-                return;
-              }
-              for (var i = 0, result; result = results[i]; i++) {
-                addMarker(result);
-              }
-            }
-
-            function addMarker(place) {
-              var marker = new google.maps.Marker({
-                map: map,
-                position: place.geometry.location
-              });
-
-              google.maps.event.addListener(marker, 'click', function () {
-
-                service.getDetails(place, function (result, status) {
-                  if (status !== google.maps.places.PlacesServiceStatus.OK) {
-                    console.error(status);
-                    return;
-                  }
-
-                  self.set('showPlaceDetails', true);
-
-                  infoWindow.setContent('<a onclick="$(\'body\').scrollTop($(\'#place-info\').offset().top);"><div><strong id="placeName">' + result.name + '</strong></div>' + '<div>' + result.formatted_address + '</div></a>');
-                  infoWindow.open(map, marker);
-
-                  // Set current place
-                  self.set('place.label', label);
-
-                  if (result.place_id) {
-                    self.set('place.mapid', result.place_id);
-                  }
-                  if (result.name) {
-                    self.set('place.name', result.name);
-                  }
-                  if (result.geometry.location) {
-                    self.set('place.locationlat', result.geometry.location.lat());
-                    self.set('place.locationlng', result.geometry.location.lng());
-                  }
-                  if (result.international_phone_number) {
-                    self.set('place.phone', result.international_phone_number);
-                  }
-                  if (result.opening_hours !== undefined) {
-                    self.set('place.openinghours', result.opening_hours.periods);
-                  }
-                  if (result.permanently_closed) {
-                    self.set('place.permanentlyclosed', result.permanently_closed);
-                  }
-                  if (result.rating) {
-                    self.set('place.rating', result.rating);
-                  }
-                  if (result.url) {
-                    self.set('place.url', result.url);
-                  }
-                  if (result.website) {
-                    self.set('place.website', result.website);
-                  }
-
-                  self.set('place.formattedaddress', result.formatted_address);
-
-                  var addressComponents = result.address_components;
-                  addressComponents.forEach(function (component) {
-                    switch (component.types[0]) {
-                      case "street_address":
-                        self.set('place.streetaddress', component.long_name);
-                        break;
-                      case "country":
-                        self.set('place.country', component.long_name);
-                        break;
-                      case "intersection":
-                        self.set('place.intersection', component.long_name);
-                        break;
-                      case "route":
-                        self.set('place.route', component.long_name);
-                        break;
-                      case "sublocality_level_5":
-                        self.set('place.sublocalitylevel5', component.long_name);
-                        break;
-                      case "sublocality_level_4":
-                        self.set('place.sublocalitylevel4', component.long_name);
-                        break;
-                      case "sublocality_level_3":
-                        self.set('place.sublocalitylevel3', component.long_name);
-                        break;
-                      case "sublocality_level_2":
-                        self.set('place.sublocalitylevel2', component.long_name);
-                        break;
-                      case "sublocality_level_1":
-                        self.set('place.sublocalitylevel1', component.long_name);
-                        break;
-                      case "sublocality":
-                        self.set('place.sublocality', component.long_name);
-                        break;
-                      case "locality":
-                        self.set('place.locality', component.long_name);
-                        break;
-                      case "administrative_area_level_1":
-                        self.set('place.administrativearealevel1', component.long_name);
-                        break;
-                      case "administrative_area_level_2":
-                        self.set('place.administrativearealevel2', component.long_name);
-                        break;
-                      case "administrative_area_level_3":
-                        self.set('place.administrativearealevel3', component.long_name);
-                        break;
-                      case "administrative_area_level_4":
-                        self.set('place.administrativearealevel4', component.long_name);
-                        break;
-                      case "administrative_area_level_5":
-                        self.set('place.administrativearealevel5', component.long_name);
-                        break;
-                      case "premise":
-                        self.set('place.premise', component.long_name);
-                        break;
-                      case "subpremise":
-                        self.set('place.subpremise', component.long_name);
-                        break;
-                      case "colloquial_area":
-                        self.set('place.colloquialarea', component.long_name);
-                        break;
-                      case "postal_code":
-                        self.set('place.postalcode', component.long_name);
-                        break;
-                      case "neighborhood":
-                        self.set('place.neighborhood', component.long_name);
-                        break;
-                      case "natural_feature":
-                        self.set('place.naturalfeature', component.long_name);
-                        break;
-                      case "airport":
-                        self.set('place.airport', component.long_name);
-                        break;
-                      case "park":
-                        self.set('place.park', component.long_name);
-                        break;
-                      case "post_box":
-                        self.set('place.postbox', component.long_name);
-                        break;
-                      case "street_number":
-                        self.set('place.streetnumber', component.long_name);
-                        break;
-                      case "floor":
-                        self.set('place.floor', component.long_name);
-                        break;
-                      case "room":
-                        self.set('place.room', component.long_name);
-                        break;
-                      default:
-                        break;
-                    }
-                  });
-                });
-              });
-            }
-          });
-        }
-        self.set('map', map);
-      },
-      // End of Search specific place
-
       savePlace: function savePlace() {
         var self = this;
         var place = this.get('place');
 
-        var newPlace = this.get('store').createRecord('place', {
+        var newPlace = self.get('store').createRecord('place', {
           name: place.name,
           mapid: place.mapid,
           locationlat: place.locationlat,
@@ -1089,6 +862,38 @@ define('finndis/components/google-search', ['exports', 'ember'], function (expor
         newPlace.save().then(function () {
           self.get('routing').transitionTo('places');
         });
+      }
+    }
+  });
+});
+define('finndis/components/label-panel', ['exports', 'ember'], function (exports, _ember) {
+  exports['default'] = _ember['default'].Component.extend({
+    store: _ember['default'].inject.service(),
+    session: _ember['default'].inject.service('session'),
+
+    userLabels: _ember['default'].computed(function () {
+      return this.get('store').peekAll('label');
+    }),
+    sortProps: ['numericId:desc'],
+    sortedLabels: _ember['default'].computed.sort('userLabels', 'sortProps'),
+
+    actions: {
+      updateLabel: function updateLabel(labelValue) {
+        var self = this;
+        this.get('store').findRecord('label', labelValue).then(function (label) {
+          self.set('model.label', label);
+
+          if (self.get('autoSaveLabel')) {
+            self.get('model').save();
+          }
+          self.set('labelPanelDisplayed', '');
+          $('body').toggleClass('__noscroll');
+        });
+      },
+
+      closeMenuPanel: function closeMenuPanel() {
+        this.set('labelPanelDisplayed', '');
+        $('body').toggleClass('__noscroll');
       }
 
     }
@@ -1208,6 +1013,192 @@ define('finndis/components/menu-panel', ['exports', 'ember'], function (exports,
     }
   });
 });
+define('finndis/components/place-map', ['exports', 'ember'], function (exports, _ember) {
+  exports['default'] = _ember['default'].Component.extend({
+    store: _ember['default'].inject.service(),
+    routing: _ember['default'].inject.service('-routing'),
+    session: _ember['default'].inject.service('session'),
+
+    userLabels: _ember['default'].computed(function () {
+      var labels = this.get('store').peekAll('label');
+      return labels;
+    }),
+
+    showPlaceDetails: false,
+    showErrorLocation: false,
+    labelAdd: '',
+    labelAddButton: '',
+    labelPanelDisplayed: '',
+    placePanelDisplayed: '',
+
+    place: {
+      mapid: '',
+      name: '',
+      locationlat: '',
+      locationlng: '',
+      formattedaddress: '',
+      streetaddress: '',
+      route: '',
+      intersection: '',
+      political: '',
+      country: '',
+      administrativearealevel1: '',
+      administrativearealevel2: '',
+      administrativearealevel3: '',
+      administrativearealevel4: '',
+      administrativearealevel5: '',
+      colloquialarea: '',
+      locality: '',
+      sublocality: '',
+      sublocalitylevel1: '',
+      sublocalitylevel2: '',
+      sublocalitylevel3: '',
+      sublocalitylevel4: '',
+      sublocalitylevel5: '',
+      neighborhood: '',
+      premise: '',
+      subpremise: '',
+      postalcode: '',
+      naturalfeature: '',
+      airport: '',
+      park: '',
+      postbox: '',
+      streetnumber: '',
+      floor: '',
+      room: '',
+      phone: '',
+      openinghours: '',
+      permanentlyclosed: '',
+      rating: '',
+      types: '',
+      url: '',
+      website: '',
+      description: '',
+      pricerange: '',
+      uid: '',
+      label: '',
+      types: ''
+    },
+
+    didInsertElement: function didInsertElement() {
+      this._super.apply(this, arguments);
+      var self = this;
+      $(document).keyup(function (e) {
+        if (e.keyCode === 27) {
+          if (self.get('labelPanelDisplayed') === 'show') {
+            self.set('labelPanelDisplayed', '');
+          } else {
+            self.set('placePanelDisplayed', '');
+          }
+        }
+      });
+      $('#navigation').addClass('__fixed');
+      this.send('displayMap');
+    },
+
+    actions: {
+      showAddLabel: function showAddLabel() {
+        this.set('labelPanelDisplayed', 'show');
+      },
+
+      displayMap: function displayMap() {
+        var self = this;
+        var map = '';
+        var model = this.get('model');
+        var finndis = "assets/images/finndis-icon.png";
+        this.send('closeMenuPanel');
+
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(function (position) {
+            var geolocation = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            };
+
+            // Default map settings
+            map = new google.maps.Map(document.getElementById('map'), {
+              zoom: 16,
+              center: geolocation,
+              mapTypeControlOptions: {
+                mapTypeIds: [google.maps.MapTypeId.ROADMAP, google.maps.MapTypeId.HYBRID]
+              }, // here´s the array of controls
+              disableDefaultUI: true, // a way to quickly hide all controls
+              mapTypeControl: false,
+              scaleControl: true,
+              zoomControl: true,
+              zoomControlOptions: {
+                style: google.maps.ZoomControlStyle.LARGE
+              },
+              mapTypeId: google.maps.MapTypeId.ROADMAP
+            });
+
+            // Add marker for all place
+            model.forEach(function (place) {
+              addMarker(place);
+            });
+
+            /*
+            ** Add marker
+            */
+            function addMarker(place) {
+              var marker = new google.maps.Marker({
+                map: map,
+                position: { lat: parseFloat(place.get('locationlat')), lng: parseFloat(place.get('locationlng')) },
+                icon: finndis
+              });
+
+              google.maps.event.addListener(marker, 'click', function () {
+                self.set('place', place);
+                self.set('placePanelDisplayed', 'show');
+              });
+            }
+          }, function (error) {
+            if (error.code == error.PERMISSION_DENIED) {
+              $('#load_overlay').hide();
+              self.set('showErrorLocation', true);
+            }
+          });
+          // End geolocation
+        }
+      },
+      // End of searchMaps
+
+      closeMenuPanel: function closeMenuPanel() {
+        this.set('placePanelDisplayed', '');
+        if ($('body').hasClass('__noscroll')) {
+          $('body').removeClass('__noscroll');
+        }
+      },
+
+      showLabelAdd: function showLabelAdd() {
+        this.set('labelAdd', '__edition');
+        this.set('labelAddButton', '__hidden');
+
+        $(document).keyup(function (e) {
+          if (e.keyCode === 27) {
+            self.set('searchPanelIsDisplayed', false);
+            self.set('placePanelDisplayed', '');
+          }
+        });
+      },
+
+      setRating: function setRating(params) {
+        var place = this.get('model');
+        var model = params.item;
+        var rating = params.rating;
+
+        place.set('rating', rating);
+        place.save();
+      },
+
+      hideLabelAdd: function hideLabelAdd() {
+        this.set('labelAdd', '');
+        this.set('labelAddButton', '');
+      }
+
+    }
+  });
+});
 define('finndis/components/radio-button-input', ['exports', 'ember-radio-button/components/radio-button-input'], function (exports, _emberRadioButtonComponentsRadioButtonInput) {
   exports['default'] = _emberRadioButtonComponentsRadioButtonInput['default'];
 });
@@ -1311,6 +1302,9 @@ define('finndis/components/star-rating-fa', ['exports', 'ember-cli-star-rating/c
 define('finndis/components/star-rating', ['exports', 'ember-cli-star-rating/components/star-rating'], function (exports, _emberCliStarRatingComponentsStarRating) {
   exports['default'] = _emberCliStarRatingComponentsStarRating['default'];
 });
+define('finndis/components/start-guide', ['exports', 'ember'], function (exports, _ember) {
+  exports['default'] = _ember['default'].Component.extend({});
+});
 define('finndis/components/tool-box', ['exports', 'ember'], function (exports, _ember) {
   exports['default'] = _ember['default'].Component.extend({});
 });
@@ -1410,253 +1404,6 @@ define('finndis/components/zf-tooltip', ['exports', 'ember-cli-foundation-6-sass
     }
   });
 });
-define('finndis/controllers/add-place', ['exports', 'ember'], function (exports, _ember) {
-  exports['default'] = _ember['default'].Controller.extend({
-    session: _ember['default'].inject.service('session'),
-    placeController: _ember['default'].inject.controller('places'),
-
-    showAlert: false,
-    addressFieldIsDisplayed: false,
-
-    userLabels: _ember['default'].computed(function () {
-      var labels = this.get('store').peekAll('label');
-      return labels;
-    }),
-
-    actions: {
-
-      setAutoAddress: function setAutoAddress() {
-        var self = this;
-        if (navigator.geolocation) {
-          navigator.geolocation.getCurrentPosition(function (position) {
-            var geolocation = {
-              lat: position.coords.latitude,
-              lng: position.coords.longitude
-            };
-
-            self.set('model.locationlat', geolocation.lat);
-            self.set('model.locationlng', geolocation.lng);
-
-            var geocoder = new google.maps.Geocoder();
-            geocoder.geocode({ 'location': geolocation }, function (results, status) {
-              if (status === google.maps.GeocoderStatus.OK) {
-                var address_components = results[0].address_components;
-                var addressstreet = '';
-                var model = self.get('model');
-
-                model.set('formattedaddress', results[0].formatted_address);
-
-                address_components.forEach(function (component) {
-                  switch (component.types[0]) {
-                    case "premise":
-                      self.set('model.name', component.short_name);
-                      break;
-                    case "street_address":
-                      model.set('streetaddress', component.long_name);
-                      break;
-                    case "country":
-                      model.set('country', component.long_name);
-                      break;
-                    case "intersection":
-                      model.set('intersection', component.long_name);
-                      break;
-                    case "route":
-                      model.set('route', component.long_name);
-                      break;
-                    case "sublocality_level_5":
-                      model.set('sublocalitylevel5', component.long_name);
-                      break;
-                    case "sublocality_level_4":
-                      model.set('sublocalitylevel4', component.long_name);
-                      break;
-                    case "sublocality_level_3":
-                      model.set('sublocalitylevel3', component.long_name);
-                      break;
-                    case "sublocality_level_2":
-                      model.set('sublocalitylevel2', component.long_name);
-                      break;
-                    case "sublocality_level_1":
-                      model.set('sublocalitylevel1', component.long_name);
-                      break;
-                    case "sublocality":
-                      model.set('sublocality', component.long_name);
-                      break;
-                    case "locality":
-                      model.set('locality', component.long_name);
-                      break;
-                    case "administrative_area_level_1":
-                      model.set('administrativearealevel1', component.long_name);
-                      break;
-                    case "administrative_area_level_2":
-                      model.set('administrativearealevel2', component.long_name);
-                      break;
-                    case "administrative_area_level_3":
-                      model.set('administrativearealevel3', component.long_name);
-                      break;
-                    case "administrative_area_level_4":
-                      model.set('administrativearealevel4', component.long_name);
-                      break;
-                    case "administrative_area_level_5":
-                      model.set('administrativearealevel5', component.long_name);
-                      break;
-                    case "premise":
-                      model.set('premise', component.long_name);
-                      break;
-                    case "subpremise":
-                      model.set('subpremise', component.long_name);
-                      break;
-                    case "colloquial_area":
-                      model.set('colloquialarea', component.long_name);
-                      break;
-                    case "postal_code":
-                      model.set('postalcode', component.long_name);
-                      break;
-                    case "neighborhood":
-                      model.set('neighborhood', component.long_name);
-                      break;
-                    case "natural_feature":
-                      model.set('naturalfeature', component.long_name);
-                      break;
-                    case "airport":
-                      model.set('airport', component.long_name);
-                      break;
-                    case "park":
-                      model.set('park', component.long_name);
-                      break;
-                    case "post_box":
-                      model.set('postbox', component.long_name);
-                      break;
-                    case "street_number":
-                      model.set('streetnumber', component.long_name);
-                      break;
-                    case "floor":
-                      model.set('floor', component.long_name);
-                      break;
-                    case "room":
-                      model.set('room', component.long_name);
-                      break;
-                    default:
-                      break;
-                  }
-                });
-                self.set('model.mapid', results[0].place_id);
-              } else {
-                console.log('Geocode was not successful for the following reason: ' + status);
-              }
-            });
-          });
-        }
-      },
-
-      showAddLabel: function showAddLabel() {
-        this.set('labelPanelDisplayed', 'show');
-        $('body').toggleClass('__noscroll');
-      },
-
-      closeMenuPanel: function closeMenuPanel() {
-        this.set('labelPanelDisplayed', '');
-        $('body').toggleClass('__noscroll');
-      },
-
-      addLabel: function addLabel(labelValue) {
-        var self = this;
-        this.get('store').findRecord('label', labelValue).then(function (label) {
-          self.set('model.label', label);
-        });
-      },
-
-      setRating: function setRating(params) {
-        var model = params.item;
-        var rating = params.rating;
-
-        this.set('model.rating', rating);
-      },
-
-      addPlace: function addPlace() {
-        var _this = this;
-
-        var self = this;
-        var model = this.get('model');
-        var longaddress;
-
-        if (this.get('model.longaddress') !== '') {
-          longaddress = this.get('model.longaddress');
-        } else {
-          longaddress = model.get("addressstreet") + ', ' + model.get("addresscity") + ', ' + model.get("addresszip") + ', ' + model.get("addresscountry");
-        }
-
-        var shortaddress = model.get('addressstreet') + ', ' + model.get('addresscity');
-        this.set('model.longaddress', longaddress);
-        this.set('model.shortaddress', shortaddress);
-
-        var newPlace = this.get('store').createRecord('place', {
-          name: model.get('name'),
-          mapid: model.get('mapid'),
-          locationlat: model.get('locationlat'),
-          locationlng: model.get('locationlng'),
-          formattedaddress: model.get('formattedaddress'),
-          streetaddress: model.get('streetaddress'),
-          route: model.get('route'),
-          intersection: model.get('intersection'),
-          political: '',
-          country: model.get('country'),
-          administrativearealevel1: model.get('administrativearealevel1'),
-          administrativearealevel2: model.get('administrativearealevel2'),
-          administrativearealevel3: model.get('administrativearealevel3'),
-          administrativearealevel4: model.get('administrativearealevel4'),
-          administrativearealevel5: model.get('administrativearealevel5'),
-          colloquialarea: model.get('colloquialarea'),
-          locality: model.get('locality'),
-          sublocality: model.get('sublocality'),
-          sublocalitylevel1: model.get('sublocalitylevel1'),
-          sublocalitylevel2: model.get('sublocalitylevel2'),
-          sublocalitylevel3: model.get('sublocalitylevel3'),
-          sublocalitylevel4: model.get('sublocalitylevel4'),
-          sublocalitylevel5: model.get('sublocalitylevel5'),
-          neighborhood: model.get('neighborhood'),
-          premise: model.get('premise'),
-          subpremise: model.get('subpremise'),
-          postalcode: model.get('postalcode'),
-          naturalfeature: model.get('naturalfeature'),
-          airport: model.get('airport'),
-          park: model.get('park'),
-          postbox: model.get('postbox'),
-          streetnumber: model.get('streetnumber'),
-          floor: model.get('floor'),
-          room: model.get('room'),
-          permanentlyclosed: false,
-          phone: model.get('phone'),
-          url: '',
-          website: model.get('website'),
-          openinghours: '',
-          rating: model.get('rating'),
-          description: model.get('description'),
-          pricerange: model.get('pricerange'),
-          uid: self.get('session.uid'),
-          label: model.get('label')
-        });
-
-        model.validate().then(function (_ref) {
-          var model = _ref.model;
-          var validations = _ref.validations;
-
-          if (validations.get('isValid')) {
-            _this.setProperties({
-              showAlert: false
-            });
-            newPlace.save().then(function (place) {
-              self.transitionToRoute('place', place);
-            });
-          } else {
-            _this.set('showAlert', true);
-          }
-          _this.set('didValidate', true);
-        }, function (errors) {});
-      }
-
-    }
-  });
-});
 define('finndis/controllers/application', ['exports', 'ember'], function (exports, _ember) {
   exports['default'] = _ember['default'].Controller.extend({
     session: _ember['default'].inject.service()
@@ -1671,12 +1418,11 @@ define('finndis/controllers/edit-labels', ['exports', 'ember'], function (export
     session: _ember['default'].inject.service('session'),
     labelsController: _ember['default'].inject.controller('labels'),
 
+    sortProps: ['numericId:desc'],
+    sortedLabels: _ember['default'].computed.sort('model', 'sortProps'),
+
     isEditing: false,
     labelName: '',
-
-    userLabels: _ember['default'].computed(function () {
-      return this.get('store').peekAll('label');
-    }),
 
     actions: {
       toggleEdition: function toggleEdition(id) {
@@ -1705,6 +1451,11 @@ define('finndis/controllers/edit-labels', ['exports', 'ember'], function (export
     }
   });
 });
+define('finndis/controllers/help', ['exports', 'ember'], function (exports, _ember) {
+  exports['default'] = _ember['default'].Controller.extend({
+    session: _ember['default'].inject.service('session')
+  });
+});
 define('finndis/controllers/label', ['exports', 'ember'], function (exports, _ember) {
   exports['default'] = _ember['default'].Controller.extend({
     session: _ember['default'].inject.service('session'),
@@ -1727,7 +1478,6 @@ define('finndis/controllers/labels', ['exports', 'ember'], function (exports, _e
 define('finndis/controllers/login', ['exports', 'ember'], function (exports, _ember) {
   exports['default'] = _ember['default'].Controller.extend({
     session: _ember['default'].inject.service('session'),
-    signupPanelClass: '',
 
     actions: {
       willTransition: function willTransition() {
@@ -1786,6 +1536,7 @@ define('finndis/controllers/place', ['exports', 'ember'], function (exports, _em
 
       showAddLabel: function showAddLabel() {
         this.set('labelPanelDisplayed', 'show');
+        $('body').toggleClass('__noscroll');
       },
 
       closeMenuPanel: function closeMenuPanel() {
@@ -1800,14 +1551,6 @@ define('finndis/controllers/place', ['exports', 'ember'], function (exports, _em
           if (e.keyCode === 27) {
             self.set('isEditing', false);
           }
-        });
-      },
-
-      updateLabel: function updateLabel(labelValue) {
-        var self = this;
-        this.get('store').findRecord('label', labelValue).then(function (label) {
-          self.set('model.label', label);
-          self.get('model').save();
         });
       },
 
@@ -1968,11 +1711,13 @@ define('finndis/controllers/place', ['exports', 'ember'], function (exports, _em
       },
 
       deletePlace: function deletePlace(model) {
+        var self = this;
         model.deleteRecord();
         model.get('isDeleted');
-        model.save();
-        this.set('isEditing', false);
-        this.transitionToRoute('places');
+        model.save().then(function () {
+          self.set('isEditing', false);
+          self.transitionToRoute('places');
+        });
       }
 
     }
@@ -2281,7 +2026,15 @@ define('finndis/models/label', ['exports', 'ember-data'], function (exports, _em
     name: _emberData['default'].attr('string'),
     uid: _emberData['default'].attr('string'),
     places: _emberData['default'].hasMany('place', { async: true }),
-    isEditing: _emberData['default'].attr('boolean', { defaultValue: false })
+    isEditing: _emberData['default'].attr('boolean', { defaultValue: false }),
+    numericId: Ember.computed(function () {
+      if (this.get('id')) {
+        var id = this.get('id');
+        return +id;
+      } else {
+        return null;
+      }
+    })
   });
 });
 define('finndis/models/place', ['exports', 'ember', 'ember-data', 'ember-cp-validations'], function (exports, _ember, _emberData, _emberCpValidations) {
@@ -2413,7 +2166,7 @@ define('finndis/router', ['exports', 'ember', 'finndis/config/environment'], fun
   });
 
   Router.map(function () {
-    this.route('places', { path: '/' });
+    this.route('places', { path: '/home' });
     this.route('place', { path: '/:place_id' });
     this.route('add-place', { path: '/add' });
     this.route('labels');
@@ -2421,26 +2174,16 @@ define('finndis/router', ['exports', 'ember', 'finndis/config/environment'], fun
     this.route('users', { path: '/profile' });
     this.route('search');
     this.route('edit-labels', { path: 'labels/edit' });
-    this.route('login', { path: 'home' });
+    this.route('login', { path: '/' });
     this.route('map');
+    this.route('help');
   });
 
   exports['default'] = Router;
 });
 define('finndis/routes/add-place', ['exports', 'ember', 'ember-simple-auth/mixins/authenticated-route-mixin'], function (exports, _ember, _emberSimpleAuthMixinsAuthenticatedRouteMixin) {
   exports['default'] = _ember['default'].Route.extend(_emberSimpleAuthMixinsAuthenticatedRouteMixin['default'], {
-    session: _ember['default'].inject.service('session'),
-
-    resetController: function resetController(controller, isExiting) {
-      if (isExiting) {
-        controller.set('isEditing', false);
-        controller.set('labelPanelDisplayed', '');
-      }
-    },
-
-    model: function model() {
-      return this.store.createRecord('place');
-    }
+    session: _ember['default'].inject.service('session')
   });
 });
 define('finndis/routes/application', ['exports', 'ember', 'ember-simple-auth/mixins/application-route-mixin'], function (exports, _ember, _emberSimpleAuthMixinsApplicationRouteMixin) {
@@ -2469,6 +2212,11 @@ define('finndis/routes/edit-labels', ['exports', 'ember', 'ember-simple-auth/mix
       });
     }
 
+  });
+});
+define('finndis/routes/help', ['exports', 'ember', 'ember-simple-auth/mixins/authenticated-route-mixin'], function (exports, _ember, _emberSimpleAuthMixinsAuthenticatedRouteMixin) {
+  exports['default'] = _ember['default'].Route.extend(_emberSimpleAuthMixinsAuthenticatedRouteMixin['default'], {
+    session: _ember['default'].inject.service('session')
   });
 });
 define('finndis/routes/index', ['exports', 'ember', 'ember-simple-auth/mixins/unauthenticated-route-mixin', 'ic-ajax', 'finndis/config/environment'], function (exports, _ember, _emberSimpleAuthMixinsUnauthenticatedRouteMixin, _icAjax, _finndisConfigEnvironment) {
@@ -2505,7 +2253,15 @@ define('finndis/routes/login', ['exports', 'ember', 'ember-simple-auth/mixins/un
 });
 define('finndis/routes/map', ['exports', 'ember', 'ember-simple-auth/mixins/authenticated-route-mixin'], function (exports, _ember, _emberSimpleAuthMixinsAuthenticatedRouteMixin) {
   exports['default'] = _ember['default'].Route.extend(_emberSimpleAuthMixinsAuthenticatedRouteMixin['default'], {
-    session: _ember['default'].inject.service('session')
+    session: _ember['default'].inject.service('session'),
+
+    model: function model() {
+      var uid = this.get('session.uid');
+
+      return this.store.query('place', { filter: { uid: uid } }).then(function (places) {
+        return places;
+      });
+    }
   });
 });
 define('finndis/routes/place', ['exports', 'ember', 'ember-simple-auth/mixins/authenticated-route-mixin'], function (exports, _ember, _emberSimpleAuthMixinsAuthenticatedRouteMixin) {
@@ -2673,1108 +2429,6 @@ define('finndis/session-stores/application', ['exports', 'ember-simple-auth/sess
 });
 define("finndis/templates/add-place", ["exports"], function (exports) {
   exports["default"] = Ember.HTMLBars.template((function () {
-    var child0 = (function () {
-      return {
-        meta: {
-          "fragmentReason": false,
-          "revision": "Ember@2.3.2",
-          "loc": {
-            "source": null,
-            "start": {
-              "line": 20,
-              "column": 18
-            },
-            "end": {
-              "line": 43,
-              "column": 18
-            }
-          },
-          "moduleName": "finndis/templates/add-place.hbs"
-        },
-        isEmpty: false,
-        arity: 1,
-        cachedFragment: null,
-        hasRendered: false,
-        buildFragment: function buildFragment(dom) {
-          var el0 = dom.createDocumentFragment();
-          var el1 = dom.createTextNode("                    ");
-          dom.appendChild(el0, el1);
-          var el1 = dom.createElement("li");
-          dom.setAttribute(el1, "class", "label-editor--holder");
-          var el2 = dom.createTextNode("\n                      ");
-          dom.appendChild(el1, el2);
-          var el2 = dom.createElement("label");
-          dom.setAttribute(el2, "class", "label--listitem--label");
-          var el3 = dom.createTextNode("\n                        ");
-          dom.appendChild(el2, el3);
-          var el3 = dom.createElement("div");
-          dom.setAttribute(el3, "class", "label--listitem label-editor collapse align-middle row");
-          var el4 = dom.createTextNode("\n                          ");
-          dom.appendChild(el3, el4);
-          var el4 = dom.createElement("div");
-          dom.setAttribute(el4, "class", "label--icon-holder small-1 columns");
-          var el5 = dom.createTextNode("\n                            ");
-          dom.appendChild(el4, el5);
-          var el5 = dom.createElement("i");
-          dom.setAttribute(el5, "class", "label--icon fa fa-tag");
-          dom.appendChild(el4, el5);
-          var el5 = dom.createTextNode("\n                          ");
-          dom.appendChild(el4, el5);
-          dom.appendChild(el3, el4);
-          var el4 = dom.createTextNode("\n                          ");
-          dom.appendChild(el3, el4);
-          var el4 = dom.createElement("div");
-          dom.setAttribute(el4, "class", "small-10 columns");
-          var el5 = dom.createTextNode("\n                            ");
-          dom.appendChild(el4, el5);
-          var el5 = dom.createComment("");
-          dom.appendChild(el4, el5);
-          var el5 = dom.createTextNode("\n                          ");
-          dom.appendChild(el4, el5);
-          dom.appendChild(el3, el4);
-          var el4 = dom.createTextNode("\n                          ");
-          dom.appendChild(el3, el4);
-          var el4 = dom.createElement("div");
-          dom.setAttribute(el4, "class", "label--icon-holder small-1 columns");
-          var el5 = dom.createTextNode("\n");
-          dom.appendChild(el4, el5);
-          var el5 = dom.createTextNode("\n                            ");
-          dom.appendChild(el4, el5);
-          var el5 = dom.createComment("");
-          dom.appendChild(el4, el5);
-          var el5 = dom.createTextNode("\n                          ");
-          dom.appendChild(el4, el5);
-          dom.appendChild(el3, el4);
-          var el4 = dom.createTextNode("\n                        ");
-          dom.appendChild(el3, el4);
-          dom.appendChild(el2, el3);
-          var el3 = dom.createTextNode("\n                      ");
-          dom.appendChild(el2, el3);
-          dom.appendChild(el1, el2);
-          var el2 = dom.createTextNode("\n                    ");
-          dom.appendChild(el1, el2);
-          dom.appendChild(el0, el1);
-          var el1 = dom.createTextNode("\n");
-          dom.appendChild(el0, el1);
-          return el0;
-        },
-        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
-          var element2 = dom.childAt(fragment, [1, 1, 1]);
-          var morphs = new Array(2);
-          morphs[0] = dom.createMorphAt(dom.childAt(element2, [3]), 1, 1);
-          morphs[1] = dom.createMorphAt(dom.childAt(element2, [5]), 2, 2);
-          return morphs;
-        },
-        statements: [["content", "label.name", ["loc", [null, [28, 28], [28, 42]]]], ["inline", "radio-button", [], ["id", ["subexpr", "@mut", [["get", "label.id", ["loc", [null, [34, 33], [34, 41]]]]], [], []], "value", ["subexpr", "@mut", [["get", "label.id", ["loc", [null, [35, 36], [35, 44]]]]], [], []], "groupValue", ["subexpr", "@mut", [["get", "labelValue", ["loc", [null, [36, 41], [36, 51]]]]], [], []], "changed", "addLabel", "name", "label"], ["loc", [null, [33, 28], [38, 44]]]]],
-        locals: ["label"],
-        templates: []
-      };
-    })();
-    var child1 = (function () {
-      return {
-        meta: {
-          "fragmentReason": false,
-          "revision": "Ember@2.3.2",
-          "loc": {
-            "source": null,
-            "start": {
-              "line": 63,
-              "column": 22
-            },
-            "end": {
-              "line": 67,
-              "column": 22
-            }
-          },
-          "moduleName": "finndis/templates/add-place.hbs"
-        },
-        isEmpty: false,
-        arity: 0,
-        cachedFragment: null,
-        hasRendered: false,
-        buildFragment: function buildFragment(dom) {
-          var el0 = dom.createDocumentFragment();
-          var el1 = dom.createTextNode("                        ");
-          dom.appendChild(el0, el1);
-          var el1 = dom.createElement("div");
-          dom.setAttribute(el1, "class", "error");
-          var el2 = dom.createTextNode("\n                          ");
-          dom.appendChild(el1, el2);
-          var el2 = dom.createComment("");
-          dom.appendChild(el1, el2);
-          var el2 = dom.createTextNode("\n                        ");
-          dom.appendChild(el1, el2);
-          dom.appendChild(el0, el1);
-          var el1 = dom.createTextNode("\n");
-          dom.appendChild(el0, el1);
-          return el0;
-        },
-        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
-          var morphs = new Array(1);
-          morphs[0] = dom.createMorphAt(dom.childAt(fragment, [1]), 1, 1);
-          return morphs;
-        },
-        statements: [["inline", "get", [["subexpr", "get", [["get", "model.validations.attrs", []], "name"], [], []], "message"], [], ["loc", [null, [65, 26], [65, 58]]]]],
-        locals: [],
-        templates: []
-      };
-    })();
-    var child2 = (function () {
-      return {
-        meta: {
-          "fragmentReason": false,
-          "revision": "Ember@2.3.2",
-          "loc": {
-            "source": null,
-            "start": {
-              "line": 106,
-              "column": 30
-            },
-            "end": {
-              "line": 110,
-              "column": 30
-            }
-          },
-          "moduleName": "finndis/templates/add-place.hbs"
-        },
-        isEmpty: false,
-        arity: 0,
-        cachedFragment: null,
-        hasRendered: false,
-        buildFragment: function buildFragment(dom) {
-          var el0 = dom.createDocumentFragment();
-          var el1 = dom.createTextNode("                                ");
-          dom.appendChild(el0, el1);
-          var el1 = dom.createElement("div");
-          dom.setAttribute(el1, "class", "error");
-          var el2 = dom.createTextNode("\n                                  ");
-          dom.appendChild(el1, el2);
-          var el2 = dom.createComment("");
-          dom.appendChild(el1, el2);
-          var el2 = dom.createTextNode("\n                                ");
-          dom.appendChild(el1, el2);
-          dom.appendChild(el0, el1);
-          var el1 = dom.createTextNode("\n");
-          dom.appendChild(el0, el1);
-          return el0;
-        },
-        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
-          var morphs = new Array(1);
-          morphs[0] = dom.createMorphAt(dom.childAt(fragment, [1]), 1, 1);
-          return morphs;
-        },
-        statements: [["inline", "get", [["subexpr", "get", [["get", "model.validations.attrs", []], "website"], [], []], "message"], [], ["loc", [null, [108, 34], [108, 69]]]]],
-        locals: [],
-        templates: []
-      };
-    })();
-    var child3 = (function () {
-      return {
-        meta: {
-          "fragmentReason": false,
-          "revision": "Ember@2.3.2",
-          "loc": {
-            "source": null,
-            "start": {
-              "line": 120,
-              "column": 30
-            },
-            "end": {
-              "line": 124,
-              "column": 30
-            }
-          },
-          "moduleName": "finndis/templates/add-place.hbs"
-        },
-        isEmpty: false,
-        arity: 0,
-        cachedFragment: null,
-        hasRendered: false,
-        buildFragment: function buildFragment(dom) {
-          var el0 = dom.createDocumentFragment();
-          var el1 = dom.createTextNode("                                ");
-          dom.appendChild(el0, el1);
-          var el1 = dom.createElement("div");
-          dom.setAttribute(el1, "class", "error");
-          var el2 = dom.createTextNode("\n                                  ");
-          dom.appendChild(el1, el2);
-          var el2 = dom.createComment("");
-          dom.appendChild(el1, el2);
-          var el2 = dom.createTextNode("\n                                ");
-          dom.appendChild(el1, el2);
-          dom.appendChild(el0, el1);
-          var el1 = dom.createTextNode("\n");
-          dom.appendChild(el0, el1);
-          return el0;
-        },
-        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
-          var morphs = new Array(1);
-          morphs[0] = dom.createMorphAt(dom.childAt(fragment, [1]), 1, 1);
-          return morphs;
-        },
-        statements: [["inline", "get", [["subexpr", "get", [["get", "model.validations.attrs", []], "phone"], [], []], "message"], [], ["loc", [null, [122, 34], [122, 67]]]]],
-        locals: [],
-        templates: []
-      };
-    })();
-    var child4 = (function () {
-      return {
-        meta: {
-          "fragmentReason": false,
-          "revision": "Ember@2.3.2",
-          "loc": {
-            "source": null,
-            "start": {
-              "line": 126,
-              "column": 28
-            },
-            "end": {
-              "line": 128,
-              "column": 28
-            }
-          },
-          "moduleName": "finndis/templates/add-place.hbs"
-        },
-        isEmpty: false,
-        arity: 0,
-        cachedFragment: null,
-        hasRendered: false,
-        buildFragment: function buildFragment(dom) {
-          var el0 = dom.createDocumentFragment();
-          var el1 = dom.createTextNode("                                ");
-          dom.appendChild(el0, el1);
-          var el1 = dom.createElement("span");
-          dom.setAttribute(el1, "class", "error errorForValidation");
-          var el2 = dom.createElement("i");
-          dom.setAttribute(el2, "class", "fa fa-exclamation-circle");
-          dom.appendChild(el1, el2);
-          var el2 = dom.createTextNode(" ");
-          dom.appendChild(el1, el2);
-          var el2 = dom.createComment("");
-          dom.appendChild(el1, el2);
-          dom.appendChild(el0, el1);
-          var el1 = dom.createTextNode("\n");
-          dom.appendChild(el0, el1);
-          return el0;
-        },
-        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
-          var morphs = new Array(1);
-          morphs[0] = dom.createMorphAt(dom.childAt(fragment, [1]), 2, 2);
-          return morphs;
-        },
-        statements: [["content", "errors.newFirstname", ["loc", [null, [127, 113], [127, 136]]]]],
-        locals: [],
-        templates: []
-      };
-    })();
-    var child5 = (function () {
-      var child0 = (function () {
-        var child0 = (function () {
-          return {
-            meta: {
-              "fragmentReason": false,
-              "revision": "Ember@2.3.2",
-              "loc": {
-                "source": null,
-                "start": {
-                  "line": 163,
-                  "column": 30
-                },
-                "end": {
-                  "line": 165,
-                  "column": 30
-                }
-              },
-              "moduleName": "finndis/templates/add-place.hbs"
-            },
-            isEmpty: false,
-            arity: 0,
-            cachedFragment: null,
-            hasRendered: false,
-            buildFragment: function buildFragment(dom) {
-              var el0 = dom.createDocumentFragment();
-              var el1 = dom.createTextNode("                                ");
-              dom.appendChild(el0, el1);
-              var el1 = dom.createElement("a");
-              dom.setAttribute(el1, "class", "star-rating fa fa-star");
-              dom.appendChild(el0, el1);
-              var el1 = dom.createTextNode("\n");
-              dom.appendChild(el0, el1);
-              return el0;
-            },
-            buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
-              var element1 = dom.childAt(fragment, [1]);
-              var morphs = new Array(1);
-              morphs[0] = dom.createElementMorph(element1);
-              return morphs;
-            },
-            statements: [["element", "action", [["get", "set", ["loc", [null, [164, 75], [164, 78]]]], ["get", "star.rating", ["loc", [null, [164, 79], [164, 90]]]]], [], ["loc", [null, [164, 66], [164, 92]]]]],
-            locals: [],
-            templates: []
-          };
-        })();
-        var child1 = (function () {
-          return {
-            meta: {
-              "fragmentReason": false,
-              "revision": "Ember@2.3.2",
-              "loc": {
-                "source": null,
-                "start": {
-                  "line": 165,
-                  "column": 30
-                },
-                "end": {
-                  "line": 167,
-                  "column": 30
-                }
-              },
-              "moduleName": "finndis/templates/add-place.hbs"
-            },
-            isEmpty: false,
-            arity: 0,
-            cachedFragment: null,
-            hasRendered: false,
-            buildFragment: function buildFragment(dom) {
-              var el0 = dom.createDocumentFragment();
-              var el1 = dom.createTextNode("                                ");
-              dom.appendChild(el0, el1);
-              var el1 = dom.createElement("a");
-              dom.setAttribute(el1, "class", "star-rating fa fa-star-o");
-              dom.appendChild(el0, el1);
-              var el1 = dom.createTextNode("\n");
-              dom.appendChild(el0, el1);
-              return el0;
-            },
-            buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
-              var element0 = dom.childAt(fragment, [1]);
-              var morphs = new Array(1);
-              morphs[0] = dom.createElementMorph(element0);
-              return morphs;
-            },
-            statements: [["element", "action", [["get", "set", ["loc", [null, [166, 77], [166, 80]]]], ["get", "star.rating", ["loc", [null, [166, 81], [166, 92]]]]], [], ["loc", [null, [166, 68], [166, 94]]]]],
-            locals: [],
-            templates: []
-          };
-        })();
-        return {
-          meta: {
-            "fragmentReason": false,
-            "revision": "Ember@2.3.2",
-            "loc": {
-              "source": null,
-              "start": {
-                "line": 162,
-                "column": 28
-              },
-              "end": {
-                "line": 168,
-                "column": 28
-              }
-            },
-            "moduleName": "finndis/templates/add-place.hbs"
-          },
-          isEmpty: false,
-          arity: 1,
-          cachedFragment: null,
-          hasRendered: false,
-          buildFragment: function buildFragment(dom) {
-            var el0 = dom.createDocumentFragment();
-            var el1 = dom.createComment("");
-            dom.appendChild(el0, el1);
-            return el0;
-          },
-          buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
-            var morphs = new Array(1);
-            morphs[0] = dom.createMorphAt(fragment, 0, 0, contextualElement);
-            dom.insertBoundary(fragment, 0);
-            dom.insertBoundary(fragment, null);
-            return morphs;
-          },
-          statements: [["block", "if", [["get", "star.full", ["loc", [null, [163, 36], [163, 45]]]]], [], 0, 1, ["loc", [null, [163, 30], [167, 37]]]]],
-          locals: ["star"],
-          templates: [child0, child1]
-        };
-      })();
-      return {
-        meta: {
-          "fragmentReason": false,
-          "revision": "Ember@2.3.2",
-          "loc": {
-            "source": null,
-            "start": {
-              "line": 161,
-              "column": 26
-            },
-            "end": {
-              "line": 169,
-              "column": 26
-            }
-          },
-          "moduleName": "finndis/templates/add-place.hbs"
-        },
-        isEmpty: false,
-        arity: 2,
-        cachedFragment: null,
-        hasRendered: false,
-        buildFragment: function buildFragment(dom) {
-          var el0 = dom.createDocumentFragment();
-          var el1 = dom.createComment("");
-          dom.appendChild(el0, el1);
-          return el0;
-        },
-        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
-          var morphs = new Array(1);
-          morphs[0] = dom.createMorphAt(fragment, 0, 0, contextualElement);
-          dom.insertBoundary(fragment, 0);
-          dom.insertBoundary(fragment, null);
-          return morphs;
-        },
-        statements: [["block", "each", [["get", "stars", ["loc", [null, [162, 36], [162, 41]]]]], [], 0, null, ["loc", [null, [162, 28], [168, 37]]]]],
-        locals: ["stars", "set"],
-        templates: [child0]
-      };
-    })();
-    var child6 = (function () {
-      return {
-        meta: {
-          "fragmentReason": false,
-          "revision": "Ember@2.3.2",
-          "loc": {
-            "source": null,
-            "start": {
-              "line": 189,
-              "column": 4
-            },
-            "end": {
-              "line": 191,
-              "column": 4
-            }
-          },
-          "moduleName": "finndis/templates/add-place.hbs"
-        },
-        isEmpty: false,
-        arity: 0,
-        cachedFragment: null,
-        hasRendered: false,
-        buildFragment: function buildFragment(dom) {
-          var el0 = dom.createDocumentFragment();
-          var el1 = dom.createTextNode("      ");
-          dom.appendChild(el0, el1);
-          var el1 = dom.createComment("");
-          dom.appendChild(el0, el1);
-          var el1 = dom.createTextNode("\n");
-          dom.appendChild(el0, el1);
-          return el0;
-        },
-        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
-          var morphs = new Array(1);
-          morphs[0] = dom.createMorphAt(fragment, 1, 1, contextualElement);
-          return morphs;
-        },
-        statements: [["content", "tool-box", ["loc", [null, [190, 6], [190, 18]]]]],
-        locals: [],
-        templates: []
-      };
-    })();
-    return {
-      meta: {
-        "fragmentReason": {
-          "name": "triple-curlies"
-        },
-        "revision": "Ember@2.3.2",
-        "loc": {
-          "source": null,
-          "start": {
-            "line": 1,
-            "column": 0
-          },
-          "end": {
-            "line": 194,
-            "column": 0
-          }
-        },
-        "moduleName": "finndis/templates/add-place.hbs"
-      },
-      isEmpty: false,
-      arity: 0,
-      cachedFragment: null,
-      hasRendered: false,
-      buildFragment: function buildFragment(dom) {
-        var el0 = dom.createDocumentFragment();
-        var el1 = dom.createElement("div");
-        dom.setAttribute(el1, "class", "page-wrapper row");
-        var el2 = dom.createTextNode("\n  ");
-        dom.appendChild(el1, el2);
-        var el2 = dom.createElement("div");
-        dom.setAttribute(el2, "class", "columns");
-        var el3 = dom.createTextNode("\n    ");
-        dom.appendChild(el2, el3);
-        var el3 = dom.createElement("div");
-        dom.setAttribute(el3, "class", "place_edition row");
-        var el4 = dom.createTextNode("\n      ");
-        dom.appendChild(el3, el4);
-        var el4 = dom.createElement("div");
-        dom.setAttribute(el4, "class", "large-8 large-offset-2 columns");
-        var el5 = dom.createTextNode("\n\n");
-        dom.appendChild(el4, el5);
-        var el5 = dom.createTextNode("        ");
-        dom.appendChild(el4, el5);
-        var el5 = dom.createElement("div");
-        var el6 = dom.createTextNode("\n          ");
-        dom.appendChild(el5, el6);
-        var el6 = dom.createElement("form");
-        dom.setAttribute(el6, "class", "add-label--form");
-        var el7 = dom.createTextNode("\n            ");
-        dom.appendChild(el6, el7);
-        var el7 = dom.createElement("div");
-        dom.setAttribute(el7, "class", "row");
-        var el8 = dom.createTextNode("\n              ");
-        dom.appendChild(el7, el8);
-        var el8 = dom.createElement("div");
-        dom.setAttribute(el8, "class", "back-button--holder small-2 columns");
-        var el9 = dom.createTextNode("\n                ");
-        dom.appendChild(el8, el9);
-        var el9 = dom.createElement("a");
-        var el10 = dom.createElement("i");
-        dom.setAttribute(el10, "class", "back-button fa fa-arrow-left");
-        dom.appendChild(el9, el10);
-        dom.appendChild(el8, el9);
-        var el9 = dom.createTextNode("\n              ");
-        dom.appendChild(el8, el9);
-        dom.appendChild(el7, el8);
-        var el8 = dom.createTextNode("\n              ");
-        dom.appendChild(el7, el8);
-        var el8 = dom.createElement("div");
-        dom.setAttribute(el8, "class", "small-10 columns");
-        var el9 = dom.createTextNode("\n                ");
-        dom.appendChild(el8, el9);
-        var el9 = dom.createComment("");
-        dom.appendChild(el8, el9);
-        var el9 = dom.createTextNode("\n              ");
-        dom.appendChild(el8, el9);
-        dom.appendChild(el7, el8);
-        var el8 = dom.createTextNode("\n            ");
-        dom.appendChild(el7, el8);
-        dom.appendChild(el6, el7);
-        var el7 = dom.createTextNode("\n            ");
-        dom.appendChild(el6, el7);
-        var el7 = dom.createElement("div");
-        dom.setAttribute(el7, "class", "row");
-        var el8 = dom.createTextNode("\n              ");
-        dom.appendChild(el7, el8);
-        var el8 = dom.createElement("div");
-        dom.setAttribute(el8, "class", "medium-12 columns");
-        var el9 = dom.createTextNode("\n                ");
-        dom.appendChild(el8, el9);
-        var el9 = dom.createElement("ul");
-        dom.setAttribute(el9, "class", "label--list");
-        var el10 = dom.createTextNode("\n");
-        dom.appendChild(el9, el10);
-        var el10 = dom.createComment("");
-        dom.appendChild(el9, el10);
-        var el10 = dom.createTextNode("                ");
-        dom.appendChild(el9, el10);
-        dom.appendChild(el8, el9);
-        var el9 = dom.createTextNode("\n              ");
-        dom.appendChild(el8, el9);
-        dom.appendChild(el7, el8);
-        var el8 = dom.createTextNode("\n            ");
-        dom.appendChild(el7, el8);
-        dom.appendChild(el6, el7);
-        var el7 = dom.createTextNode("\n          ");
-        dom.appendChild(el6, el7);
-        dom.appendChild(el5, el6);
-        var el6 = dom.createTextNode("\n        ");
-        dom.appendChild(el5, el6);
-        dom.appendChild(el4, el5);
-        var el5 = dom.createTextNode("\n        ");
-        dom.appendChild(el4, el5);
-        var el5 = dom.createElement("a");
-        dom.appendChild(el4, el5);
-        var el5 = dom.createTextNode("\n");
-        dom.appendChild(el4, el5);
-        var el5 = dom.createTextNode("\n");
-        dom.appendChild(el4, el5);
-        var el5 = dom.createTextNode("        ");
-        dom.appendChild(el4, el5);
-        var el5 = dom.createElement("form");
-        var el6 = dom.createTextNode("\n          ");
-        dom.appendChild(el5, el6);
-        var el6 = dom.createElement("div");
-        dom.setAttribute(el6, "class", "edition row");
-        var el7 = dom.createTextNode("\n            ");
-        dom.appendChild(el6, el7);
-        var el7 = dom.createElement("div");
-        dom.setAttribute(el7, "class", "columns");
-        var el8 = dom.createTextNode("\n              ");
-        dom.appendChild(el7, el8);
-        var el8 = dom.createElement("div");
-        dom.setAttribute(el8, "class", "place--holder");
-        var el9 = dom.createTextNode("\n                ");
-        dom.appendChild(el8, el9);
-        var el9 = dom.createElement("article");
-        dom.setAttribute(el9, "class", "place");
-        var el10 = dom.createTextNode("\n                  ");
-        dom.appendChild(el9, el10);
-        var el10 = dom.createElement("header");
-        dom.setAttribute(el10, "class", "place--header");
-        var el11 = dom.createTextNode("\n                    ");
-        dom.appendChild(el10, el11);
-        var el11 = dom.createElement("button");
-        dom.setAttribute(el11, "type", "submit");
-        dom.setAttribute(el11, "class", "button edit-button");
-        var el12 = dom.createElement("i");
-        dom.setAttribute(el12, "class", "place--action--icon fa fa-check");
-        dom.appendChild(el11, el12);
-        var el12 = dom.createTextNode("Save");
-        dom.appendChild(el11, el12);
-        dom.appendChild(el10, el11);
-        var el11 = dom.createTextNode("\n\n                    ");
-        dom.appendChild(el10, el11);
-        var el11 = dom.createElement("h2");
-        dom.setAttribute(el11, "class", "place--title");
-        var el12 = dom.createTextNode("\n                      ");
-        dom.appendChild(el11, el12);
-        var el12 = dom.createComment("");
-        dom.appendChild(el11, el12);
-        var el12 = dom.createTextNode("\n");
-        dom.appendChild(el11, el12);
-        var el12 = dom.createComment("");
-        dom.appendChild(el11, el12);
-        var el12 = dom.createTextNode("\n");
-        dom.appendChild(el11, el12);
-        var el12 = dom.createTextNode("                    ");
-        dom.appendChild(el11, el12);
-        dom.appendChild(el10, el11);
-        var el11 = dom.createTextNode("\n                    ");
-        dom.appendChild(el10, el11);
-        var el11 = dom.createElement("i");
-        dom.setAttribute(el11, "class", "place--labels--icon fa fa-tag");
-        dom.appendChild(el10, el11);
-        var el11 = dom.createTextNode("\n                    ");
-        dom.appendChild(el10, el11);
-        var el11 = dom.createElement("ul");
-        dom.setAttribute(el11, "class", "place--labels clearfix");
-        var el12 = dom.createTextNode("\n                      ");
-        dom.appendChild(el11, el12);
-        var el12 = dom.createElement("li");
-        dom.setAttribute(el12, "class", "place--labelitem");
-        var el13 = dom.createComment("");
-        dom.appendChild(el12, el13);
-        dom.appendChild(el11, el12);
-        var el12 = dom.createTextNode("\n                      ");
-        dom.appendChild(el11, el12);
-        var el12 = dom.createElement("li");
-        dom.setAttribute(el12, "class", "place--labelitem");
-        var el13 = dom.createTextNode("\n                        ");
-        dom.appendChild(el12, el13);
-        var el13 = dom.createElement("i");
-        dom.setAttribute(el13, "class", "place--add--icon fa fa-plus");
-        dom.appendChild(el12, el13);
-        var el13 = dom.createTextNode("\n                      ");
-        dom.appendChild(el12, el13);
-        dom.appendChild(el11, el12);
-        var el12 = dom.createTextNode("\n                    ");
-        dom.appendChild(el11, el12);
-        dom.appendChild(el10, el11);
-        var el11 = dom.createTextNode("\n                  ");
-        dom.appendChild(el10, el11);
-        dom.appendChild(el9, el10);
-        var el10 = dom.createTextNode("\n                  ");
-        dom.appendChild(el9, el10);
-        var el10 = dom.createElement("main");
-        dom.setAttribute(el10, "class", "place--main");
-        var el11 = dom.createTextNode("\n                    ");
-        dom.appendChild(el10, el11);
-        var el11 = dom.createElement("div");
-        dom.setAttribute(el11, "class", "place--info--holder collapse row");
-        var el12 = dom.createTextNode("\n");
-        dom.appendChild(el11, el12);
-        var el12 = dom.createTextNode("                      ");
-        dom.appendChild(el11, el12);
-        var el12 = dom.createElement("div");
-        dom.setAttribute(el12, "class", "small-12 columns");
-        var el13 = dom.createTextNode("\n                        ");
-        dom.appendChild(el12, el13);
-        var el13 = dom.createElement("div");
-        dom.setAttribute(el13, "class", "row align-middle place--address");
-        var el14 = dom.createTextNode("\n                          ");
-        dom.appendChild(el13, el14);
-        var el14 = dom.createElement("div");
-        dom.setAttribute(el14, "class", "small-12 medium-5 columns");
-        var el15 = dom.createTextNode("\n                            ");
-        dom.appendChild(el14, el15);
-        var el15 = dom.createElement("a");
-        dom.setAttribute(el15, "class", "button expanded place--address--elem");
-        var el16 = dom.createElement("i");
-        dom.setAttribute(el16, "class", "fa fa-street-view");
-        dom.appendChild(el15, el16);
-        var el16 = dom.createTextNode("Geolocate me");
-        dom.appendChild(el15, el16);
-        dom.appendChild(el14, el15);
-        var el15 = dom.createTextNode("\n                          ");
-        dom.appendChild(el14, el15);
-        dom.appendChild(el13, el14);
-        var el14 = dom.createTextNode("\n                          ");
-        dom.appendChild(el13, el14);
-        var el14 = dom.createElement("div");
-        dom.setAttribute(el14, "class", "small-12 medium-1 columns");
-        var el15 = dom.createTextNode("\n                            ");
-        dom.appendChild(el14, el15);
-        var el15 = dom.createElement("div");
-        dom.setAttribute(el15, "class", "place--address--separate place--address--elem");
-        var el16 = dom.createTextNode("\n                              ");
-        dom.appendChild(el15, el16);
-        var el16 = dom.createElement("span");
-        dom.setAttribute(el16, "class", "place--address--separate--content");
-        var el17 = dom.createTextNode("or");
-        dom.appendChild(el16, el17);
-        dom.appendChild(el15, el16);
-        var el16 = dom.createTextNode("\n                            ");
-        dom.appendChild(el15, el16);
-        dom.appendChild(el14, el15);
-        var el15 = dom.createTextNode("\n                          ");
-        dom.appendChild(el14, el15);
-        dom.appendChild(el13, el14);
-        var el14 = dom.createTextNode("\n                          ");
-        dom.appendChild(el13, el14);
-        var el14 = dom.createElement("div");
-        dom.setAttribute(el14, "class", "small-12 medium-6 columns");
-        var el15 = dom.createTextNode("\n                            ");
-        dom.appendChild(el14, el15);
-        var el15 = dom.createComment("");
-        dom.appendChild(el14, el15);
-        var el15 = dom.createTextNode("\n                          ");
-        dom.appendChild(el14, el15);
-        dom.appendChild(el13, el14);
-        var el14 = dom.createTextNode("\n                        ");
-        dom.appendChild(el13, el14);
-        dom.appendChild(el12, el13);
-        var el13 = dom.createTextNode("\n                      ");
-        dom.appendChild(el12, el13);
-        dom.appendChild(el11, el12);
-        var el12 = dom.createTextNode("\n");
-        dom.appendChild(el11, el12);
-        var el12 = dom.createTextNode("                    ");
-        dom.appendChild(el11, el12);
-        dom.appendChild(el10, el11);
-        var el11 = dom.createTextNode("\n\n                    ");
-        dom.appendChild(el10, el11);
-        var el11 = dom.createElement("div");
-        dom.setAttribute(el11, "class", "place--info--holder row");
-        var el12 = dom.createTextNode("\n                      ");
-        dom.appendChild(el11, el12);
-        var el12 = dom.createElement("div");
-        dom.setAttribute(el12, "class", "columns small-12 medium-6");
-        var el13 = dom.createTextNode("\n                        ");
-        dom.appendChild(el12, el13);
-        var el13 = dom.createElement("div");
-        dom.setAttribute(el13, "class", "place--website align-middle row");
-        var el14 = dom.createTextNode("\n                          ");
-        dom.appendChild(el13, el14);
-        var el14 = dom.createElement("div");
-        dom.setAttribute(el14, "class", "medium-12 columns");
-        var el15 = dom.createTextNode("\n                            ");
-        dom.appendChild(el14, el15);
-        var el15 = dom.createElement("label");
-        var el16 = dom.createElement("i");
-        dom.setAttribute(el16, "class", "fa fa-globe");
-        dom.appendChild(el15, el16);
-        var el16 = dom.createTextNode(" Website\n                              ");
-        dom.appendChild(el15, el16);
-        var el16 = dom.createComment("");
-        dom.appendChild(el15, el16);
-        var el16 = dom.createTextNode("\n");
-        dom.appendChild(el15, el16);
-        var el16 = dom.createComment("");
-        dom.appendChild(el15, el16);
-        var el16 = dom.createTextNode("                            ");
-        dom.appendChild(el15, el16);
-        dom.appendChild(el14, el15);
-        var el15 = dom.createTextNode("\n                          ");
-        dom.appendChild(el14, el15);
-        dom.appendChild(el13, el14);
-        var el14 = dom.createTextNode("\n                        ");
-        dom.appendChild(el13, el14);
-        dom.appendChild(el12, el13);
-        var el13 = dom.createTextNode("\n                      ");
-        dom.appendChild(el12, el13);
-        dom.appendChild(el11, el12);
-        var el12 = dom.createTextNode("\n                      ");
-        dom.appendChild(el11, el12);
-        var el12 = dom.createElement("div");
-        dom.setAttribute(el12, "class", "columns small-12 medium-6");
-        var el13 = dom.createTextNode("\n                        ");
-        dom.appendChild(el12, el13);
-        var el13 = dom.createElement("div");
-        dom.setAttribute(el13, "class", "place--phone align-middle row");
-        var el14 = dom.createTextNode("\n                          ");
-        dom.appendChild(el13, el14);
-        var el14 = dom.createElement("div");
-        dom.setAttribute(el14, "class", "medium-12 columns");
-        var el15 = dom.createTextNode("\n                            ");
-        dom.appendChild(el14, el15);
-        var el15 = dom.createElement("label");
-        var el16 = dom.createElement("i");
-        dom.setAttribute(el16, "class", "fa fa-phone");
-        dom.appendChild(el15, el16);
-        var el16 = dom.createTextNode(" Phone number\n                              ");
-        dom.appendChild(el15, el16);
-        var el16 = dom.createComment("");
-        dom.appendChild(el15, el16);
-        var el16 = dom.createTextNode("\n");
-        dom.appendChild(el15, el16);
-        var el16 = dom.createComment("");
-        dom.appendChild(el15, el16);
-        var el16 = dom.createTextNode("                            ");
-        dom.appendChild(el15, el16);
-        dom.appendChild(el14, el15);
-        var el15 = dom.createTextNode("\n");
-        dom.appendChild(el14, el15);
-        var el15 = dom.createComment("");
-        dom.appendChild(el14, el15);
-        var el15 = dom.createTextNode("                          ");
-        dom.appendChild(el14, el15);
-        dom.appendChild(el13, el14);
-        var el14 = dom.createTextNode("\n                        ");
-        dom.appendChild(el13, el14);
-        dom.appendChild(el12, el13);
-        var el13 = dom.createTextNode("\n                      ");
-        dom.appendChild(el12, el13);
-        dom.appendChild(el11, el12);
-        var el12 = dom.createTextNode("\n                    ");
-        dom.appendChild(el11, el12);
-        dom.appendChild(el10, el11);
-        var el11 = dom.createTextNode("\n\n                    ");
-        dom.appendChild(el10, el11);
-        var el11 = dom.createElement("div");
-        dom.setAttribute(el11, "class", "place--info--holder row");
-        var el12 = dom.createTextNode("\n                      ");
-        dom.appendChild(el11, el12);
-        var el12 = dom.createElement("div");
-        dom.setAttribute(el12, "class", "columns medium-6");
-        var el13 = dom.createTextNode("\n                        ");
-        dom.appendChild(el12, el13);
-        var el13 = dom.createElement("div");
-        dom.setAttribute(el13, "class", "place--phone align-middle row");
-        var el14 = dom.createTextNode("\n                          ");
-        dom.appendChild(el13, el14);
-        var el14 = dom.createElement("div");
-        dom.setAttribute(el14, "class", "medium-12 columns");
-        var el15 = dom.createTextNode("\n                            ");
-        dom.appendChild(el14, el15);
-        var el15 = dom.createElement("label");
-        var el16 = dom.createElement("i");
-        dom.setAttribute(el16, "class", "fa fa-usd");
-        dom.appendChild(el15, el16);
-        var el16 = dom.createTextNode(" Price range\n                              ");
-        dom.appendChild(el15, el16);
-        var el16 = dom.createComment("");
-        dom.appendChild(el15, el16);
-        var el16 = dom.createTextNode("\n                            ");
-        dom.appendChild(el15, el16);
-        dom.appendChild(el14, el15);
-        var el15 = dom.createTextNode("\n                          ");
-        dom.appendChild(el14, el15);
-        dom.appendChild(el13, el14);
-        var el14 = dom.createTextNode("\n                        ");
-        dom.appendChild(el13, el14);
-        dom.appendChild(el12, el13);
-        var el13 = dom.createTextNode("\n                      ");
-        dom.appendChild(el12, el13);
-        dom.appendChild(el11, el12);
-        var el12 = dom.createTextNode("\n                    ");
-        dom.appendChild(el11, el12);
-        dom.appendChild(el10, el11);
-        var el11 = dom.createTextNode("\n\n                    ");
-        dom.appendChild(el10, el11);
-        var el11 = dom.createElement("div");
-        dom.setAttribute(el11, "class", "place--info--holder row");
-        var el12 = dom.createTextNode("\n                      ");
-        dom.appendChild(el11, el12);
-        var el12 = dom.createElement("div");
-        dom.setAttribute(el12, "class", "columns");
-        var el13 = dom.createTextNode("\n                        ");
-        dom.appendChild(el12, el13);
-        var el13 = dom.createElement("div");
-        dom.setAttribute(el13, "class", "place--phone align-middle row");
-        var el14 = dom.createTextNode("\n                          ");
-        dom.appendChild(el13, el14);
-        var el14 = dom.createElement("div");
-        dom.setAttribute(el14, "class", "medium-12 columns");
-        var el15 = dom.createTextNode("\n                            ");
-        dom.appendChild(el14, el15);
-        var el15 = dom.createElement("label");
-        var el16 = dom.createElement("i");
-        dom.setAttribute(el16, "class", "fa fa-info");
-        dom.appendChild(el15, el16);
-        var el16 = dom.createTextNode(" Description\n                              ");
-        dom.appendChild(el15, el16);
-        var el16 = dom.createComment("");
-        dom.appendChild(el15, el16);
-        var el16 = dom.createTextNode("\n                            ");
-        dom.appendChild(el15, el16);
-        dom.appendChild(el14, el15);
-        var el15 = dom.createTextNode("\n                          ");
-        dom.appendChild(el14, el15);
-        dom.appendChild(el13, el14);
-        var el14 = dom.createTextNode("\n                        ");
-        dom.appendChild(el13, el14);
-        dom.appendChild(el12, el13);
-        var el13 = dom.createTextNode("\n                      ");
-        dom.appendChild(el12, el13);
-        dom.appendChild(el11, el12);
-        var el12 = dom.createTextNode("\n                    ");
-        dom.appendChild(el11, el12);
-        dom.appendChild(el10, el11);
-        var el11 = dom.createTextNode("\n\n                    ");
-        dom.appendChild(el10, el11);
-        var el11 = dom.createElement("div");
-        dom.setAttribute(el11, "class", "place--info--holder row");
-        var el12 = dom.createTextNode("\n                      ");
-        dom.appendChild(el11, el12);
-        var el12 = dom.createElement("div");
-        dom.setAttribute(el12, "class", "columns");
-        var el13 = dom.createTextNode("\n                        ");
-        dom.appendChild(el12, el13);
-        var el13 = dom.createElement("div");
-        dom.setAttribute(el13, "class", "place--rating");
-        var el14 = dom.createTextNode("\n");
-        dom.appendChild(el13, el14);
-        var el14 = dom.createComment("");
-        dom.appendChild(el13, el14);
-        var el14 = dom.createTextNode("                        ");
-        dom.appendChild(el13, el14);
-        dom.appendChild(el12, el13);
-        var el13 = dom.createTextNode("\n                      ");
-        dom.appendChild(el12, el13);
-        dom.appendChild(el11, el12);
-        var el12 = dom.createTextNode("\n                    ");
-        dom.appendChild(el11, el12);
-        dom.appendChild(el10, el11);
-        var el11 = dom.createTextNode("\n                  ");
-        dom.appendChild(el10, el11);
-        dom.appendChild(el9, el10);
-        var el10 = dom.createTextNode("\n                ");
-        dom.appendChild(el9, el10);
-        dom.appendChild(el8, el9);
-        var el9 = dom.createTextNode("\n              ");
-        dom.appendChild(el8, el9);
-        dom.appendChild(el7, el8);
-        var el8 = dom.createTextNode("\n            ");
-        dom.appendChild(el7, el8);
-        dom.appendChild(el6, el7);
-        var el7 = dom.createTextNode("\n          ");
-        dom.appendChild(el6, el7);
-        dom.appendChild(el5, el6);
-        var el6 = dom.createTextNode("\n          ");
-        dom.appendChild(el5, el6);
-        var el6 = dom.createElement("div");
-        dom.setAttribute(el6, "class", "place--info--holder row");
-        var el7 = dom.createTextNode("\n            ");
-        dom.appendChild(el6, el7);
-        var el7 = dom.createElement("div");
-        dom.setAttribute(el7, "class", "columns");
-        var el8 = dom.createTextNode("\n              ");
-        dom.appendChild(el7, el8);
-        var el8 = dom.createElement("button");
-        dom.setAttribute(el8, "type", "submit");
-        dom.setAttribute(el8, "class", "button expanded");
-        var el9 = dom.createElement("i");
-        dom.setAttribute(el9, "class", "place--action--icon fa fa-check");
-        dom.appendChild(el8, el9);
-        var el9 = dom.createTextNode(" Save");
-        dom.appendChild(el8, el9);
-        dom.appendChild(el7, el8);
-        var el8 = dom.createTextNode("\n            ");
-        dom.appendChild(el7, el8);
-        dom.appendChild(el6, el7);
-        var el7 = dom.createTextNode("\n          ");
-        dom.appendChild(el6, el7);
-        dom.appendChild(el5, el6);
-        var el6 = dom.createTextNode("\n        ");
-        dom.appendChild(el5, el6);
-        dom.appendChild(el4, el5);
-        var el5 = dom.createTextNode("\n");
-        dom.appendChild(el4, el5);
-        var el5 = dom.createTextNode("\n      ");
-        dom.appendChild(el4, el5);
-        dom.appendChild(el3, el4);
-        var el4 = dom.createTextNode("\n    ");
-        dom.appendChild(el3, el4);
-        dom.appendChild(el2, el3);
-        var el3 = dom.createTextNode("\n\n");
-        dom.appendChild(el2, el3);
-        var el3 = dom.createComment("");
-        dom.appendChild(el2, el3);
-        var el3 = dom.createTextNode("  ");
-        dom.appendChild(el2, el3);
-        dom.appendChild(el1, el2);
-        var el2 = dom.createTextNode("\n");
-        dom.appendChild(el1, el2);
-        dom.appendChild(el0, el1);
-        var el1 = dom.createTextNode("\n");
-        dom.appendChild(el0, el1);
-        return el0;
-      },
-      buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
-        var element3 = dom.childAt(fragment, [0, 1]);
-        var element4 = dom.childAt(element3, [1, 1]);
-        var element5 = dom.childAt(element4, [2]);
-        var element6 = dom.childAt(element5, [1]);
-        var element7 = dom.childAt(element6, [1]);
-        var element8 = dom.childAt(element7, [1, 1]);
-        var element9 = dom.childAt(element4, [4]);
-        var element10 = dom.childAt(element4, [8]);
-        var element11 = dom.childAt(element10, [1, 1, 1, 1]);
-        var element12 = dom.childAt(element11, [1]);
-        var element13 = dom.childAt(element12, [1]);
-        var element14 = dom.childAt(element12, [3]);
-        var element15 = dom.childAt(element12, [5]);
-        var element16 = dom.childAt(element12, [7]);
-        var element17 = dom.childAt(element11, [3]);
-        var element18 = dom.childAt(element17, [1, 2, 1]);
-        var element19 = dom.childAt(element18, [1, 1]);
-        var element20 = dom.childAt(element17, [3]);
-        var element21 = dom.childAt(element20, [1, 1, 1, 1]);
-        var element22 = dom.childAt(element20, [3, 1, 1]);
-        var element23 = dom.childAt(element22, [1]);
-        var morphs = new Array(24);
-        morphs[0] = dom.createAttrMorph(element5, 'class');
-        morphs[1] = dom.createElementMorph(element8);
-        morphs[2] = dom.createMorphAt(dom.childAt(element7, [3]), 1, 1);
-        morphs[3] = dom.createMorphAt(dom.childAt(element6, [3, 1, 1]), 1, 1);
-        morphs[4] = dom.createAttrMorph(element9, 'class');
-        morphs[5] = dom.createElementMorph(element9);
-        morphs[6] = dom.createElementMorph(element10);
-        morphs[7] = dom.createElementMorph(element13);
-        morphs[8] = dom.createMorphAt(element14, 1, 1);
-        morphs[9] = dom.createMorphAt(element14, 3, 3);
-        morphs[10] = dom.createElementMorph(element15);
-        morphs[11] = dom.createElementMorph(element16);
-        morphs[12] = dom.createMorphAt(dom.childAt(element16, [1]), 0, 0);
-        morphs[13] = dom.createElementMorph(element19);
-        morphs[14] = dom.createMorphAt(dom.childAt(element18, [5]), 1, 1);
-        morphs[15] = dom.createMorphAt(element21, 2, 2);
-        morphs[16] = dom.createMorphAt(element21, 4, 4);
-        morphs[17] = dom.createMorphAt(element23, 2, 2);
-        morphs[18] = dom.createMorphAt(element23, 4, 4);
-        morphs[19] = dom.createMorphAt(element22, 3, 3);
-        morphs[20] = dom.createMorphAt(dom.childAt(element17, [5, 1, 1, 1, 1]), 2, 2);
-        morphs[21] = dom.createMorphAt(dom.childAt(element17, [7, 1, 1, 1, 1]), 2, 2);
-        morphs[22] = dom.createMorphAt(dom.childAt(element17, [9, 1, 1]), 1, 1);
-        morphs[23] = dom.createMorphAt(element3, 3, 3);
-        return morphs;
-      },
-      statements: [["attribute", "class", ["concat", ["panel right ", ["get", "labelPanelDisplayed", ["loc", [null, [7, 34], [7, 53]]]]]]], ["element", "action", ["closeMenuPanel"], [], ["loc", [null, [11, 19], [11, 46]]]], ["content", "add-label", ["loc", [null, [14, 16], [14, 29]]]], ["block", "each", [["get", "userLabels", ["loc", [null, [20, 26], [20, 36]]]]], [], 0, null, ["loc", [null, [20, 18], [43, 27]]]], ["attribute", "class", ["concat", ["panel-overlay right ", ["get", "labelPanelDisplayed", ["loc", [null, [49, 40], [49, 59]]]]]]], ["element", "action", ["closeMenuPanel"], [], ["loc", [null, [49, 63], [49, 90]]]], ["element", "action", ["addPlace", ["get", "model", ["loc", [null, [53, 34], [53, 39]]]]], ["on", "submit"], ["loc", [null, [53, 14], [53, 53]]]], ["element", "bind-attr", [], ["disabled", "isInvalid"], ["loc", [null, [59, 69], [59, 103]]]], ["inline", "input", [], ["type", "text", "class", "place--input", "value", ["subexpr", "@mut", [["get", "model.name", ["loc", [null, [62, 69], [62, 79]]]]], [], []]], ["loc", [null, [62, 22], [62, 81]]]], ["block", "if", [["subexpr", "get", [["subexpr", "get", [["get", "model.validations.attrs", []], "name"], [], []], "isInvalid"], [], ["loc", [null, [63, 28], [63, 60]]]]], [], 1, null, ["loc", [null, [63, 22], [67, 29]]]], ["element", "action", ["showAddLabel"], ["bubbles", "false"], ["loc", [null, [71, 61], [71, 102]]]], ["element", "action", ["showAddLabel"], ["bubbles", "false"], ["loc", [null, [72, 55], [72, 96]]]], ["content", "model.label.name", ["loc", [null, [73, 51], [73, 71]]]], ["element", "action", ["setAutoAddress"], [], ["loc", [null, [85, 76], [85, 103]]]], ["inline", "address-panel", [], ["place", ["subexpr", "@mut", [["get", "model", ["loc", [null, [93, 50], [93, 55]]]]], [], []]], ["loc", [null, [93, 28], [93, 57]]]], ["inline", "input", [], ["value", ["subexpr", "@mut", [["get", "model.website", ["loc", [null, [105, 44], [105, 57]]]]], [], []], "class", "place--main-input", "type", "tel"], ["loc", [null, [105, 30], [105, 96]]]], ["block", "if", [["subexpr", "get", [["subexpr", "get", [["get", "model.validations.attrs", []], "website"], [], []], "isInvalid"], [], ["loc", [null, [106, 36], [106, 71]]]]], [], 2, null, ["loc", [null, [106, 30], [110, 37]]]], ["inline", "input", [], ["value", ["subexpr", "@mut", [["get", "model.phone", ["loc", [null, [119, 44], [119, 55]]]]], [], []], "class", "place--main-input", "type", "text"], ["loc", [null, [119, 30], [119, 95]]]], ["block", "if", [["subexpr", "get", [["subexpr", "get", [["get", "model.validations.attrs", []], "phone"], [], []], "isInvalid"], [], ["loc", [null, [120, 36], [120, 69]]]]], [], 3, null, ["loc", [null, [120, 30], [124, 37]]]], ["block", "if", [["get", "errors.model.phone", ["loc", [null, [126, 34], [126, 52]]]]], [], 4, null, ["loc", [null, [126, 28], [128, 35]]]], ["inline", "input", [], ["value", ["subexpr", "@mut", [["get", "model.pricerange", ["loc", [null, [139, 44], [139, 60]]]]], [], []], "class", "place--main-input", "type", "text"], ["loc", [null, [139, 30], [139, 100]]]], ["inline", "textarea", [], ["type", "text", "cols", "60", "rows", "3", "class", "place--main-input", "value", ["subexpr", "@mut", [["get", "model.description", ["loc", [null, [151, 104], [151, 121]]]]], [], []]], ["loc", [null, [151, 30], [151, 123]]]], ["block", "star-rating-fa", [], ["item", ["subexpr", "@mut", [["get", "model", ["loc", [null, [161, 50], [161, 55]]]]], [], []], "rating", ["subexpr", "@mut", [["get", "model.rating", ["loc", [null, [161, 63], [161, 75]]]]], [], []], "on-click", ["subexpr", "action", ["setRating"], [], ["loc", [null, [161, 85], [161, 105]]]]], 5, null, ["loc", [null, [161, 26], [169, 45]]]], ["block", "if", [["get", "session.isAuthenticated", ["loc", [null, [189, 10], [189, 33]]]]], [], 6, null, ["loc", [null, [189, 4], [191, 11]]]]],
-      locals: [],
-      templates: [child0, child1, child2, child3, child4, child5, child6]
-    };
-  })());
-});
-define("finndis/templates/application", ["exports"], function (exports) {
-  exports["default"] = Ember.HTMLBars.template((function () {
     return {
       meta: {
         "fragmentReason": {
@@ -3789,7 +2443,86 @@ define("finndis/templates/application", ["exports"], function (exports) {
             "column": 0
           },
           "end": {
-            "line": 4,
+            "line": 12,
+            "column": 0
+          }
+        },
+        "moduleName": "finndis/templates/add-place.hbs"
+      },
+      isEmpty: false,
+      arity: 0,
+      cachedFragment: null,
+      hasRendered: false,
+      buildFragment: function buildFragment(dom) {
+        var el0 = dom.createDocumentFragment();
+        var el1 = dom.createComment("");
+        dom.appendChild(el0, el1);
+        var el1 = dom.createTextNode("\n\n");
+        dom.appendChild(el0, el1);
+        var el1 = dom.createElement("div");
+        dom.setAttribute(el1, "class", "page-wrapper row big");
+        var el2 = dom.createTextNode("\n  ");
+        dom.appendChild(el1, el2);
+        var el2 = dom.createElement("div");
+        dom.setAttribute(el2, "class", "columns");
+        var el3 = dom.createTextNode("\n    ");
+        dom.appendChild(el2, el3);
+        var el3 = dom.createElement("div");
+        dom.setAttribute(el3, "class", "map_search--holder row");
+        var el4 = dom.createTextNode("\n      ");
+        dom.appendChild(el3, el4);
+        var el4 = dom.createElement("div");
+        dom.setAttribute(el4, "class", "columns medium-8 medium-offset-2");
+        var el5 = dom.createTextNode("\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createComment("");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n      ");
+        dom.appendChild(el4, el5);
+        dom.appendChild(el3, el4);
+        var el4 = dom.createTextNode("\n    ");
+        dom.appendChild(el3, el4);
+        dom.appendChild(el2, el3);
+        var el3 = dom.createTextNode("\n  ");
+        dom.appendChild(el2, el3);
+        dom.appendChild(el1, el2);
+        var el2 = dom.createTextNode("\n");
+        dom.appendChild(el1, el2);
+        dom.appendChild(el0, el1);
+        var el1 = dom.createTextNode("\n");
+        dom.appendChild(el0, el1);
+        return el0;
+      },
+      buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+        var morphs = new Array(2);
+        morphs[0] = dom.createMorphAt(fragment, 0, 0, contextualElement);
+        morphs[1] = dom.createMorphAt(dom.childAt(fragment, [2, 1, 1, 1]), 1, 1);
+        dom.insertBoundary(fragment, 0);
+        return morphs;
+      },
+      statements: [["inline", "main-header", [], ["menuHideAddNew", true], ["loc", [null, [1, 0], [1, 35]]]], ["inline", "google-search", [], ["latitude", "34.851939", "longitude", "-82.399752"], ["loc", [null, [7, 8], [7, 69]]]]],
+      locals: [],
+      templates: []
+    };
+  })());
+});
+define("finndis/templates/application", ["exports"], function (exports) {
+  exports["default"] = Ember.HTMLBars.template((function () {
+    return {
+      meta: {
+        "fragmentReason": {
+          "name": "missing-wrapper",
+          "problems": ["wrong-type"]
+        },
+        "revision": "Ember@2.3.2",
+        "loc": {
+          "source": null,
+          "start": {
+            "line": 1,
+            "column": 0
+          },
+          "end": {
+            "line": 2,
             "column": 0
           }
         },
@@ -3803,22 +2536,17 @@ define("finndis/templates/application", ["exports"], function (exports) {
         var el0 = dom.createDocumentFragment();
         var el1 = dom.createComment("");
         dom.appendChild(el0, el1);
-        var el1 = dom.createTextNode("\n\n");
-        dom.appendChild(el0, el1);
-        var el1 = dom.createComment("");
-        dom.appendChild(el0, el1);
         var el1 = dom.createTextNode("\n");
         dom.appendChild(el0, el1);
         return el0;
       },
       buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
-        var morphs = new Array(2);
+        var morphs = new Array(1);
         morphs[0] = dom.createMorphAt(fragment, 0, 0, contextualElement);
-        morphs[1] = dom.createMorphAt(fragment, 2, 2, contextualElement);
         dom.insertBoundary(fragment, 0);
         return morphs;
       },
-      statements: [["content", "main-header", ["loc", [null, [1, 0], [1, 15]]]], ["content", "outlet", ["loc", [null, [3, 0], [3, 10]]]]],
+      statements: [["content", "outlet", ["loc", [null, [1, 0], [1, 10]]]]],
       locals: [],
       templates: []
     };
@@ -4423,388 +3151,6 @@ define("finndis/templates/components/google-map", ["exports"], function (exports
 define("finndis/templates/components/google-search", ["exports"], function (exports) {
   exports["default"] = Ember.HTMLBars.template((function () {
     var child0 = (function () {
-      var child0 = (function () {
-        return {
-          meta: {
-            "fragmentReason": false,
-            "revision": "Ember@2.3.2",
-            "loc": {
-              "source": null,
-              "start": {
-                "line": 18,
-                "column": 10
-              },
-              "end": {
-                "line": 29,
-                "column": 10
-              }
-            },
-            "moduleName": "finndis/templates/components/google-search.hbs"
-          },
-          isEmpty: false,
-          arity: 0,
-          cachedFragment: null,
-          hasRendered: false,
-          buildFragment: function buildFragment(dom) {
-            var el0 = dom.createDocumentFragment();
-            var el1 = dom.createTextNode("          ");
-            dom.appendChild(el0, el1);
-            var el1 = dom.createElement("div");
-            dom.setAttribute(el1, "class", "columns small-12 medium-6");
-            var el2 = dom.createTextNode("\n            ");
-            dom.appendChild(el1, el2);
-            var el2 = dom.createElement("div");
-            dom.setAttribute(el2, "class", "place--address row");
-            var el3 = dom.createTextNode("\n              ");
-            dom.appendChild(el2, el3);
-            var el3 = dom.createElement("div");
-            dom.setAttribute(el3, "class", "small-1 columns");
-            var el4 = dom.createTextNode("\n                ");
-            dom.appendChild(el3, el4);
-            var el4 = dom.createElement("i");
-            dom.setAttribute(el4, "class", "place--main--icon fa fa-map-marker");
-            dom.appendChild(el3, el4);
-            var el4 = dom.createTextNode("\n              ");
-            dom.appendChild(el3, el4);
-            dom.appendChild(el2, el3);
-            var el3 = dom.createTextNode("\n              ");
-            dom.appendChild(el2, el3);
-            var el3 = dom.createElement("div");
-            dom.setAttribute(el3, "class", "small-11 columns");
-            var el4 = dom.createTextNode("\n                ");
-            dom.appendChild(el3, el4);
-            var el4 = dom.createComment("");
-            dom.appendChild(el3, el4);
-            var el4 = dom.createTextNode("\n              ");
-            dom.appendChild(el3, el4);
-            dom.appendChild(el2, el3);
-            var el3 = dom.createTextNode("\n            ");
-            dom.appendChild(el2, el3);
-            dom.appendChild(el1, el2);
-            var el2 = dom.createTextNode("\n          ");
-            dom.appendChild(el1, el2);
-            dom.appendChild(el0, el1);
-            var el1 = dom.createTextNode("\n");
-            dom.appendChild(el0, el1);
-            return el0;
-          },
-          buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
-            var morphs = new Array(1);
-            morphs[0] = dom.createMorphAt(dom.childAt(fragment, [1, 1, 3]), 1, 1);
-            return morphs;
-          },
-          statements: [["content", "place.formattedaddress", ["loc", [null, [25, 16], [25, 42]]]]],
-          locals: [],
-          templates: []
-        };
-      })();
-      var child1 = (function () {
-        return {
-          meta: {
-            "fragmentReason": false,
-            "revision": "Ember@2.3.2",
-            "loc": {
-              "source": null,
-              "start": {
-                "line": 30,
-                "column": 10
-              },
-              "end": {
-                "line": 43,
-                "column": 10
-              }
-            },
-            "moduleName": "finndis/templates/components/google-search.hbs"
-          },
-          isEmpty: false,
-          arity: 0,
-          cachedFragment: null,
-          hasRendered: false,
-          buildFragment: function buildFragment(dom) {
-            var el0 = dom.createDocumentFragment();
-            var el1 = dom.createTextNode("          ");
-            dom.appendChild(el0, el1);
-            var el1 = dom.createElement("div");
-            dom.setAttribute(el1, "class", "columns small-12 medium-6");
-            var el2 = dom.createTextNode("\n            ");
-            dom.appendChild(el1, el2);
-            var el2 = dom.createElement("a");
-            var el3 = dom.createTextNode("\n              ");
-            dom.appendChild(el2, el3);
-            var el3 = dom.createElement("div");
-            dom.setAttribute(el3, "class", "place--phone row");
-            var el4 = dom.createTextNode("\n                ");
-            dom.appendChild(el3, el4);
-            var el4 = dom.createElement("div");
-            dom.setAttribute(el4, "class", "small-1 columns");
-            var el5 = dom.createTextNode("\n                  ");
-            dom.appendChild(el4, el5);
-            var el5 = dom.createElement("i");
-            dom.setAttribute(el5, "class", "place--main--icon fa fa-phone");
-            dom.appendChild(el4, el5);
-            var el5 = dom.createTextNode("\n                ");
-            dom.appendChild(el4, el5);
-            dom.appendChild(el3, el4);
-            var el4 = dom.createTextNode("\n                ");
-            dom.appendChild(el3, el4);
-            var el4 = dom.createElement("div");
-            dom.setAttribute(el4, "class", "small-11 columns");
-            var el5 = dom.createTextNode("\n                  ");
-            dom.appendChild(el4, el5);
-            var el5 = dom.createComment("");
-            dom.appendChild(el4, el5);
-            var el5 = dom.createTextNode("\n                ");
-            dom.appendChild(el4, el5);
-            dom.appendChild(el3, el4);
-            var el4 = dom.createTextNode("\n              ");
-            dom.appendChild(el3, el4);
-            dom.appendChild(el2, el3);
-            var el3 = dom.createTextNode("\n            ");
-            dom.appendChild(el2, el3);
-            dom.appendChild(el1, el2);
-            var el2 = dom.createTextNode("\n          ");
-            dom.appendChild(el1, el2);
-            dom.appendChild(el0, el1);
-            var el1 = dom.createTextNode("\n");
-            dom.appendChild(el0, el1);
-            return el0;
-          },
-          buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
-            var element5 = dom.childAt(fragment, [1, 1]);
-            var morphs = new Array(2);
-            morphs[0] = dom.createAttrMorph(element5, 'href');
-            morphs[1] = dom.createMorphAt(dom.childAt(element5, [1, 3]), 1, 1);
-            return morphs;
-          },
-          statements: [["attribute", "href", ["concat", ["tel:", ["get", "place.phone", ["loc", [null, [32, 27], [32, 38]]]]]]], ["content", "place.phone", ["loc", [null, [38, 18], [38, 33]]]]],
-          locals: [],
-          templates: []
-        };
-      })();
-      var child2 = (function () {
-        return {
-          meta: {
-            "fragmentReason": false,
-            "revision": "Ember@2.3.2",
-            "loc": {
-              "source": null,
-              "start": {
-                "line": 48,
-                "column": 10
-              },
-              "end": {
-                "line": 61,
-                "column": 10
-              }
-            },
-            "moduleName": "finndis/templates/components/google-search.hbs"
-          },
-          isEmpty: false,
-          arity: 0,
-          cachedFragment: null,
-          hasRendered: false,
-          buildFragment: function buildFragment(dom) {
-            var el0 = dom.createDocumentFragment();
-            var el1 = dom.createTextNode("          ");
-            dom.appendChild(el0, el1);
-            var el1 = dom.createElement("div");
-            dom.setAttribute(el1, "class", "columns small-12 medium-6");
-            var el2 = dom.createTextNode("\n            ");
-            dom.appendChild(el1, el2);
-            var el2 = dom.createElement("a");
-            var el3 = dom.createTextNode("\n              ");
-            dom.appendChild(el2, el3);
-            var el3 = dom.createElement("div");
-            dom.setAttribute(el3, "class", "place--website row");
-            var el4 = dom.createTextNode("\n                ");
-            dom.appendChild(el3, el4);
-            var el4 = dom.createElement("div");
-            dom.setAttribute(el4, "class", "small-1 columns");
-            var el5 = dom.createTextNode("\n                  ");
-            dom.appendChild(el4, el5);
-            var el5 = dom.createElement("i");
-            dom.setAttribute(el5, "class", "place--main--icon fa fa-globe");
-            dom.appendChild(el4, el5);
-            var el5 = dom.createTextNode("\n                ");
-            dom.appendChild(el4, el5);
-            dom.appendChild(el3, el4);
-            var el4 = dom.createTextNode("\n                ");
-            dom.appendChild(el3, el4);
-            var el4 = dom.createElement("div");
-            dom.setAttribute(el4, "class", "small-11 columns");
-            var el5 = dom.createTextNode("\n                  ");
-            dom.appendChild(el4, el5);
-            var el5 = dom.createComment("");
-            dom.appendChild(el4, el5);
-            var el5 = dom.createTextNode("\n                ");
-            dom.appendChild(el4, el5);
-            dom.appendChild(el3, el4);
-            var el4 = dom.createTextNode("\n              ");
-            dom.appendChild(el3, el4);
-            dom.appendChild(el2, el3);
-            var el3 = dom.createTextNode("\n            ");
-            dom.appendChild(el2, el3);
-            dom.appendChild(el1, el2);
-            var el2 = dom.createTextNode("\n          ");
-            dom.appendChild(el1, el2);
-            dom.appendChild(el0, el1);
-            var el1 = dom.createTextNode("\n");
-            dom.appendChild(el0, el1);
-            return el0;
-          },
-          buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
-            var element4 = dom.childAt(fragment, [1, 1]);
-            var morphs = new Array(2);
-            morphs[0] = dom.createAttrMorph(element4, 'href');
-            morphs[1] = dom.createMorphAt(dom.childAt(element4, [1, 3]), 1, 1);
-            return morphs;
-          },
-          statements: [["attribute", "href", ["concat", [["get", "place.website", ["loc", [null, [50, 23], [50, 36]]]]]]], ["content", "place.website", ["loc", [null, [56, 18], [56, 35]]]]],
-          locals: [],
-          templates: []
-        };
-      })();
-      var child3 = (function () {
-        return {
-          meta: {
-            "fragmentReason": false,
-            "revision": "Ember@2.3.2",
-            "loc": {
-              "source": null,
-              "start": {
-                "line": 62,
-                "column": 10
-              },
-              "end": {
-                "line": 75,
-                "column": 10
-              }
-            },
-            "moduleName": "finndis/templates/components/google-search.hbs"
-          },
-          isEmpty: false,
-          arity: 0,
-          cachedFragment: null,
-          hasRendered: false,
-          buildFragment: function buildFragment(dom) {
-            var el0 = dom.createDocumentFragment();
-            var el1 = dom.createTextNode("          ");
-            dom.appendChild(el0, el1);
-            var el1 = dom.createElement("div");
-            dom.setAttribute(el1, "class", "columns small-12 medium-6");
-            var el2 = dom.createTextNode("\n            ");
-            dom.appendChild(el1, el2);
-            var el2 = dom.createElement("a");
-            var el3 = dom.createTextNode("\n              ");
-            dom.appendChild(el2, el3);
-            var el3 = dom.createElement("div");
-            dom.setAttribute(el3, "class", "place--url row");
-            var el4 = dom.createTextNode("\n                ");
-            dom.appendChild(el3, el4);
-            var el4 = dom.createElement("div");
-            dom.setAttribute(el4, "class", "small-1 columns");
-            var el5 = dom.createTextNode("\n                  ");
-            dom.appendChild(el4, el5);
-            var el5 = dom.createElement("i");
-            dom.setAttribute(el5, "class", "place--main--icon fa fa-google");
-            dom.appendChild(el4, el5);
-            var el5 = dom.createTextNode("\n                ");
-            dom.appendChild(el4, el5);
-            dom.appendChild(el3, el4);
-            var el4 = dom.createTextNode("\n                ");
-            dom.appendChild(el3, el4);
-            var el4 = dom.createElement("div");
-            dom.setAttribute(el4, "class", "small-11 columns");
-            var el5 = dom.createTextNode("\n                  Google Map\n                ");
-            dom.appendChild(el4, el5);
-            dom.appendChild(el3, el4);
-            var el4 = dom.createTextNode("\n              ");
-            dom.appendChild(el3, el4);
-            dom.appendChild(el2, el3);
-            var el3 = dom.createTextNode("\n            ");
-            dom.appendChild(el2, el3);
-            dom.appendChild(el1, el2);
-            var el2 = dom.createTextNode("\n          ");
-            dom.appendChild(el1, el2);
-            dom.appendChild(el0, el1);
-            var el1 = dom.createTextNode("\n");
-            dom.appendChild(el0, el1);
-            return el0;
-          },
-          buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
-            var element3 = dom.childAt(fragment, [1, 1]);
-            var morphs = new Array(1);
-            morphs[0] = dom.createAttrMorph(element3, 'href');
-            return morphs;
-          },
-          statements: [["attribute", "href", ["concat", [["get", "place.url", ["loc", [null, [64, 23], [64, 32]]]]]]]],
-          locals: [],
-          templates: []
-        };
-      })();
-      var child4 = (function () {
-        return {
-          meta: {
-            "fragmentReason": false,
-            "revision": "Ember@2.3.2",
-            "loc": {
-              "source": null,
-              "start": {
-                "line": 93,
-                "column": 8
-              },
-              "end": {
-                "line": 101,
-                "column": 8
-              }
-            },
-            "moduleName": "finndis/templates/components/google-search.hbs"
-          },
-          isEmpty: false,
-          arity: 0,
-          cachedFragment: null,
-          hasRendered: false,
-          buildFragment: function buildFragment(dom) {
-            var el0 = dom.createDocumentFragment();
-            var el1 = dom.createTextNode("        ");
-            dom.appendChild(el0, el1);
-            var el1 = dom.createElement("div");
-            dom.setAttribute(el1, "class", "place--info--holder row");
-            var el2 = dom.createTextNode("\n          ");
-            dom.appendChild(el1, el2);
-            var el2 = dom.createElement("div");
-            dom.setAttribute(el2, "class", "columns");
-            var el3 = dom.createTextNode("\n            ");
-            dom.appendChild(el2, el3);
-            var el3 = dom.createElement("div");
-            dom.setAttribute(el3, "class", "place--rating");
-            var el4 = dom.createTextNode("\n              ");
-            dom.appendChild(el3, el4);
-            var el4 = dom.createComment("");
-            dom.appendChild(el3, el4);
-            var el4 = dom.createTextNode("\n            ");
-            dom.appendChild(el3, el4);
-            dom.appendChild(el2, el3);
-            var el3 = dom.createTextNode("\n          ");
-            dom.appendChild(el2, el3);
-            dom.appendChild(el1, el2);
-            var el2 = dom.createTextNode("\n        ");
-            dom.appendChild(el1, el2);
-            dom.appendChild(el0, el1);
-            var el1 = dom.createTextNode("\n");
-            dom.appendChild(el0, el1);
-            return el0;
-          },
-          buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
-            var morphs = new Array(1);
-            morphs[0] = dom.createMorphAt(dom.childAt(fragment, [1, 1, 1]), 1, 1);
-            return morphs;
-          },
-          statements: [["inline", "star-rating-fa", [], ["item", ["subexpr", "@mut", [["get", "place", ["loc", [null, [97, 36], [97, 41]]]]], [], []], "rating", ["subexpr", "@mut", [["get", "place.rating", ["loc", [null, [97, 49], [97, 61]]]]], [], []]], ["loc", [null, [97, 14], [97, 63]]]]],
-          locals: [],
-          templates: []
-        };
-      })();
       return {
         meta: {
           "fragmentReason": false,
@@ -4812,11 +3158,11 @@ define("finndis/templates/components/google-search", ["exports"], function (expo
           "loc": {
             "source": null,
             "start": {
-              "line": 6,
+              "line": 3,
               "column": 0
             },
             "end": {
-              "line": 106,
+              "line": 14,
               "column": 0
             }
           },
@@ -4828,129 +3174,30 @@ define("finndis/templates/components/google-search", ["exports"], function (expo
         hasRendered: false,
         buildFragment: function buildFragment(dom) {
           var el0 = dom.createDocumentFragment();
-          var el1 = dom.createTextNode("\n");
-          dom.appendChild(el0, el1);
           var el1 = dom.createElement("div");
-          dom.setAttribute(el1, "id", "place_map");
-          dom.setAttribute(el1, "class", "place_map");
+          dom.setAttribute(el1, "class", "map_error--holder row");
           var el2 = dom.createTextNode("\n  ");
           dom.appendChild(el1, el2);
           var el2 = dom.createElement("div");
-          dom.setAttribute(el2, "class", "place_map--inner");
+          dom.setAttribute(el2, "class", "columns shrink");
           var el3 = dom.createTextNode("\n    ");
           dom.appendChild(el2, el3);
-          var el3 = dom.createElement("article");
-          dom.setAttribute(el3, "class", "place");
-          var el4 = dom.createTextNode("\n      ");
-          dom.appendChild(el3, el4);
-          var el4 = dom.createElement("header");
-          dom.setAttribute(el4, "class", "place--header");
-          var el5 = dom.createTextNode("\n        ");
-          dom.appendChild(el4, el5);
-          var el5 = dom.createElement("a");
-          dom.setAttribute(el5, "href", "#");
-          dom.setAttribute(el5, "class", "button edit-button");
-          var el6 = dom.createElement("i");
-          dom.setAttribute(el6, "class", "place--action--icon fa fa-star");
-          dom.appendChild(el5, el6);
-          var el6 = dom.createTextNode("Save");
-          dom.appendChild(el5, el6);
-          dom.appendChild(el4, el5);
-          var el5 = dom.createTextNode("\n        ");
-          dom.appendChild(el4, el5);
-          var el5 = dom.createElement("h2");
-          dom.setAttribute(el5, "class", "place--title");
-          var el6 = dom.createComment("");
-          dom.appendChild(el5, el6);
-          dom.appendChild(el4, el5);
-          var el5 = dom.createTextNode("\n      ");
-          dom.appendChild(el4, el5);
-          dom.appendChild(el3, el4);
-          var el4 = dom.createTextNode("\n\n      ");
-          dom.appendChild(el3, el4);
-          var el4 = dom.createElement("main");
-          dom.setAttribute(el4, "class", "place--main");
-          var el5 = dom.createTextNode("\n        ");
-          dom.appendChild(el4, el5);
-          var el5 = dom.createElement("div");
-          dom.setAttribute(el5, "class", "place--info--holder row");
-          var el6 = dom.createTextNode("\n");
-          dom.appendChild(el5, el6);
-          var el6 = dom.createComment("");
-          dom.appendChild(el5, el6);
-          var el6 = dom.createComment("");
-          dom.appendChild(el5, el6);
-          var el6 = dom.createTextNode("        ");
-          dom.appendChild(el5, el6);
-          dom.appendChild(el4, el5);
-          var el5 = dom.createTextNode("\n\n\n        ");
-          dom.appendChild(el4, el5);
-          var el5 = dom.createElement("div");
-          dom.setAttribute(el5, "class", "place--info--holder row");
-          var el6 = dom.createTextNode("\n");
-          dom.appendChild(el5, el6);
-          var el6 = dom.createComment("");
-          dom.appendChild(el5, el6);
-          var el6 = dom.createComment("");
-          dom.appendChild(el5, el6);
-          var el6 = dom.createTextNode("        ");
-          dom.appendChild(el5, el6);
-          dom.appendChild(el4, el5);
-          var el5 = dom.createTextNode("\n\n        ");
-          dom.appendChild(el4, el5);
-          var el5 = dom.createElement("div");
-          dom.setAttribute(el5, "class", "place--info--holder row");
-          var el6 = dom.createTextNode("\n          ");
-          dom.appendChild(el5, el6);
-          var el6 = dom.createElement("div");
-          dom.setAttribute(el6, "class", "columns small-12 medium-6");
-          var el7 = dom.createTextNode("\n            ");
-          dom.appendChild(el6, el7);
-          var el7 = dom.createElement("a");
-          dom.setAttribute(el7, "target", "_blank");
-          var el8 = dom.createTextNode("\n              ");
-          dom.appendChild(el7, el8);
-          var el8 = dom.createElement("div");
-          dom.setAttribute(el8, "class", "place--direction row");
-          var el9 = dom.createTextNode("\n                ");
-          dom.appendChild(el8, el9);
-          var el9 = dom.createElement("div");
-          dom.setAttribute(el9, "class", "small-1 columns");
-          var el10 = dom.createTextNode("\n                  ");
-          dom.appendChild(el9, el10);
-          var el10 = dom.createElement("i");
-          dom.setAttribute(el10, "class", "place--main--icon fa fa-location-arrow");
-          dom.appendChild(el9, el10);
-          var el10 = dom.createTextNode("\n                ");
-          dom.appendChild(el9, el10);
-          dom.appendChild(el8, el9);
-          var el9 = dom.createTextNode("\n                ");
-          dom.appendChild(el8, el9);
-          var el9 = dom.createElement("div");
-          dom.setAttribute(el9, "class", "small-11 columns");
-          var el10 = dom.createTextNode("\n                  Get direction\n                ");
-          dom.appendChild(el9, el10);
-          dom.appendChild(el8, el9);
-          var el9 = dom.createTextNode("\n              ");
-          dom.appendChild(el8, el9);
-          dom.appendChild(el7, el8);
-          var el8 = dom.createTextNode("\n            ");
-          dom.appendChild(el7, el8);
-          dom.appendChild(el6, el7);
-          var el7 = dom.createTextNode("\n          ");
-          dom.appendChild(el6, el7);
-          dom.appendChild(el5, el6);
-          var el6 = dom.createTextNode("\n        ");
-          dom.appendChild(el5, el6);
-          dom.appendChild(el4, el5);
-          var el5 = dom.createTextNode("\n\n");
-          dom.appendChild(el4, el5);
-          var el5 = dom.createComment("");
-          dom.appendChild(el4, el5);
-          var el5 = dom.createTextNode("      ");
-          dom.appendChild(el4, el5);
-          dom.appendChild(el3, el4);
-          var el4 = dom.createTextNode("\n    ");
+          var el3 = dom.createElement("i");
+          dom.setAttribute(el3, "class", "map_error--icon fa fa-exclamation-circle");
+          dom.setAttribute(el3, "aria-hidden", "true");
+          dom.appendChild(el2, el3);
+          var el3 = dom.createTextNode("\n  ");
+          dom.appendChild(el2, el3);
+          dom.appendChild(el1, el2);
+          var el2 = dom.createTextNode("\n  ");
+          dom.appendChild(el1, el2);
+          var el2 = dom.createElement("div");
+          dom.setAttribute(el2, "class", "columns");
+          var el3 = dom.createTextNode("\n    ");
+          dom.appendChild(el2, el3);
+          var el3 = dom.createElement("div");
+          dom.setAttribute(el3, "class", "map_error");
+          var el4 = dom.createTextNode("\n      It seems like there is a problem with the geolocation. Please make sure it is enabled in your settings.\n    ");
           dom.appendChild(el3, el4);
           dom.appendChild(el2, el3);
           var el3 = dom.createTextNode("\n  ");
@@ -4963,28 +3210,12 @@ define("finndis/templates/components/google-search", ["exports"], function (expo
           dom.appendChild(el0, el1);
           return el0;
         },
-        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
-          var element6 = dom.childAt(fragment, [1, 1, 1]);
-          var element7 = dom.childAt(element6, [1]);
-          var element8 = dom.childAt(element7, [1]);
-          var element9 = dom.childAt(element6, [3]);
-          var element10 = dom.childAt(element9, [1]);
-          var element11 = dom.childAt(element9, [3]);
-          var element12 = dom.childAt(element9, [5, 1, 1]);
-          var morphs = new Array(8);
-          morphs[0] = dom.createElementMorph(element8);
-          morphs[1] = dom.createMorphAt(dom.childAt(element7, [3]), 0, 0);
-          morphs[2] = dom.createMorphAt(element10, 1, 1);
-          morphs[3] = dom.createMorphAt(element10, 2, 2);
-          morphs[4] = dom.createMorphAt(element11, 1, 1);
-          morphs[5] = dom.createMorphAt(element11, 2, 2);
-          morphs[6] = dom.createAttrMorph(element12, 'href');
-          morphs[7] = dom.createMorphAt(element9, 7, 7);
-          return morphs;
+        buildRenderNodes: function buildRenderNodes() {
+          return [];
         },
-        statements: [["element", "action", ["savePlace"], [], ["loc", [null, [12, 47], [12, 69]]]], ["content", "place.name", ["loc", [null, [13, 33], [13, 47]]]], ["block", "if", [["get", "place.formattedaddress", ["loc", [null, [18, 16], [18, 38]]]]], [], 0, null, ["loc", [null, [18, 10], [29, 17]]]], ["block", "if", [["get", "place.phone", ["loc", [null, [30, 16], [30, 27]]]]], [], 1, null, ["loc", [null, [30, 10], [43, 17]]]], ["block", "if", [["get", "place.website", ["loc", [null, [48, 16], [48, 29]]]]], [], 2, null, ["loc", [null, [48, 10], [61, 17]]]], ["block", "if", [["get", "place.url", ["loc", [null, [62, 16], [62, 25]]]]], [], 3, null, ["loc", [null, [62, 10], [75, 17]]]], ["attribute", "href", ["concat", ["http://maps.google.com/maps?daddr=", ["get", "place.locationlat", ["loc", [null, [80, 57], [80, 74]]]], ",", ["get", "place.locationlng", ["loc", [null, [80, 79], [80, 96]]]], "&ll="]]], ["block", "if", [["get", "place.rating", ["loc", [null, [93, 14], [93, 26]]]]], [], 4, null, ["loc", [null, [93, 8], [101, 15]]]]],
+        statements: [],
         locals: [],
-        templates: [child0, child1, child2, child3, child4]
+        templates: []
       };
     })();
     var child1 = (function () {
@@ -4995,11 +3226,455 @@ define("finndis/templates/components/google-search", ["exports"], function (expo
           "loc": {
             "source": null,
             "start": {
-              "line": 117,
+              "line": 38,
               "column": 8
             },
             "end": {
-              "line": 119,
+              "line": 47,
+              "column": 8
+            }
+          },
+          "moduleName": "finndis/templates/components/google-search.hbs"
+        },
+        isEmpty: false,
+        arity: 0,
+        cachedFragment: null,
+        hasRendered: false,
+        buildFragment: function buildFragment(dom) {
+          var el0 = dom.createDocumentFragment();
+          var el1 = dom.createTextNode("        ");
+          dom.appendChild(el0, el1);
+          var el1 = dom.createElement("div");
+          dom.setAttribute(el1, "class", "place--info--holder row");
+          var el2 = dom.createTextNode("\n          ");
+          dom.appendChild(el1, el2);
+          var el2 = dom.createElement("div");
+          dom.setAttribute(el2, "class", "shrink columns");
+          var el3 = dom.createTextNode("\n            ");
+          dom.appendChild(el2, el3);
+          var el3 = dom.createElement("i");
+          dom.setAttribute(el3, "class", "place--action--icon fa fa-exclamation-circle");
+          dom.appendChild(el2, el3);
+          var el3 = dom.createTextNode("\n          ");
+          dom.appendChild(el2, el3);
+          dom.appendChild(el1, el2);
+          var el2 = dom.createTextNode("\n          ");
+          dom.appendChild(el1, el2);
+          var el2 = dom.createElement("div");
+          dom.setAttribute(el2, "class", "columns");
+          var el3 = dom.createTextNode("\n            This place seems to be in your list.\n          ");
+          dom.appendChild(el2, el3);
+          dom.appendChild(el1, el2);
+          var el2 = dom.createTextNode("\n        ");
+          dom.appendChild(el1, el2);
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode("\n");
+          dom.appendChild(el0, el1);
+          return el0;
+        },
+        buildRenderNodes: function buildRenderNodes() {
+          return [];
+        },
+        statements: [],
+        locals: [],
+        templates: []
+      };
+    })();
+    var child2 = (function () {
+      return {
+        meta: {
+          "fragmentReason": false,
+          "revision": "Ember@2.3.2",
+          "loc": {
+            "source": null,
+            "start": {
+              "line": 50,
+              "column": 10
+            },
+            "end": {
+              "line": 61,
+              "column": 10
+            }
+          },
+          "moduleName": "finndis/templates/components/google-search.hbs"
+        },
+        isEmpty: false,
+        arity: 0,
+        cachedFragment: null,
+        hasRendered: false,
+        buildFragment: function buildFragment(dom) {
+          var el0 = dom.createDocumentFragment();
+          var el1 = dom.createTextNode("          ");
+          dom.appendChild(el0, el1);
+          var el1 = dom.createElement("div");
+          dom.setAttribute(el1, "class", "columns small-12");
+          var el2 = dom.createTextNode("\n            ");
+          dom.appendChild(el1, el2);
+          var el2 = dom.createElement("div");
+          dom.setAttribute(el2, "class", "place--address row");
+          var el3 = dom.createTextNode("\n              ");
+          dom.appendChild(el2, el3);
+          var el3 = dom.createElement("div");
+          dom.setAttribute(el3, "class", "shrink columns");
+          var el4 = dom.createTextNode("\n                ");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createElement("i");
+          dom.setAttribute(el4, "class", "place--main--icon fa fa-map-marker");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createTextNode("\n              ");
+          dom.appendChild(el3, el4);
+          dom.appendChild(el2, el3);
+          var el3 = dom.createTextNode("\n              ");
+          dom.appendChild(el2, el3);
+          var el3 = dom.createElement("div");
+          dom.setAttribute(el3, "class", "columns");
+          var el4 = dom.createTextNode("\n                ");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createComment("");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createTextNode("\n              ");
+          dom.appendChild(el3, el4);
+          dom.appendChild(el2, el3);
+          var el3 = dom.createTextNode("\n            ");
+          dom.appendChild(el2, el3);
+          dom.appendChild(el1, el2);
+          var el2 = dom.createTextNode("\n          ");
+          dom.appendChild(el1, el2);
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode("\n");
+          dom.appendChild(el0, el1);
+          return el0;
+        },
+        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+          var morphs = new Array(1);
+          morphs[0] = dom.createMorphAt(dom.childAt(fragment, [1, 1, 3]), 1, 1);
+          return morphs;
+        },
+        statements: [["content", "place.formattedaddress", ["loc", [null, [57, 16], [57, 42]]]]],
+        locals: [],
+        templates: []
+      };
+    })();
+    var child3 = (function () {
+      return {
+        meta: {
+          "fragmentReason": false,
+          "revision": "Ember@2.3.2",
+          "loc": {
+            "source": null,
+            "start": {
+              "line": 62,
+              "column": 10
+            },
+            "end": {
+              "line": 75,
+              "column": 10
+            }
+          },
+          "moduleName": "finndis/templates/components/google-search.hbs"
+        },
+        isEmpty: false,
+        arity: 0,
+        cachedFragment: null,
+        hasRendered: false,
+        buildFragment: function buildFragment(dom) {
+          var el0 = dom.createDocumentFragment();
+          var el1 = dom.createTextNode("          ");
+          dom.appendChild(el0, el1);
+          var el1 = dom.createElement("div");
+          dom.setAttribute(el1, "class", "columns small-12");
+          var el2 = dom.createTextNode("\n            ");
+          dom.appendChild(el1, el2);
+          var el2 = dom.createElement("a");
+          var el3 = dom.createTextNode("\n              ");
+          dom.appendChild(el2, el3);
+          var el3 = dom.createElement("div");
+          dom.setAttribute(el3, "class", "place--phone row");
+          var el4 = dom.createTextNode("\n                ");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createElement("div");
+          dom.setAttribute(el4, "class", "shrink columns");
+          var el5 = dom.createTextNode("\n                  ");
+          dom.appendChild(el4, el5);
+          var el5 = dom.createElement("i");
+          dom.setAttribute(el5, "class", "place--main--icon fa fa-phone");
+          dom.appendChild(el4, el5);
+          var el5 = dom.createTextNode("\n                ");
+          dom.appendChild(el4, el5);
+          dom.appendChild(el3, el4);
+          var el4 = dom.createTextNode("\n                ");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createElement("div");
+          dom.setAttribute(el4, "class", "columns");
+          var el5 = dom.createTextNode("\n                  ");
+          dom.appendChild(el4, el5);
+          var el5 = dom.createComment("");
+          dom.appendChild(el4, el5);
+          var el5 = dom.createTextNode("\n                ");
+          dom.appendChild(el4, el5);
+          dom.appendChild(el3, el4);
+          var el4 = dom.createTextNode("\n              ");
+          dom.appendChild(el3, el4);
+          dom.appendChild(el2, el3);
+          var el3 = dom.createTextNode("\n            ");
+          dom.appendChild(el2, el3);
+          dom.appendChild(el1, el2);
+          var el2 = dom.createTextNode("\n          ");
+          dom.appendChild(el1, el2);
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode("\n");
+          dom.appendChild(el0, el1);
+          return el0;
+        },
+        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+          var element5 = dom.childAt(fragment, [1, 1]);
+          var morphs = new Array(2);
+          morphs[0] = dom.createAttrMorph(element5, 'href');
+          morphs[1] = dom.createMorphAt(dom.childAt(element5, [1, 3]), 1, 1);
+          return morphs;
+        },
+        statements: [["attribute", "href", ["concat", ["tel:", ["get", "place.phone", ["loc", [null, [64, 27], [64, 38]]]]]]], ["content", "place.phone", ["loc", [null, [70, 18], [70, 33]]]]],
+        locals: [],
+        templates: []
+      };
+    })();
+    var child4 = (function () {
+      return {
+        meta: {
+          "fragmentReason": false,
+          "revision": "Ember@2.3.2",
+          "loc": {
+            "source": null,
+            "start": {
+              "line": 80,
+              "column": 10
+            },
+            "end": {
+              "line": 93,
+              "column": 10
+            }
+          },
+          "moduleName": "finndis/templates/components/google-search.hbs"
+        },
+        isEmpty: false,
+        arity: 0,
+        cachedFragment: null,
+        hasRendered: false,
+        buildFragment: function buildFragment(dom) {
+          var el0 = dom.createDocumentFragment();
+          var el1 = dom.createTextNode("          ");
+          dom.appendChild(el0, el1);
+          var el1 = dom.createElement("div");
+          dom.setAttribute(el1, "class", "columns small-12");
+          var el2 = dom.createTextNode("\n            ");
+          dom.appendChild(el1, el2);
+          var el2 = dom.createElement("a");
+          var el3 = dom.createTextNode("\n              ");
+          dom.appendChild(el2, el3);
+          var el3 = dom.createElement("div");
+          dom.setAttribute(el3, "class", "place--website row");
+          var el4 = dom.createTextNode("\n                ");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createElement("div");
+          dom.setAttribute(el4, "class", "shrink columns");
+          var el5 = dom.createTextNode("\n                  ");
+          dom.appendChild(el4, el5);
+          var el5 = dom.createElement("i");
+          dom.setAttribute(el5, "class", "place--main--icon fa fa-globe");
+          dom.appendChild(el4, el5);
+          var el5 = dom.createTextNode("\n                ");
+          dom.appendChild(el4, el5);
+          dom.appendChild(el3, el4);
+          var el4 = dom.createTextNode("\n                ");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createElement("div");
+          dom.setAttribute(el4, "class", "columns");
+          var el5 = dom.createTextNode("\n                  ");
+          dom.appendChild(el4, el5);
+          var el5 = dom.createComment("");
+          dom.appendChild(el4, el5);
+          var el5 = dom.createTextNode("\n                ");
+          dom.appendChild(el4, el5);
+          dom.appendChild(el3, el4);
+          var el4 = dom.createTextNode("\n              ");
+          dom.appendChild(el3, el4);
+          dom.appendChild(el2, el3);
+          var el3 = dom.createTextNode("\n            ");
+          dom.appendChild(el2, el3);
+          dom.appendChild(el1, el2);
+          var el2 = dom.createTextNode("\n          ");
+          dom.appendChild(el1, el2);
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode("\n");
+          dom.appendChild(el0, el1);
+          return el0;
+        },
+        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+          var element4 = dom.childAt(fragment, [1, 1]);
+          var morphs = new Array(2);
+          morphs[0] = dom.createAttrMorph(element4, 'href');
+          morphs[1] = dom.createMorphAt(dom.childAt(element4, [1, 3]), 1, 1);
+          return morphs;
+        },
+        statements: [["attribute", "href", ["concat", [["get", "place.website", ["loc", [null, [82, 23], [82, 36]]]]]]], ["content", "place.website", ["loc", [null, [88, 18], [88, 35]]]]],
+        locals: [],
+        templates: []
+      };
+    })();
+    var child5 = (function () {
+      return {
+        meta: {
+          "fragmentReason": false,
+          "revision": "Ember@2.3.2",
+          "loc": {
+            "source": null,
+            "start": {
+              "line": 94,
+              "column": 10
+            },
+            "end": {
+              "line": 107,
+              "column": 10
+            }
+          },
+          "moduleName": "finndis/templates/components/google-search.hbs"
+        },
+        isEmpty: false,
+        arity: 0,
+        cachedFragment: null,
+        hasRendered: false,
+        buildFragment: function buildFragment(dom) {
+          var el0 = dom.createDocumentFragment();
+          var el1 = dom.createTextNode("          ");
+          dom.appendChild(el0, el1);
+          var el1 = dom.createElement("div");
+          dom.setAttribute(el1, "class", "columns small-12");
+          var el2 = dom.createTextNode("\n            ");
+          dom.appendChild(el1, el2);
+          var el2 = dom.createElement("a");
+          var el3 = dom.createTextNode("\n              ");
+          dom.appendChild(el2, el3);
+          var el3 = dom.createElement("div");
+          dom.setAttribute(el3, "class", "place--url row");
+          var el4 = dom.createTextNode("\n                ");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createElement("div");
+          dom.setAttribute(el4, "class", "shrink columns");
+          var el5 = dom.createTextNode("\n                  ");
+          dom.appendChild(el4, el5);
+          var el5 = dom.createElement("i");
+          dom.setAttribute(el5, "class", "place--main--icon fa fa-google");
+          dom.appendChild(el4, el5);
+          var el5 = dom.createTextNode("\n                ");
+          dom.appendChild(el4, el5);
+          dom.appendChild(el3, el4);
+          var el4 = dom.createTextNode("\n                ");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createElement("div");
+          dom.setAttribute(el4, "class", "columns");
+          var el5 = dom.createTextNode("\n                  Google Map\n                ");
+          dom.appendChild(el4, el5);
+          dom.appendChild(el3, el4);
+          var el4 = dom.createTextNode("\n              ");
+          dom.appendChild(el3, el4);
+          dom.appendChild(el2, el3);
+          var el3 = dom.createTextNode("\n            ");
+          dom.appendChild(el2, el3);
+          dom.appendChild(el1, el2);
+          var el2 = dom.createTextNode("\n          ");
+          dom.appendChild(el1, el2);
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode("\n");
+          dom.appendChild(el0, el1);
+          return el0;
+        },
+        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+          var element3 = dom.childAt(fragment, [1, 1]);
+          var morphs = new Array(1);
+          morphs[0] = dom.createAttrMorph(element3, 'href');
+          return morphs;
+        },
+        statements: [["attribute", "href", ["concat", [["get", "place.url", ["loc", [null, [96, 23], [96, 32]]]]]]]],
+        locals: [],
+        templates: []
+      };
+    })();
+    var child6 = (function () {
+      return {
+        meta: {
+          "fragmentReason": false,
+          "revision": "Ember@2.3.2",
+          "loc": {
+            "source": null,
+            "start": {
+              "line": 125,
+              "column": 8
+            },
+            "end": {
+              "line": 133,
+              "column": 8
+            }
+          },
+          "moduleName": "finndis/templates/components/google-search.hbs"
+        },
+        isEmpty: false,
+        arity: 0,
+        cachedFragment: null,
+        hasRendered: false,
+        buildFragment: function buildFragment(dom) {
+          var el0 = dom.createDocumentFragment();
+          var el1 = dom.createTextNode("        ");
+          dom.appendChild(el0, el1);
+          var el1 = dom.createElement("div");
+          dom.setAttribute(el1, "class", "place--info--holder row");
+          var el2 = dom.createTextNode("\n          ");
+          dom.appendChild(el1, el2);
+          var el2 = dom.createElement("div");
+          dom.setAttribute(el2, "class", "columns");
+          var el3 = dom.createTextNode("\n            ");
+          dom.appendChild(el2, el3);
+          var el3 = dom.createElement("div");
+          dom.setAttribute(el3, "class", "place--rating");
+          var el4 = dom.createTextNode("\n              ");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createComment("");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createTextNode("\n            ");
+          dom.appendChild(el3, el4);
+          dom.appendChild(el2, el3);
+          var el3 = dom.createTextNode("\n          ");
+          dom.appendChild(el2, el3);
+          dom.appendChild(el1, el2);
+          var el2 = dom.createTextNode("\n        ");
+          dom.appendChild(el1, el2);
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode("\n");
+          dom.appendChild(el0, el1);
+          return el0;
+        },
+        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+          var morphs = new Array(1);
+          morphs[0] = dom.createMorphAt(dom.childAt(fragment, [1, 1, 1]), 1, 1);
+          return morphs;
+        },
+        statements: [["inline", "star-rating-fa", [], ["item", ["subexpr", "@mut", [["get", "place", ["loc", [null, [129, 36], [129, 41]]]]], [], []], "rating", ["subexpr", "@mut", [["get", "place.rating", ["loc", [null, [129, 49], [129, 61]]]]], [], []]], ["loc", [null, [129, 14], [129, 63]]]]],
+        locals: [],
+        templates: []
+      };
+    })();
+    var child7 = (function () {
+      return {
+        meta: {
+          "fragmentReason": false,
+          "revision": "Ember@2.3.2",
+          "loc": {
+            "source": null,
+            "start": {
+              "line": 148,
+              "column": 8
+            },
+            "end": {
+              "line": 150,
               "column": 8
             }
           },
@@ -5031,12 +3706,12 @@ define("finndis/templates/components/google-search", ["exports"], function (expo
           morphs[0] = dom.createElementMorph(element2);
           return morphs;
         },
-        statements: [["element", "action", ["closeMenuPanel"], [], ["loc", [null, [118, 45], [118, 72]]]]],
+        statements: [["element", "action", ["closeMenuPanel"], [], ["loc", [null, [149, 45], [149, 72]]]]],
         locals: [],
         templates: []
       };
     })();
-    var child2 = (function () {
+    var child8 = (function () {
       return {
         meta: {
           "fragmentReason": false,
@@ -5044,11 +3719,11 @@ define("finndis/templates/components/google-search", ["exports"], function (expo
           "loc": {
             "source": null,
             "start": {
-              "line": 119,
+              "line": 150,
               "column": 8
             },
             "end": {
-              "line": 121,
+              "line": 152,
               "column": 8
             }
           },
@@ -5067,7 +3742,7 @@ define("finndis/templates/components/google-search", ["exports"], function (expo
           var el2 = dom.createElement("i");
           dom.setAttribute(el2, "class", "tool_box--icon fa fa-search");
           dom.appendChild(el1, el2);
-          var el2 = dom.createTextNode(" Search by labels");
+          var el2 = dom.createTextNode(" Search around me");
           dom.appendChild(el1, el2);
           dom.appendChild(el0, el1);
           var el1 = dom.createTextNode("\n");
@@ -5080,12 +3755,12 @@ define("finndis/templates/components/google-search", ["exports"], function (expo
           morphs[0] = dom.createElementMorph(element1);
           return morphs;
         },
-        statements: [["element", "action", ["showSearchPanel"], [], ["loc", [null, [120, 45], [120, 73]]]]],
+        statements: [["element", "action", ["showSearchPanel"], [], ["loc", [null, [151, 45], [151, 73]]]]],
         locals: [],
         templates: []
       };
     })();
-    var child3 = (function () {
+    var child9 = (function () {
       return {
         meta: {
           "fragmentReason": false,
@@ -5093,11 +3768,11 @@ define("finndis/templates/components/google-search", ["exports"], function (expo
           "loc": {
             "source": null,
             "start": {
-              "line": 144,
+              "line": 175,
               "column": 8
             },
             "end": {
-              "line": 146,
+              "line": 177,
               "column": 8
             }
           },
@@ -5127,7 +3802,7 @@ define("finndis/templates/components/google-search", ["exports"], function (expo
           morphs[1] = dom.createMorphAt(element0, 0, 0);
           return morphs;
         },
-        statements: [["element", "action", ["searchAround", ["get", "label", ["loc", [null, [145, 65], [145, 70]]]]], [], ["loc", [null, [145, 41], [145, 72]]]], ["content", "label.name", ["loc", [null, [145, 73], [145, 87]]]]],
+        statements: [["element", "action", ["searchMaps", ["get", "label", ["loc", [null, [176, 63], [176, 68]]]]], [], ["loc", [null, [176, 41], [176, 70]]]], ["content", "label.name", ["loc", [null, [176, 71], [176, 85]]]]],
         locals: ["label"],
         templates: []
       };
@@ -5136,7 +3811,7 @@ define("finndis/templates/components/google-search", ["exports"], function (expo
       meta: {
         "fragmentReason": {
           "name": "missing-wrapper",
-          "problems": ["wrong-type", "multiple-nodes"]
+          "problems": ["multiple-nodes", "wrong-type"]
         },
         "revision": "Ember@2.3.2",
         "loc": {
@@ -5146,7 +3821,7 @@ define("finndis/templates/components/google-search", ["exports"], function (expo
             "column": 0
           },
           "end": {
-            "line": 153,
+            "line": 189,
             "column": 0
           }
         },
@@ -5158,15 +3833,17 @@ define("finndis/templates/components/google-search", ["exports"], function (expo
       hasRendered: false,
       buildFragment: function buildFragment(dom) {
         var el0 = dom.createDocumentFragment();
+        var el1 = dom.createElement("div");
+        dom.setAttribute(el1, "id", "load_overlay");
+        dom.setAttribute(el1, "class", "load_overlay");
+        dom.appendChild(el0, el1);
+        var el1 = dom.createTextNode("\n\n");
+        dom.appendChild(el0, el1);
         var el1 = dom.createComment("");
         dom.appendChild(el0, el1);
         var el1 = dom.createTextNode("\n");
         dom.appendChild(el0, el1);
-        var el1 = dom.createElement("a");
-        dom.setAttribute(el1, "id", "maps_button");
-        dom.setAttribute(el1, "class", "button maps_button");
-        var el2 = dom.createTextNode("Labels");
-        dom.appendChild(el1, el2);
+        var el1 = dom.createComment("");
         dom.appendChild(el0, el1);
         var el1 = dom.createTextNode("\n");
         dom.appendChild(el0, el1);
@@ -5176,9 +3853,178 @@ define("finndis/templates/components/google-search", ["exports"], function (expo
         dom.appendChild(el0, el1);
         var el1 = dom.createTextNode("\n\n");
         dom.appendChild(el0, el1);
-        var el1 = dom.createComment("");
+        var el1 = dom.createElement("div");
+        dom.setAttribute(el1, "id", "place_map");
+        var el2 = dom.createTextNode("\n  ");
+        dom.appendChild(el1, el2);
+        var el2 = dom.createElement("div");
+        dom.setAttribute(el2, "class", "place_map--inner");
+        var el3 = dom.createTextNode("\n    ");
+        dom.appendChild(el2, el3);
+        var el3 = dom.createElement("article");
+        dom.setAttribute(el3, "class", "place");
+        var el4 = dom.createTextNode("\n      ");
+        dom.appendChild(el3, el4);
+        var el4 = dom.createElement("header");
+        dom.setAttribute(el4, "class", "place--header");
+        var el5 = dom.createTextNode("\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createElement("a");
+        dom.setAttribute(el5, "href", "#");
+        dom.setAttribute(el5, "class", "button edit-button");
+        var el6 = dom.createElement("i");
+        dom.setAttribute(el6, "class", "place--action--icon fa fa-star");
+        dom.appendChild(el5, el6);
+        var el6 = dom.createTextNode("Save");
+        dom.appendChild(el5, el6);
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createElement("a");
+        dom.setAttribute(el5, "href", "#");
+        dom.setAttribute(el5, "class", "button delete-button");
+        var el6 = dom.createElement("i");
+        dom.setAttribute(el6, "class", "place--action--icon fa fa-times");
+        dom.appendChild(el5, el6);
+        var el6 = dom.createTextNode("Close");
+        dom.appendChild(el5, el6);
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createComment("");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createElement("i");
+        dom.setAttribute(el5, "class", "place--labels--icon fa fa-tag");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createElement("ul");
+        dom.setAttribute(el5, "class", "place--labels clearfix");
+        var el6 = dom.createTextNode("\n          ");
+        dom.appendChild(el5, el6);
+        var el6 = dom.createElement("li");
+        dom.setAttribute(el6, "class", "place--labelitem");
+        var el7 = dom.createComment("");
+        dom.appendChild(el6, el7);
+        dom.appendChild(el5, el6);
+        var el6 = dom.createTextNode("\n          ");
+        dom.appendChild(el5, el6);
+        var el6 = dom.createElement("li");
+        dom.setAttribute(el6, "class", "place--labelitem");
+        var el7 = dom.createTextNode("\n            ");
+        dom.appendChild(el6, el7);
+        var el7 = dom.createElement("i");
+        dom.setAttribute(el7, "class", "place--add--icon fa fa-plus");
+        dom.appendChild(el6, el7);
+        var el7 = dom.createTextNode("\n          ");
+        dom.appendChild(el6, el7);
+        dom.appendChild(el5, el6);
+        var el6 = dom.createTextNode("\n        ");
+        dom.appendChild(el5, el6);
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n      ");
+        dom.appendChild(el4, el5);
+        dom.appendChild(el3, el4);
+        var el4 = dom.createTextNode("\n\n      ");
+        dom.appendChild(el3, el4);
+        var el4 = dom.createElement("main");
+        dom.setAttribute(el4, "class", "place--main");
+        var el5 = dom.createTextNode("\n\n");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createComment("");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createElement("div");
+        dom.setAttribute(el5, "class", "place--info--holder row");
+        var el6 = dom.createTextNode("\n");
+        dom.appendChild(el5, el6);
+        var el6 = dom.createComment("");
+        dom.appendChild(el5, el6);
+        var el6 = dom.createComment("");
+        dom.appendChild(el5, el6);
+        var el6 = dom.createTextNode("        ");
+        dom.appendChild(el5, el6);
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n\n\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createElement("div");
+        dom.setAttribute(el5, "class", "place--info--holder row");
+        var el6 = dom.createTextNode("\n");
+        dom.appendChild(el5, el6);
+        var el6 = dom.createComment("");
+        dom.appendChild(el5, el6);
+        var el6 = dom.createComment("");
+        dom.appendChild(el5, el6);
+        var el6 = dom.createTextNode("        ");
+        dom.appendChild(el5, el6);
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createElement("div");
+        dom.setAttribute(el5, "class", "place--info--holder row");
+        var el6 = dom.createTextNode("\n          ");
+        dom.appendChild(el5, el6);
+        var el6 = dom.createElement("div");
+        dom.setAttribute(el6, "class", "columns small-12");
+        var el7 = dom.createTextNode("\n            ");
+        dom.appendChild(el6, el7);
+        var el7 = dom.createElement("a");
+        dom.setAttribute(el7, "target", "_blank");
+        var el8 = dom.createTextNode("\n              ");
+        dom.appendChild(el7, el8);
+        var el8 = dom.createElement("div");
+        dom.setAttribute(el8, "class", "place--direction row");
+        var el9 = dom.createTextNode("\n                ");
+        dom.appendChild(el8, el9);
+        var el9 = dom.createElement("div");
+        dom.setAttribute(el9, "class", "shrink columns");
+        var el10 = dom.createTextNode("\n                  ");
+        dom.appendChild(el9, el10);
+        var el10 = dom.createElement("i");
+        dom.setAttribute(el10, "class", "place--main--icon fa fa-location-arrow");
+        dom.appendChild(el9, el10);
+        var el10 = dom.createTextNode("\n                ");
+        dom.appendChild(el9, el10);
+        dom.appendChild(el8, el9);
+        var el9 = dom.createTextNode("\n                ");
+        dom.appendChild(el8, el9);
+        var el9 = dom.createElement("div");
+        dom.setAttribute(el9, "class", "columns");
+        var el10 = dom.createTextNode("\n                  Get direction\n                ");
+        dom.appendChild(el9, el10);
+        dom.appendChild(el8, el9);
+        var el9 = dom.createTextNode("\n              ");
+        dom.appendChild(el8, el9);
+        dom.appendChild(el7, el8);
+        var el8 = dom.createTextNode("\n            ");
+        dom.appendChild(el7, el8);
+        dom.appendChild(el6, el7);
+        var el7 = dom.createTextNode("\n          ");
+        dom.appendChild(el6, el7);
+        dom.appendChild(el5, el6);
+        var el6 = dom.createTextNode("\n        ");
+        dom.appendChild(el5, el6);
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n\n");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createComment("");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("      ");
+        dom.appendChild(el4, el5);
+        dom.appendChild(el3, el4);
+        var el4 = dom.createTextNode("\n    ");
+        dom.appendChild(el3, el4);
+        dom.appendChild(el2, el3);
+        var el3 = dom.createTextNode("\n  ");
+        dom.appendChild(el2, el3);
+        dom.appendChild(el1, el2);
+        var el2 = dom.createTextNode("\n");
+        dom.appendChild(el1, el2);
         dom.appendChild(el0, el1);
-        var el1 = dom.createTextNode("\n\n\n");
+        var el1 = dom.createTextNode("\n\n\n\n");
         dom.appendChild(el0, el1);
         var el1 = dom.createElement("div");
         dom.setAttribute(el1, "class", "tool_box--holder search_tool");
@@ -5240,7 +4086,7 @@ define("finndis/templates/components/google-search", ["exports"], function (expo
         dom.appendChild(el3, el4);
         var el4 = dom.createElement("h3");
         dom.setAttribute(el4, "class", "panel--section--title");
-        var el5 = dom.createTextNode("Labels");
+        var el5 = dom.createTextNode("Choose a label");
         dom.appendChild(el4, el5);
         dom.appendChild(el3, el4);
         var el4 = dom.createTextNode("\n    ");
@@ -5296,6 +4142,16 @@ define("finndis/templates/components/google-search", ["exports"], function (expo
         dom.appendChild(el0, el1);
         var el1 = dom.createTextNode("\n");
         dom.appendChild(el0, el1);
+        var el1 = dom.createTextNode("\n");
+        dom.appendChild(el0, el1);
+        var el1 = dom.createComment("");
+        dom.appendChild(el0, el1);
+        var el1 = dom.createTextNode("\n\n");
+        dom.appendChild(el0, el1);
+        var el1 = dom.createElement("a");
+        dom.appendChild(el0, el1);
+        var el1 = dom.createTextNode("\n");
+        dom.appendChild(el0, el1);
         var el1 = dom.createElement("a");
         dom.appendChild(el0, el1);
         var el1 = dom.createTextNode("\n");
@@ -5303,31 +4159,277 @@ define("finndis/templates/components/google-search", ["exports"], function (expo
         return el0;
       },
       buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
-        var element13 = dom.childAt(fragment, [2]);
-        var element14 = dom.childAt(fragment, [10]);
-        var element15 = dom.childAt(element14, [4, 1, 1]);
-        var element16 = dom.childAt(element15, [1]);
-        var element17 = dom.childAt(element15, [3]);
-        var element18 = dom.childAt(fragment, [12]);
-        var morphs = new Array(12);
-        morphs[0] = dom.createMorphAt(fragment, 0, 0, contextualElement);
-        morphs[1] = dom.createElementMorph(element13);
-        morphs[2] = dom.createMorphAt(fragment, 6, 6, contextualElement);
-        morphs[3] = dom.createMorphAt(dom.childAt(fragment, [8, 1, 3, 1]), 1, 1);
-        morphs[4] = dom.createAttrMorph(element14, 'class');
-        morphs[5] = dom.createAttrMorph(element16, 'class');
-        morphs[6] = dom.createElementMorph(element16);
-        morphs[7] = dom.createAttrMorph(element17, 'class');
-        morphs[8] = dom.createMorphAt(element17, 1, 1);
-        morphs[9] = dom.createMorphAt(element15, 5, 5);
-        morphs[10] = dom.createAttrMorph(element18, 'class');
-        morphs[11] = dom.createElementMorph(element18);
-        dom.insertBoundary(fragment, 0);
+        var element6 = dom.childAt(fragment, [8]);
+        var element7 = dom.childAt(element6, [1, 1]);
+        var element8 = dom.childAt(element7, [1]);
+        var element9 = dom.childAt(element8, [1]);
+        var element10 = dom.childAt(element8, [3]);
+        var element11 = dom.childAt(element8, [7]);
+        var element12 = dom.childAt(element8, [9]);
+        var element13 = dom.childAt(element7, [3]);
+        var element14 = dom.childAt(element13, [3]);
+        var element15 = dom.childAt(element13, [5]);
+        var element16 = dom.childAt(element13, [7, 1, 1]);
+        var element17 = dom.childAt(fragment, [12]);
+        var element18 = dom.childAt(element17, [4, 1, 1]);
+        var element19 = dom.childAt(element18, [1]);
+        var element20 = dom.childAt(element18, [3]);
+        var element21 = dom.childAt(fragment, [17]);
+        var element22 = dom.childAt(fragment, [19]);
+        var morphs = new Array(28);
+        morphs[0] = dom.createMorphAt(fragment, 2, 2, contextualElement);
+        morphs[1] = dom.createMorphAt(fragment, 4, 4, contextualElement);
+        morphs[2] = dom.createAttrMorph(element6, 'class');
+        morphs[3] = dom.createElementMorph(element9);
+        morphs[4] = dom.createElementMorph(element10);
+        morphs[5] = dom.createMorphAt(element8, 5, 5);
+        morphs[6] = dom.createElementMorph(element11);
+        morphs[7] = dom.createElementMorph(element12);
+        morphs[8] = dom.createMorphAt(dom.childAt(element12, [1]), 0, 0);
+        morphs[9] = dom.createMorphAt(element13, 1, 1);
+        morphs[10] = dom.createMorphAt(element14, 1, 1);
+        morphs[11] = dom.createMorphAt(element14, 2, 2);
+        morphs[12] = dom.createMorphAt(element15, 1, 1);
+        morphs[13] = dom.createMorphAt(element15, 2, 2);
+        morphs[14] = dom.createAttrMorph(element16, 'href');
+        morphs[15] = dom.createMorphAt(element13, 9, 9);
+        morphs[16] = dom.createMorphAt(dom.childAt(fragment, [10, 1, 3, 1]), 1, 1);
+        morphs[17] = dom.createAttrMorph(element17, 'class');
+        morphs[18] = dom.createAttrMorph(element19, 'class');
+        morphs[19] = dom.createElementMorph(element19);
+        morphs[20] = dom.createAttrMorph(element20, 'class');
+        morphs[21] = dom.createMorphAt(element20, 1, 1);
+        morphs[22] = dom.createMorphAt(element18, 5, 5);
+        morphs[23] = dom.createMorphAt(fragment, 15, 15, contextualElement);
+        morphs[24] = dom.createAttrMorph(element21, 'class');
+        morphs[25] = dom.createElementMorph(element21);
+        morphs[26] = dom.createAttrMorph(element22, 'class');
+        morphs[27] = dom.createElementMorph(element22);
         return morphs;
       },
-      statements: [["inline", "input", [], ["id", "searchKeyword", "type", "text", "placeholder", "Search with Google Map", "value", ["subexpr", "@mut", [["get", "searchText", ["loc", [null, [1, 82], [1, 92]]]]], [], []]], ["loc", [null, [1, 0], [1, 94]]]], ["element", "action", ["showSearchPanel"], [], ["loc", [null, [2, 47], [2, 75]]]], ["block", "if", [["get", "showPlaceDetails", ["loc", [null, [6, 6], [6, 22]]]]], [], 0, null, ["loc", [null, [6, 0], [106, 7]]]], ["block", "if", [["get", "searchPanelIsDisplayed", ["loc", [null, [117, 14], [117, 36]]]]], [], 1, 2, ["loc", [null, [117, 8], [121, 15]]]], ["attribute", "class", ["concat", ["panel search_panel bottom ", ["get", "searchPanelDisplayed", ["loc", [null, [129, 40], [129, 60]]]]]]], ["attribute", "class", ["concat", ["button button_label label_edition ", ["get", "labelAddButton", ["loc", [null, [139, 56], [139, 70]]]]]]], ["element", "action", ["showLabelAdd", ["get", "label", ["loc", [null, [139, 98], [139, 103]]]]], [], ["loc", [null, [139, 74], [139, 105]]]], ["attribute", "class", ["concat", ["label_edition--content ", ["get", "labelAdd", ["loc", [null, [140, 47], [140, 55]]]]]]], ["inline", "add-label-button", [], ["action", "hideLabelAdd"], ["loc", [null, [141, 12], [141, 54]]]], ["block", "each", [["get", "userLabels", ["loc", [null, [144, 16], [144, 26]]]]], [], 3, null, ["loc", [null, [144, 8], [146, 17]]]], ["attribute", "class", ["concat", ["panel-overlay right ", ["get", "searchPanelDisplayed", ["loc", [null, [151, 32], [151, 52]]]]]]], ["element", "action", ["closeMenuPanel"], [], ["loc", [null, [151, 56], [151, 83]]]]],
+      statements: [["block", "if", [["get", "showErrorLocation", ["loc", [null, [3, 6], [3, 23]]]]], [], 0, null, ["loc", [null, [3, 0], [14, 7]]]], ["inline", "input", [], ["id", "searchKeyword", "type", "text", "placeholder", "Search with Google Map", "value", ["subexpr", "@mut", [["get", "searchText", ["loc", [null, [16, 82], [16, 92]]]]], [], []]], ["loc", [null, [16, 0], [16, 94]]]], ["attribute", "class", ["concat", ["place_map panel left ", ["get", "placePanelDisplayed", ["loc", [null, [20, 50], [20, 69]]]]]]], ["element", "action", ["savePlace"], [], ["loc", [null, [24, 47], [24, 69]]]], ["element", "action", ["closeMenuPanel"], [], ["loc", [null, [25, 49], [25, 76]]]], ["inline", "input", [], ["class", "place--title __input", "type", "text", "placeholder", "Name", "value", ["subexpr", "@mut", [["get", "place.name", ["loc", [null, [26, 82], [26, 92]]]]], [], []]], ["loc", [null, [26, 8], [26, 94]]]], ["element", "action", ["showAddLabel"], ["bubbles", "false"], ["loc", [null, [27, 49], [27, 90]]]], ["element", "action", ["showAddLabel"], ["bubbles", "false"], ["loc", [null, [28, 43], [28, 84]]]], ["content", "place.label.name", ["loc", [null, [29, 39], [29, 59]]]], ["block", "if", [["get", "placeExist", ["loc", [null, [38, 14], [38, 24]]]]], [], 1, null, ["loc", [null, [38, 8], [47, 15]]]], ["block", "if", [["get", "place.formattedaddress", ["loc", [null, [50, 16], [50, 38]]]]], [], 2, null, ["loc", [null, [50, 10], [61, 17]]]], ["block", "if", [["get", "place.phone", ["loc", [null, [62, 16], [62, 27]]]]], [], 3, null, ["loc", [null, [62, 10], [75, 17]]]], ["block", "if", [["get", "place.website", ["loc", [null, [80, 16], [80, 29]]]]], [], 4, null, ["loc", [null, [80, 10], [93, 17]]]], ["block", "if", [["get", "place.url", ["loc", [null, [94, 16], [94, 25]]]]], [], 5, null, ["loc", [null, [94, 10], [107, 17]]]], ["attribute", "href", ["concat", ["http://maps.google.com/maps?daddr=", ["get", "place.locationlat", ["loc", [null, [112, 57], [112, 74]]]], ",", ["get", "place.locationlng", ["loc", [null, [112, 79], [112, 96]]]], "&ll="]]], ["block", "if", [["get", "place.rating", ["loc", [null, [125, 14], [125, 26]]]]], [], 6, null, ["loc", [null, [125, 8], [133, 15]]]], ["block", "if", [["get", "searchPanelIsDisplayed", ["loc", [null, [148, 14], [148, 36]]]]], [], 7, 8, ["loc", [null, [148, 8], [152, 15]]]], ["attribute", "class", ["concat", ["panel search_panel bottom ", ["get", "searchPanelDisplayed", ["loc", [null, [160, 40], [160, 60]]]]]]], ["attribute", "class", ["concat", ["button button_label label_edition ", ["get", "labelAddButton", ["loc", [null, [170, 56], [170, 70]]]]]]], ["element", "action", ["showLabelAdd", ["get", "label", ["loc", [null, [170, 98], [170, 103]]]]], [], ["loc", [null, [170, 74], [170, 105]]]], ["attribute", "class", ["concat", ["label_edition--content ", ["get", "labelAdd", ["loc", [null, [171, 47], [171, 55]]]]]]], ["inline", "add-label-button", [], ["action", "hideLabelAdd"], ["loc", [null, [172, 12], [172, 54]]]], ["block", "each", [["get", "userLabels", ["loc", [null, [175, 16], [175, 26]]]]], [], 9, null, ["loc", [null, [175, 8], [177, 17]]]], ["inline", "label-panel", [], ["userLabels", ["subexpr", "@mut", [["get", "userLabels", ["loc", [null, [185, 25], [185, 35]]]]], [], []], "labelPanelDisplayed", ["subexpr", "@mut", [["get", "labelPanelDisplayed", ["loc", [null, [185, 56], [185, 75]]]]], [], []], "model", ["subexpr", "@mut", [["get", "place", ["loc", [null, [185, 82], [185, 87]]]]], [], []], "autoSaveLabel", false], ["loc", [null, [185, 0], [185, 109]]]], ["attribute", "class", ["concat", ["panel-overlay bottom ", ["get", "searchPanelDisplayed", ["loc", [null, [187, 33], [187, 53]]]]]]], ["element", "action", ["closeMenuPanel"], [], ["loc", [null, [187, 57], [187, 84]]]], ["attribute", "class", ["concat", ["panel-overlay place_map ", ["get", "placePanelDisplayed", ["loc", [null, [188, 36], [188, 55]]]]]]], ["element", "action", ["closeMenuPanel"], [], ["loc", [null, [188, 59], [188, 86]]]]],
       locals: [],
-      templates: [child0, child1, child2, child3]
+      templates: [child0, child1, child2, child3, child4, child5, child6, child7, child8, child9]
+    };
+  })());
+});
+define("finndis/templates/components/label-panel", ["exports"], function (exports) {
+  exports["default"] = Ember.HTMLBars.template((function () {
+    var child0 = (function () {
+      return {
+        meta: {
+          "fragmentReason": false,
+          "revision": "Ember@2.3.2",
+          "loc": {
+            "source": null,
+            "start": {
+              "line": 14,
+              "column": 10
+            },
+            "end": {
+              "line": 35,
+              "column": 10
+            }
+          },
+          "moduleName": "finndis/templates/components/label-panel.hbs"
+        },
+        isEmpty: false,
+        arity: 1,
+        cachedFragment: null,
+        hasRendered: false,
+        buildFragment: function buildFragment(dom) {
+          var el0 = dom.createDocumentFragment();
+          var el1 = dom.createTextNode("            ");
+          dom.appendChild(el0, el1);
+          var el1 = dom.createElement("li");
+          dom.setAttribute(el1, "class", "label-editor--holder");
+          var el2 = dom.createTextNode("\n              ");
+          dom.appendChild(el1, el2);
+          var el2 = dom.createElement("label");
+          dom.setAttribute(el2, "class", "label--listitem--label");
+          var el3 = dom.createTextNode("\n                ");
+          dom.appendChild(el2, el3);
+          var el3 = dom.createElement("div");
+          dom.setAttribute(el3, "class", "label--listitem label-editor collapse align-middle row");
+          var el4 = dom.createTextNode("\n                  ");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createElement("div");
+          dom.setAttribute(el4, "class", "label--icon-holder small-1 columns");
+          var el5 = dom.createTextNode("\n                    ");
+          dom.appendChild(el4, el5);
+          var el5 = dom.createElement("i");
+          dom.setAttribute(el5, "class", "label--icon fa fa-tag");
+          dom.appendChild(el4, el5);
+          var el5 = dom.createTextNode("\n                  ");
+          dom.appendChild(el4, el5);
+          dom.appendChild(el3, el4);
+          var el4 = dom.createTextNode("\n                  ");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createElement("div");
+          dom.setAttribute(el4, "class", "small-10 columns");
+          var el5 = dom.createTextNode("\n                    ");
+          dom.appendChild(el4, el5);
+          var el5 = dom.createComment("");
+          dom.appendChild(el4, el5);
+          var el5 = dom.createTextNode("\n                  ");
+          dom.appendChild(el4, el5);
+          dom.appendChild(el3, el4);
+          var el4 = dom.createTextNode("\n                  ");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createElement("div");
+          dom.setAttribute(el4, "class", "label--icon-holder small-1 columns");
+          var el5 = dom.createTextNode("\n                    ");
+          dom.appendChild(el4, el5);
+          var el5 = dom.createComment("");
+          dom.appendChild(el4, el5);
+          var el5 = dom.createTextNode("\n                  ");
+          dom.appendChild(el4, el5);
+          dom.appendChild(el3, el4);
+          var el4 = dom.createTextNode("\n                ");
+          dom.appendChild(el3, el4);
+          dom.appendChild(el2, el3);
+          var el3 = dom.createTextNode("\n              ");
+          dom.appendChild(el2, el3);
+          dom.appendChild(el1, el2);
+          var el2 = dom.createTextNode("\n            ");
+          dom.appendChild(el1, el2);
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode("\n");
+          dom.appendChild(el0, el1);
+          return el0;
+        },
+        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+          var element0 = dom.childAt(fragment, [1, 1, 1]);
+          var morphs = new Array(2);
+          morphs[0] = dom.createMorphAt(dom.childAt(element0, [3]), 1, 1);
+          morphs[1] = dom.createMorphAt(dom.childAt(element0, [5]), 1, 1);
+          return morphs;
+        },
+        statements: [["content", "label.name", ["loc", [null, [22, 20], [22, 34]]]], ["inline", "radio-button", [], ["id", ["subexpr", "@mut", [["get", "label.id", ["loc", [null, [26, 25], [26, 33]]]]], [], []], "value", ["subexpr", "@mut", [["get", "label.id", ["loc", [null, [27, 28], [27, 36]]]]], [], []], "groupValue", ["subexpr", "@mut", [["get", "labelValue", ["loc", [null, [28, 33], [28, 43]]]]], [], []], "changed", "updateLabel", "name", "label"], ["loc", [null, [25, 20], [30, 36]]]]],
+        locals: ["label"],
+        templates: []
+      };
+    })();
+    return {
+      meta: {
+        "fragmentReason": {
+          "name": "missing-wrapper",
+          "problems": ["multiple-nodes"]
+        },
+        "revision": "Ember@2.3.2",
+        "loc": {
+          "source": null,
+          "start": {
+            "line": 1,
+            "column": 0
+          },
+          "end": {
+            "line": 42,
+            "column": 0
+          }
+        },
+        "moduleName": "finndis/templates/components/label-panel.hbs"
+      },
+      isEmpty: false,
+      arity: 0,
+      cachedFragment: null,
+      hasRendered: false,
+      buildFragment: function buildFragment(dom) {
+        var el0 = dom.createDocumentFragment();
+        var el1 = dom.createElement("div");
+        var el2 = dom.createTextNode("\n  ");
+        dom.appendChild(el1, el2);
+        var el2 = dom.createElement("form");
+        dom.setAttribute(el2, "class", "add-label--form");
+        var el3 = dom.createTextNode("\n    ");
+        dom.appendChild(el2, el3);
+        var el3 = dom.createElement("div");
+        dom.setAttribute(el3, "class", "row");
+        var el4 = dom.createTextNode("\n      ");
+        dom.appendChild(el3, el4);
+        var el4 = dom.createElement("div");
+        dom.setAttribute(el4, "class", "back-button--holder small-2 columns");
+        var el5 = dom.createTextNode("\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createElement("a");
+        var el6 = dom.createElement("i");
+        dom.setAttribute(el6, "class", "back-button fa fa-times");
+        dom.appendChild(el5, el6);
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n      ");
+        dom.appendChild(el4, el5);
+        dom.appendChild(el3, el4);
+        var el4 = dom.createTextNode("\n      ");
+        dom.appendChild(el3, el4);
+        var el4 = dom.createElement("div");
+        dom.setAttribute(el4, "class", "small-10 columns");
+        var el5 = dom.createTextNode("\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createComment("");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n      ");
+        dom.appendChild(el4, el5);
+        dom.appendChild(el3, el4);
+        var el4 = dom.createTextNode("\n    ");
+        dom.appendChild(el3, el4);
+        dom.appendChild(el2, el3);
+        var el3 = dom.createTextNode("\n    ");
+        dom.appendChild(el2, el3);
+        var el3 = dom.createElement("div");
+        dom.setAttribute(el3, "class", "row");
+        var el4 = dom.createTextNode("\n      ");
+        dom.appendChild(el3, el4);
+        var el4 = dom.createElement("div");
+        dom.setAttribute(el4, "class", "medium-12 columns");
+        var el5 = dom.createTextNode("\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createElement("ul");
+        dom.setAttribute(el5, "class", "label--list");
+        var el6 = dom.createTextNode("\n");
+        dom.appendChild(el5, el6);
+        var el6 = dom.createComment("");
+        dom.appendChild(el5, el6);
+        var el6 = dom.createTextNode("        ");
+        dom.appendChild(el5, el6);
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n      ");
+        dom.appendChild(el4, el5);
+        dom.appendChild(el3, el4);
+        var el4 = dom.createTextNode("\n    ");
+        dom.appendChild(el3, el4);
+        dom.appendChild(el2, el3);
+        var el3 = dom.createTextNode("\n  ");
+        dom.appendChild(el2, el3);
+        dom.appendChild(el1, el2);
+        var el2 = dom.createTextNode("\n");
+        dom.appendChild(el1, el2);
+        dom.appendChild(el0, el1);
+        var el1 = dom.createTextNode("\n");
+        dom.appendChild(el0, el1);
+        var el1 = dom.createElement("a");
+        dom.appendChild(el0, el1);
+        var el1 = dom.createTextNode("\n");
+        dom.appendChild(el0, el1);
+        return el0;
+      },
+      buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+        var element1 = dom.childAt(fragment, [0]);
+        var element2 = dom.childAt(element1, [1]);
+        var element3 = dom.childAt(element2, [1]);
+        var element4 = dom.childAt(element3, [1, 1]);
+        var element5 = dom.childAt(fragment, [2]);
+        var morphs = new Array(6);
+        morphs[0] = dom.createAttrMorph(element1, 'class');
+        morphs[1] = dom.createElementMorph(element4);
+        morphs[2] = dom.createMorphAt(dom.childAt(element3, [3]), 1, 1);
+        morphs[3] = dom.createMorphAt(dom.childAt(element2, [3, 1, 1]), 1, 1);
+        morphs[4] = dom.createAttrMorph(element5, 'class');
+        morphs[5] = dom.createElementMorph(element5);
+        return morphs;
+      },
+      statements: [["attribute", "class", ["concat", ["panel right ", ["get", "labelPanelDisplayed", ["loc", [null, [1, 26], [1, 45]]]]]]], ["element", "action", ["closeMenuPanel"], [], ["loc", [null, [5, 11], [5, 38]]]], ["content", "add-label", ["loc", [null, [8, 8], [8, 21]]]], ["block", "each", [["get", "sortedLabels", ["loc", [null, [14, 18], [14, 30]]]]], [], 0, null, ["loc", [null, [14, 10], [35, 19]]]], ["attribute", "class", ["concat", ["panel-overlay right ", ["get", "labelPanelDisplayed", ["loc", [null, [41, 32], [41, 51]]]]]]], ["element", "action", ["closeMenuPanel"], [], ["loc", [null, [41, 55], [41, 82]]]]],
+      locals: [],
+      templates: [child0]
     };
   })());
 });
@@ -5628,7 +4730,7 @@ define("finndis/templates/components/main-header", ["exports"], function (export
           morphs[0] = dom.createMorphAt(fragment, 1, 1, contextualElement);
           return morphs;
         },
-        statements: [["content", "menu-panel", ["loc", [null, [2, 2], [2, 16]]]]],
+        statements: [["inline", "menu-panel", [], ["menuShowLogo", ["subexpr", "@mut", [["get", "menuShowLogo", ["loc", [null, [2, 28], [2, 40]]]]], [], []], "menuHideAddNew", ["subexpr", "@mut", [["get", "menuHideAddNew", ["loc", [null, [2, 56], [2, 70]]]]], [], []]], ["loc", [null, [2, 2], [2, 72]]]]],
         locals: [],
         templates: []
       };
@@ -5647,7 +4749,7 @@ define("finndis/templates/components/main-header", ["exports"], function (export
               },
               "end": {
                 "line": 9,
-                "column": 84
+                "column": 158
               }
             },
             "moduleName": "finndis/templates/components/main-header.hbs"
@@ -5658,7 +4760,12 @@ define("finndis/templates/components/main-header", ["exports"], function (export
           hasRendered: false,
           buildFragment: function buildFragment(dom) {
             var el0 = dom.createDocumentFragment();
-            var el1 = dom.createTextNode("Finndis");
+            var el1 = dom.createElement("img");
+            dom.setAttribute(el1, "class", "logo--svg");
+            dom.setAttribute(el1, "src", "assets/images/finndis-icon.svg");
+            dom.setAttribute(el1, "alt", "Finndis");
+            dom.appendChild(el0, el1);
+            var el1 = dom.createTextNode(" Finndis");
             dom.appendChild(el0, el1);
             return el0;
           },
@@ -5734,7 +4841,7 @@ define("finndis/templates/components/main-header", ["exports"], function (export
           dom.appendChild(el5, el6);
           var el6 = dom.createElement("a");
           dom.setAttribute(el6, "class", "button expanded button_login");
-          var el7 = dom.createTextNode("Login / Signup");
+          var el7 = dom.createTextNode("Login");
           dom.appendChild(el6, el7);
           dom.appendChild(el5, el6);
           var el6 = dom.createTextNode("\n          ");
@@ -5764,7 +4871,7 @@ define("finndis/templates/components/main-header", ["exports"], function (export
           morphs[1] = dom.createElementMorph(element1);
           return morphs;
         },
-        statements: [["block", "link-to", ["places"], [], 0, null, ["loc", [null, [9, 56], [9, 96]]]], ["element", "action", ["login"], [], ["loc", [null, [13, 52], [13, 70]]]]],
+        statements: [["block", "link-to", ["places"], [], 0, null, ["loc", [null, [9, 56], [9, 170]]]], ["element", "action", ["login"], [], ["loc", [null, [13, 52], [13, 70]]]]],
         locals: [],
         templates: [child0]
       };
@@ -5815,6 +4922,47 @@ define("finndis/templates/components/main-header", ["exports"], function (export
 define("finndis/templates/components/menu-panel", ["exports"], function (exports) {
   exports["default"] = Ember.HTMLBars.template((function () {
     var child0 = (function () {
+      var child0 = (function () {
+        return {
+          meta: {
+            "fragmentReason": false,
+            "revision": "Ember@2.3.2",
+            "loc": {
+              "source": null,
+              "start": {
+                "line": 8,
+                "column": 54
+              },
+              "end": {
+                "line": 8,
+                "column": 156
+              }
+            },
+            "moduleName": "finndis/templates/components/menu-panel.hbs"
+          },
+          isEmpty: false,
+          arity: 0,
+          cachedFragment: null,
+          hasRendered: false,
+          buildFragment: function buildFragment(dom) {
+            var el0 = dom.createDocumentFragment();
+            var el1 = dom.createElement("img");
+            dom.setAttribute(el1, "class", "logo--svg");
+            dom.setAttribute(el1, "src", "assets/images/finndis-icon.svg");
+            dom.setAttribute(el1, "alt", "Finndis");
+            dom.appendChild(el0, el1);
+            var el1 = dom.createTextNode(" Finndis");
+            dom.appendChild(el0, el1);
+            return el0;
+          },
+          buildRenderNodes: function buildRenderNodes() {
+            return [];
+          },
+          statements: [],
+          locals: [],
+          templates: []
+        };
+      })();
       return {
         meta: {
           "fragmentReason": false,
@@ -5822,12 +4970,12 @@ define("finndis/templates/components/menu-panel", ["exports"], function (exports
           "loc": {
             "source": null,
             "start": {
-              "line": 7,
-              "column": 54
+              "line": 6,
+              "column": 8
             },
             "end": {
-              "line": 7,
-              "column": 82
+              "line": 10,
+              "column": 8
             }
           },
           "moduleName": "finndis/templates/components/menu-panel.hbs"
@@ -5838,19 +4986,75 @@ define("finndis/templates/components/menu-panel", ["exports"], function (exports
         hasRendered: false,
         buildFragment: function buildFragment(dom) {
           var el0 = dom.createDocumentFragment();
-          var el1 = dom.createTextNode("Finndis");
+          var el1 = dom.createTextNode("        ");
+          dom.appendChild(el0, el1);
+          var el1 = dom.createElement("div");
+          dom.setAttribute(el1, "class", "navigation--title columns");
+          var el2 = dom.createTextNode("\n          ");
+          dom.appendChild(el1, el2);
+          var el2 = dom.createElement("h1");
+          dom.setAttribute(el2, "class", "site-title");
+          var el3 = dom.createElement("strong");
+          dom.setAttribute(el3, "class", "logo");
+          var el4 = dom.createComment("");
+          dom.appendChild(el3, el4);
+          dom.appendChild(el2, el3);
+          dom.appendChild(el1, el2);
+          var el2 = dom.createTextNode("\n        ");
+          dom.appendChild(el1, el2);
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode("\n");
           dom.appendChild(el0, el1);
           return el0;
         },
-        buildRenderNodes: function buildRenderNodes() {
-          return [];
+        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+          var morphs = new Array(1);
+          morphs[0] = dom.createMorphAt(dom.childAt(fragment, [1, 1, 0]), 0, 0);
+          return morphs;
         },
-        statements: [],
+        statements: [["block", "link-to", ["places"], [], 0, null, ["loc", [null, [8, 54], [8, 168]]]]],
         locals: [],
-        templates: []
+        templates: [child0]
       };
     })();
     var child1 = (function () {
+      var child0 = (function () {
+        return {
+          meta: {
+            "fragmentReason": false,
+            "revision": "Ember@2.3.2",
+            "loc": {
+              "source": null,
+              "start": {
+                "line": 13,
+                "column": 45
+              },
+              "end": {
+                "line": 13,
+                "column": 156
+              }
+            },
+            "moduleName": "finndis/templates/components/menu-panel.hbs"
+          },
+          isEmpty: false,
+          arity: 0,
+          cachedFragment: null,
+          hasRendered: false,
+          buildFragment: function buildFragment(dom) {
+            var el0 = dom.createDocumentFragment();
+            var el1 = dom.createElement("i");
+            dom.setAttribute(el1, "class", "navigation--icon no_text fa fa-arrow-left");
+            dom.appendChild(el0, el1);
+            return el0;
+          },
+          buildRenderNodes: function buildRenderNodes() {
+            return [];
+          },
+          statements: [],
+          locals: [],
+          templates: []
+        };
+      })();
       return {
         meta: {
           "fragmentReason": false,
@@ -5858,11 +5062,236 @@ define("finndis/templates/components/menu-panel", ["exports"], function (exports
           "loc": {
             "source": null,
             "start": {
-              "line": 28,
+              "line": 10,
+              "column": 8
+            },
+            "end": {
+              "line": 16,
+              "column": 8
+            }
+          },
+          "moduleName": "finndis/templates/components/menu-panel.hbs"
+        },
+        isEmpty: false,
+        arity: 0,
+        cachedFragment: null,
+        hasRendered: false,
+        buildFragment: function buildFragment(dom) {
+          var el0 = dom.createDocumentFragment();
+          var el1 = dom.createTextNode("        ");
+          dom.appendChild(el0, el1);
+          var el1 = dom.createElement("div");
+          dom.setAttribute(el1, "class", "columns navigation--button-holder left");
+          var el2 = dom.createTextNode("\n          ");
+          dom.appendChild(el1, el2);
+          var el2 = dom.createElement("ul");
+          dom.setAttribute(el2, "class", "dropdown menu navigation--list");
+          var el3 = dom.createTextNode("\n            ");
+          dom.appendChild(el2, el3);
+          var el3 = dom.createElement("li");
+          dom.setAttribute(el3, "class", "navigation--listitem");
+          var el4 = dom.createComment("");
+          dom.appendChild(el3, el4);
+          dom.appendChild(el2, el3);
+          var el3 = dom.createTextNode("\n          ");
+          dom.appendChild(el2, el3);
+          dom.appendChild(el1, el2);
+          var el2 = dom.createTextNode("\n        ");
+          dom.appendChild(el1, el2);
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode("\n");
+          dom.appendChild(el0, el1);
+          return el0;
+        },
+        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+          var morphs = new Array(1);
+          morphs[0] = dom.createMorphAt(dom.childAt(fragment, [1, 1, 1]), 0, 0);
+          return morphs;
+        },
+        statements: [["block", "link-to", ["places"], ["class", "navigation--link no_text"], 0, null, ["loc", [null, [13, 45], [13, 168]]]]],
+        locals: [],
+        templates: [child0]
+      };
+    })();
+    var child2 = (function () {
+      return {
+        meta: {
+          "fragmentReason": false,
+          "revision": "Ember@2.3.2",
+          "loc": {
+            "source": null,
+            "start": {
+              "line": 18,
+              "column": 10
+            },
+            "end": {
+              "line": 22,
+              "column": 10
+            }
+          },
+          "moduleName": "finndis/templates/components/menu-panel.hbs"
+        },
+        isEmpty: false,
+        arity: 0,
+        cachedFragment: null,
+        hasRendered: false,
+        buildFragment: function buildFragment(dom) {
+          var el0 = dom.createDocumentFragment();
+          var el1 = dom.createTextNode("            ");
+          dom.appendChild(el0, el1);
+          var el1 = dom.createElement("ul");
+          dom.setAttribute(el1, "class", "dropdown menu navigation--list");
+          var el2 = dom.createTextNode("\n              ");
+          dom.appendChild(el1, el2);
+          var el2 = dom.createElement("li");
+          dom.setAttribute(el2, "class", "navigation--listitem");
+          var el3 = dom.createElement("a");
+          dom.setAttribute(el3, "class", "navigation--link");
+          var el4 = dom.createElement("i");
+          dom.setAttribute(el4, "class", "navigation--icon fa fa-bars");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createTextNode("Menu");
+          dom.appendChild(el3, el4);
+          dom.appendChild(el2, el3);
+          dom.appendChild(el1, el2);
+          var el2 = dom.createTextNode("\n            ");
+          dom.appendChild(el1, el2);
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode("\n");
+          dom.appendChild(el0, el1);
+          return el0;
+        },
+        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+          var element5 = dom.childAt(fragment, [1, 1]);
+          var morphs = new Array(1);
+          morphs[0] = dom.createElementMorph(element5);
+          return morphs;
+        },
+        statements: [["element", "action", ["showMenuPanel"], ["on", "click"], ["loc", [null, [20, 47], [20, 84]]]]],
+        locals: [],
+        templates: []
+      };
+    })();
+    var child3 = (function () {
+      var child0 = (function () {
+        return {
+          meta: {
+            "fragmentReason": false,
+            "revision": "Ember@2.3.2",
+            "loc": {
+              "source": null,
+              "start": {
+                "line": 24,
+                "column": 47
+              },
+              "end": {
+                "line": 24,
+                "column": 142
+              }
+            },
+            "moduleName": "finndis/templates/components/menu-panel.hbs"
+          },
+          isEmpty: false,
+          arity: 0,
+          cachedFragment: null,
+          hasRendered: false,
+          buildFragment: function buildFragment(dom) {
+            var el0 = dom.createDocumentFragment();
+            var el1 = dom.createElement("i");
+            dom.setAttribute(el1, "class", "navigation--icon fa fa-plus");
+            dom.appendChild(el0, el1);
+            var el1 = dom.createTextNode("New");
+            dom.appendChild(el0, el1);
+            return el0;
+          },
+          buildRenderNodes: function buildRenderNodes() {
+            return [];
+          },
+          statements: [],
+          locals: [],
+          templates: []
+        };
+      })();
+      return {
+        meta: {
+          "fragmentReason": false,
+          "revision": "Ember@2.3.2",
+          "loc": {
+            "source": null,
+            "start": {
+              "line": 22,
+              "column": 10
+            },
+            "end": {
+              "line": 27,
+              "column": 10
+            }
+          },
+          "moduleName": "finndis/templates/components/menu-panel.hbs"
+        },
+        isEmpty: false,
+        arity: 0,
+        cachedFragment: null,
+        hasRendered: false,
+        buildFragment: function buildFragment(dom) {
+          var el0 = dom.createDocumentFragment();
+          var el1 = dom.createTextNode("            ");
+          dom.appendChild(el0, el1);
+          var el1 = dom.createElement("ul");
+          dom.setAttribute(el1, "class", "dropdown menu navigation--list");
+          var el2 = dom.createTextNode("\n              ");
+          dom.appendChild(el1, el2);
+          var el2 = dom.createElement("li");
+          dom.setAttribute(el2, "class", "navigation--listitem");
+          var el3 = dom.createComment("");
+          dom.appendChild(el2, el3);
+          dom.appendChild(el1, el2);
+          var el2 = dom.createTextNode("\n              ");
+          dom.appendChild(el1, el2);
+          var el2 = dom.createElement("li");
+          dom.setAttribute(el2, "class", "navigation--listitem");
+          var el3 = dom.createElement("a");
+          dom.setAttribute(el3, "class", "navigation--link");
+          var el4 = dom.createElement("i");
+          dom.setAttribute(el4, "class", "navigation--icon fa fa-bars");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createTextNode("Menu");
+          dom.appendChild(el3, el4);
+          dom.appendChild(el2, el3);
+          dom.appendChild(el1, el2);
+          var el2 = dom.createTextNode("\n            ");
+          dom.appendChild(el1, el2);
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode("\n");
+          dom.appendChild(el0, el1);
+          return el0;
+        },
+        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+          var element3 = dom.childAt(fragment, [1]);
+          var element4 = dom.childAt(element3, [3]);
+          var morphs = new Array(2);
+          morphs[0] = dom.createMorphAt(dom.childAt(element3, [1]), 0, 0);
+          morphs[1] = dom.createElementMorph(element4);
+          return morphs;
+        },
+        statements: [["block", "link-to", ["add-place"], ["class", "navigation--link"], 0, null, ["loc", [null, [24, 47], [24, 154]]]], ["element", "action", ["showMenuPanel"], ["on", "click"], ["loc", [null, [25, 47], [25, 84]]]]],
+        locals: [],
+        templates: [child0]
+      };
+    })();
+    var child4 = (function () {
+      return {
+        meta: {
+          "fragmentReason": false,
+          "revision": "Ember@2.3.2",
+          "loc": {
+            "source": null,
+            "start": {
+              "line": 45,
               "column": 4
             },
             "end": {
-              "line": 37,
+              "line": 54,
               "column": 4
             }
           },
@@ -5919,12 +5348,12 @@ define("finndis/templates/components/menu-panel", ["exports"], function (exports
           morphs[1] = dom.createMorphAt(dom.childAt(element1, [3, 1]), 0, 0);
           return morphs;
         },
-        statements: [["attribute", "src", ["concat", [["get", "session.data.authenticated.profile.picture", ["loc", [null, [31, 50], [31, 92]]]]]]], ["content", "session.data.authenticated.profile.name", ["loc", [null, [34, 43], [34, 86]]]]],
+        statements: [["attribute", "src", ["concat", [["get", "session.data.authenticated.profile.picture", ["loc", [null, [48, 50], [48, 92]]]]]]], ["content", "session.data.authenticated.profile.name", ["loc", [null, [51, 43], [51, 86]]]]],
         locals: [],
         templates: []
       };
     })();
-    var child2 = (function () {
+    var child5 = (function () {
       return {
         meta: {
           "fragmentReason": false,
@@ -5932,51 +5361,12 @@ define("finndis/templates/components/menu-panel", ["exports"], function (exports
           "loc": {
             "source": null,
             "start": {
-              "line": 39,
-              "column": 4
+              "line": 61,
+              "column": 8
             },
             "end": {
-              "line": 39,
-              "column": 90
-            }
-          },
-          "moduleName": "finndis/templates/components/menu-panel.hbs"
-        },
-        isEmpty: false,
-        arity: 0,
-        cachedFragment: null,
-        hasRendered: false,
-        buildFragment: function buildFragment(dom) {
-          var el0 = dom.createDocumentFragment();
-          var el1 = dom.createElement("i");
-          dom.setAttribute(el1, "class", "fa fa-cog");
-          dom.appendChild(el0, el1);
-          var el1 = dom.createTextNode(" Settings");
-          dom.appendChild(el0, el1);
-          return el0;
-        },
-        buildRenderNodes: function buildRenderNodes() {
-          return [];
-        },
-        statements: [],
-        locals: [],
-        templates: []
-      };
-    })();
-    var child3 = (function () {
-      return {
-        meta: {
-          "fragmentReason": false,
-          "revision": "Ember@2.3.2",
-          "loc": {
-            "source": null,
-            "start": {
-              "line": 40,
-              "column": 4
-            },
-            "end": {
-              "line": 40,
-              "column": 89
+              "line": 61,
+              "column": 93
             }
           },
           "moduleName": "finndis/templates/components/menu-panel.hbs"
@@ -6002,7 +5392,7 @@ define("finndis/templates/components/menu-panel", ["exports"], function (exports
         templates: []
       };
     })();
-    var child4 = (function () {
+    var child6 = (function () {
       return {
         meta: {
           "fragmentReason": false,
@@ -6010,12 +5400,12 @@ define("finndis/templates/components/menu-panel", ["exports"], function (exports
           "loc": {
             "source": null,
             "start": {
-              "line": 47,
+              "line": 73,
               "column": 4
             },
             "end": {
-              "line": 47,
-              "column": 109
+              "line": 73,
+              "column": 108
             }
           },
           "moduleName": "finndis/templates/components/menu-panel.hbs"
@@ -6029,7 +5419,7 @@ define("finndis/templates/components/menu-panel", ["exports"], function (exports
           var el1 = dom.createElement("i");
           dom.setAttribute(el1, "class", "navigation--icon fa fa-map-marker");
           dom.appendChild(el0, el1);
-          var el1 = dom.createTextNode("Add with Maps");
+          var el1 = dom.createTextNode("My places");
           dom.appendChild(el0, el1);
           return el0;
         },
@@ -6041,7 +5431,7 @@ define("finndis/templates/components/menu-panel", ["exports"], function (exports
         templates: []
       };
     })();
-    var child5 = (function () {
+    var child7 = (function () {
       return {
         meta: {
           "fragmentReason": false,
@@ -6049,11 +5439,11 @@ define("finndis/templates/components/menu-panel", ["exports"], function (exports
           "loc": {
             "source": null,
             "start": {
-              "line": 54,
+              "line": 80,
               "column": 4
             },
             "end": {
-              "line": 54,
+              "line": 80,
               "column": 103
             }
           },
@@ -6080,7 +5470,7 @@ define("finndis/templates/components/menu-panel", ["exports"], function (exports
         templates: []
       };
     })();
-    var child6 = (function () {
+    var child8 = (function () {
       return {
         meta: {
           "fragmentReason": false,
@@ -6088,11 +5478,11 @@ define("finndis/templates/components/menu-panel", ["exports"], function (exports
           "loc": {
             "source": null,
             "start": {
-              "line": 61,
+              "line": 87,
               "column": 4
             },
             "end": {
-              "line": 61,
+              "line": 87,
               "column": 112
             }
           },
@@ -6119,7 +5509,7 @@ define("finndis/templates/components/menu-panel", ["exports"], function (exports
         templates: []
       };
     })();
-    var child7 = (function () {
+    var child9 = (function () {
       return {
         meta: {
           "fragmentReason": false,
@@ -6127,11 +5517,50 @@ define("finndis/templates/components/menu-panel", ["exports"], function (exports
           "loc": {
             "source": null,
             "start": {
-              "line": 69,
+              "line": 94,
               "column": 4
             },
             "end": {
-              "line": 69,
+              "line": 94,
+              "column": 99
+            }
+          },
+          "moduleName": "finndis/templates/components/menu-panel.hbs"
+        },
+        isEmpty: false,
+        arity: 0,
+        cachedFragment: null,
+        hasRendered: false,
+        buildFragment: function buildFragment(dom) {
+          var el0 = dom.createDocumentFragment();
+          var el1 = dom.createElement("i");
+          dom.setAttribute(el1, "class", "navigation--icon fa fa-question");
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode("Help");
+          dom.appendChild(el0, el1);
+          return el0;
+        },
+        buildRenderNodes: function buildRenderNodes() {
+          return [];
+        },
+        statements: [],
+        locals: [],
+        templates: []
+      };
+    })();
+    var child10 = (function () {
+      return {
+        meta: {
+          "fragmentReason": false,
+          "revision": "Ember@2.3.2",
+          "loc": {
+            "source": null,
+            "start": {
+              "line": 101,
+              "column": 4
+            },
+            "end": {
+              "line": 101,
               "column": 54
             }
           },
@@ -6155,7 +5584,7 @@ define("finndis/templates/components/menu-panel", ["exports"], function (exports
         templates: []
       };
     })();
-    var child8 = (function () {
+    var child11 = (function () {
       var child0 = (function () {
         return {
           meta: {
@@ -6164,11 +5593,11 @@ define("finndis/templates/components/menu-panel", ["exports"], function (exports
             "loc": {
               "source": null,
               "start": {
-                "line": 74,
+                "line": 106,
                 "column": 10
               },
               "end": {
-                "line": 83,
+                "line": 115,
                 "column": 10
               }
             },
@@ -6219,7 +5648,7 @@ define("finndis/templates/components/menu-panel", ["exports"], function (exports
             morphs[0] = dom.createMorphAt(dom.childAt(fragment, [1, 3]), 1, 1);
             return morphs;
           },
-          statements: [["content", "label.name", ["loc", [null, [80, 14], [80, 28]]]]],
+          statements: [["content", "label.name", ["loc", [null, [112, 14], [112, 28]]]]],
           locals: [],
           templates: []
         };
@@ -6231,11 +5660,11 @@ define("finndis/templates/components/menu-panel", ["exports"], function (exports
           "loc": {
             "source": null,
             "start": {
-              "line": 72,
+              "line": 104,
               "column": 6
             },
             "end": {
-              "line": 85,
+              "line": 117,
               "column": 6
             }
           },
@@ -6269,7 +5698,7 @@ define("finndis/templates/components/menu-panel", ["exports"], function (exports
           morphs[1] = dom.createMorphAt(element0, 1, 1);
           return morphs;
         },
-        statements: [["attribute", "id", ["concat", [["get", "label.labelId", ["loc", [null, [73, 18], [73, 31]]]]]]], ["block", "link-to", ["label", ["get", "label", ["loc", [null, [74, 29], [74, 34]]]]], [], 0, null, ["loc", [null, [74, 10], [83, 22]]]]],
+        statements: [["attribute", "id", ["concat", [["get", "label.labelId", ["loc", [null, [105, 18], [105, 31]]]]]]], ["block", "link-to", ["label", ["get", "label", ["loc", [null, [106, 29], [106, 34]]]]], [], 0, null, ["loc", [null, [106, 10], [115, 22]]]]],
         locals: ["label"],
         templates: [child0]
       };
@@ -6288,7 +5717,7 @@ define("finndis/templates/components/menu-panel", ["exports"], function (exports
             "column": 0
           },
           "end": {
-            "line": 91,
+            "line": 124,
             "column": 0
           }
         },
@@ -6317,48 +5746,19 @@ define("finndis/templates/components/menu-panel", ["exports"], function (exports
         dom.appendChild(el3, el4);
         var el4 = dom.createElement("nav");
         dom.setAttribute(el4, "class", "row navigation");
-        var el5 = dom.createTextNode("\n        ");
+        var el5 = dom.createTextNode("\n");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createComment("");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("        ");
         dom.appendChild(el4, el5);
         var el5 = dom.createElement("div");
-        dom.setAttribute(el5, "class", "navigation--title small-7 columns");
-        var el6 = dom.createTextNode("\n          ");
+        dom.setAttribute(el5, "class", "shrink columns end navigation--button-holder");
+        var el6 = dom.createTextNode("\n");
         dom.appendChild(el5, el6);
-        var el6 = dom.createElement("h1");
-        dom.setAttribute(el6, "class", "site-title");
-        var el7 = dom.createElement("strong");
-        dom.setAttribute(el7, "class", "logo");
-        var el8 = dom.createComment("");
-        dom.appendChild(el7, el8);
-        dom.appendChild(el6, el7);
+        var el6 = dom.createComment("");
         dom.appendChild(el5, el6);
-        var el6 = dom.createTextNode("\n        ");
-        dom.appendChild(el5, el6);
-        dom.appendChild(el4, el5);
-        var el5 = dom.createTextNode("\n        ");
-        dom.appendChild(el4, el5);
-        var el5 = dom.createElement("div");
-        dom.setAttribute(el5, "class", "small-5 columns end navigation--button-holder");
-        var el6 = dom.createTextNode("\n          ");
-        dom.appendChild(el5, el6);
-        var el6 = dom.createElement("ul");
-        dom.setAttribute(el6, "class", "dropdown menu navigation--list");
-        var el7 = dom.createTextNode("\n            ");
-        dom.appendChild(el6, el7);
-        var el7 = dom.createElement("li");
-        dom.setAttribute(el7, "class", "navigation--listitem");
-        var el8 = dom.createElement("a");
-        dom.setAttribute(el8, "class", "navigation--link");
-        var el9 = dom.createElement("i");
-        dom.setAttribute(el9, "class", "navigation--icon fa fa-bars");
-        dom.appendChild(el8, el9);
-        var el9 = dom.createTextNode("Menu");
-        dom.appendChild(el8, el9);
-        dom.appendChild(el7, el8);
-        dom.appendChild(el6, el7);
-        var el7 = dom.createTextNode("\n          ");
-        dom.appendChild(el6, el7);
-        dom.appendChild(el5, el6);
-        var el6 = dom.createTextNode("\n        ");
+        var el6 = dom.createTextNode("        ");
         dom.appendChild(el5, el6);
         dom.appendChild(el4, el5);
         var el5 = dom.createTextNode("\n      ");
@@ -6373,7 +5773,7 @@ define("finndis/templates/components/menu-panel", ["exports"], function (exports
         var el2 = dom.createTextNode("\n");
         dom.appendChild(el1, el2);
         dom.appendChild(el0, el1);
-        var el1 = dom.createTextNode("\n\n\n");
+        var el1 = dom.createTextNode("\n\n\n\n");
         dom.appendChild(el0, el1);
         var el1 = dom.createElement("nav");
         dom.setAttribute(el1, "id", "panel-menu");
@@ -6401,8 +5801,50 @@ define("finndis/templates/components/menu-panel", ["exports"], function (exports
         dom.appendChild(el2, el3);
         var el3 = dom.createTextNode("\n    ");
         dom.appendChild(el2, el3);
-        var el3 = dom.createComment("");
+        var el3 = dom.createElement("div");
+        dom.setAttribute(el3, "class", "row");
+        var el4 = dom.createTextNode("\n      ");
+        dom.appendChild(el3, el4);
+        var el4 = dom.createElement("div");
+        dom.setAttribute(el4, "class", "small-4 columns");
+        var el5 = dom.createTextNode("\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createElement("a");
+        dom.setAttribute(el5, "class", "button user-button left");
+        var el6 = dom.createTextNode("Logout ");
+        dom.appendChild(el5, el6);
+        var el6 = dom.createElement("i");
+        dom.setAttribute(el6, "class", "fa fa-sign-out");
+        dom.appendChild(el5, el6);
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n      ");
+        dom.appendChild(el4, el5);
+        dom.appendChild(el3, el4);
+        var el4 = dom.createTextNode("\n      ");
+        dom.appendChild(el3, el4);
+        var el4 = dom.createElement("div");
+        dom.setAttribute(el4, "class", "small-4 columns");
+        var el5 = dom.createTextNode("\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createComment("");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n      ");
+        dom.appendChild(el4, el5);
+        dom.appendChild(el3, el4);
+        var el4 = dom.createTextNode("\n    ");
+        dom.appendChild(el3, el4);
         dom.appendChild(el2, el3);
+        var el3 = dom.createTextNode("\n\n\n\n  ");
+        dom.appendChild(el2, el3);
+        dom.appendChild(el1, el2);
+        var el2 = dom.createTextNode("\n");
+        dom.appendChild(el1, el2);
+        var el2 = dom.createTextNode("\n\n");
+        dom.appendChild(el1, el2);
+        var el2 = dom.createTextNode("  ");
+        dom.appendChild(el1, el2);
+        var el2 = dom.createElement("div");
+        dom.setAttribute(el2, "class", "panel--section");
         var el3 = dom.createTextNode("\n    ");
         dom.appendChild(el2, el3);
         var el3 = dom.createComment("");
@@ -6457,7 +5899,7 @@ define("finndis/templates/components/menu-panel", ["exports"], function (exports
         dom.appendChild(el1, el2);
         var el2 = dom.createTextNode("\n");
         dom.appendChild(el1, el2);
-        var el2 = dom.createTextNode("\n\n");
+        var el2 = dom.createTextNode("\n");
         dom.appendChild(el1, el2);
         var el2 = dom.createTextNode("  ");
         dom.appendChild(el1, el2);
@@ -6490,6 +5932,8 @@ define("finndis/templates/components/menu-panel", ["exports"], function (exports
         dom.appendChild(el1, el2);
         var el2 = dom.createTextNode("\n");
         dom.appendChild(el1, el2);
+        var el2 = dom.createTextNode("\n");
+        dom.appendChild(el1, el2);
         dom.appendChild(el0, el1);
         var el1 = dom.createTextNode("\n");
         dom.appendChild(el0, el1);
@@ -6500,43 +5944,793 @@ define("finndis/templates/components/menu-panel", ["exports"], function (exports
         return el0;
       },
       buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
-        var element3 = dom.childAt(fragment, [1]);
-        var element4 = dom.childAt(element3, [1, 1, 1]);
-        var element5 = dom.childAt(element4, [3, 1, 1]);
-        var element6 = dom.childAt(fragment, [3]);
-        var element7 = dom.childAt(element6, [2]);
-        var element8 = dom.childAt(element7, [2]);
-        var element9 = dom.childAt(element6, [6]);
-        var element10 = dom.childAt(element6, [10]);
-        var element11 = dom.childAt(element6, [14]);
-        var element12 = dom.childAt(element6, [18]);
-        var element13 = dom.childAt(fragment, [5]);
-        var morphs = new Array(20);
-        morphs[0] = dom.createElementMorph(element3);
-        morphs[1] = dom.createMorphAt(dom.childAt(element4, [1, 1, 0]), 0, 0);
-        morphs[2] = dom.createElementMorph(element5);
-        morphs[3] = dom.createAttrMorph(element6, 'class');
-        morphs[4] = dom.createElementMorph(element7);
-        morphs[5] = dom.createElementMorph(element8);
-        morphs[6] = dom.createMorphAt(element7, 5, 5);
-        morphs[7] = dom.createMorphAt(element7, 7, 7);
-        morphs[8] = dom.createMorphAt(element7, 9, 9);
-        morphs[9] = dom.createElementMorph(element9);
-        morphs[10] = dom.createMorphAt(element9, 1, 1);
-        morphs[11] = dom.createElementMorph(element10);
-        morphs[12] = dom.createMorphAt(element10, 1, 1);
-        morphs[13] = dom.createElementMorph(element11);
-        morphs[14] = dom.createMorphAt(element11, 1, 1);
-        morphs[15] = dom.createElementMorph(element12);
-        morphs[16] = dom.createMorphAt(element12, 3, 3);
-        morphs[17] = dom.createMorphAt(dom.childAt(element12, [5]), 1, 1);
-        morphs[18] = dom.createAttrMorph(element13, 'class');
-        morphs[19] = dom.createElementMorph(element13);
+        var element6 = dom.childAt(fragment, [1]);
+        var element7 = dom.childAt(element6, [1, 1, 1]);
+        var element8 = dom.childAt(fragment, [3]);
+        var element9 = dom.childAt(element8, [2]);
+        var element10 = dom.childAt(element9, [2]);
+        var element11 = dom.childAt(element9, [7]);
+        var element12 = dom.childAt(element11, [1, 1]);
+        var element13 = dom.childAt(element8, [6]);
+        var element14 = dom.childAt(element8, [10]);
+        var element15 = dom.childAt(element8, [14]);
+        var element16 = dom.childAt(element8, [18]);
+        var element17 = dom.childAt(element8, [22]);
+        var element18 = dom.childAt(fragment, [5]);
+        var morphs = new Array(22);
+        morphs[0] = dom.createElementMorph(element6);
+        morphs[1] = dom.createMorphAt(element7, 1, 1);
+        morphs[2] = dom.createMorphAt(dom.childAt(element7, [3]), 1, 1);
+        morphs[3] = dom.createAttrMorph(element8, 'class');
+        morphs[4] = dom.createElementMorph(element10);
+        morphs[5] = dom.createMorphAt(element9, 5, 5);
+        morphs[6] = dom.createElementMorph(element11);
+        morphs[7] = dom.createElementMorph(element12);
+        morphs[8] = dom.createMorphAt(dom.childAt(element11, [3]), 1, 1);
+        morphs[9] = dom.createElementMorph(element13);
+        morphs[10] = dom.createMorphAt(element13, 1, 1);
+        morphs[11] = dom.createElementMorph(element14);
+        morphs[12] = dom.createMorphAt(element14, 1, 1);
+        morphs[13] = dom.createElementMorph(element15);
+        morphs[14] = dom.createMorphAt(element15, 1, 1);
+        morphs[15] = dom.createElementMorph(element16);
+        morphs[16] = dom.createMorphAt(element16, 1, 1);
+        morphs[17] = dom.createElementMorph(element17);
+        morphs[18] = dom.createMorphAt(element17, 3, 3);
+        morphs[19] = dom.createMorphAt(dom.childAt(element17, [5]), 1, 1);
+        morphs[20] = dom.createAttrMorph(element18, 'class');
+        morphs[21] = dom.createElementMorph(element18);
         return morphs;
       },
-      statements: [["element", "action", ["showNav"], ["on", "scroll"], ["loc", [null, [2, 48], [2, 80]]]], ["block", "link-to", ["places"], [], 0, null, ["loc", [null, [7, 54], [7, 94]]]], ["element", "action", ["showMenuPanel"], ["on", "click"], ["loc", [null, [11, 45], [11, 82]]]], ["attribute", "class", ["concat", ["panel-menu panel left ", ["get", "labelPanelClass", ["loc", [null, [20, 52], [20, 67]]]]]]], ["element", "action", ["closeMenuPanel"], ["on", "click"], ["loc", [null, [23, 43], [23, 81]]]], ["element", "action", ["closeMenuPanel"], [], ["loc", [null, [25, 30], [25, 57]]]], ["block", "link-to", ["users"], ["class", "navigation--user-link"], 1, null, ["loc", [null, [28, 4], [37, 16]]]], ["block", "link-to", ["users"], ["class", "button user-button left"], 2, null, ["loc", [null, [39, 4], [39, 102]]]], ["block", "link-to", ["places"], ["class", "button user-button right"], 3, null, ["loc", [null, [40, 4], [40, 101]]]], ["element", "action", ["closeMenuPanel"], ["on", "click"], ["loc", [null, [46, 30], [46, 68]]]], ["block", "link-to", ["map"], ["class", "navigation--link"], 4, null, ["loc", [null, [47, 4], [47, 121]]]], ["element", "action", ["closeMenuPanel"], ["on", "click"], ["loc", [null, [53, 30], [53, 68]]]], ["block", "link-to", ["add-place"], ["class", "navigation--link"], 5, null, ["loc", [null, [54, 4], [54, 115]]]], ["element", "action", ["closeMenuPanel"], ["on", "click"], ["loc", [null, [60, 30], [60, 68]]]], ["block", "link-to", ["search"], ["class", "navigation--link"], 6, null, ["loc", [null, [61, 4], [61, 124]]]], ["element", "action", ["closeMenuPanel"], ["on", "click"], ["loc", [null, [67, 44], [67, 82]]]], ["block", "link-to", ["edit-labels"], ["class", "edit-button"], 7, null, ["loc", [null, [69, 4], [69, 66]]]], ["block", "each", [["get", "userLabels", ["loc", [null, [72, 14], [72, 24]]]]], [], 8, null, ["loc", [null, [72, 6], [85, 15]]]], ["attribute", "class", ["concat", ["panel-overlay left __nav ", ["get", "labelPanelClass", ["loc", [null, [90, 37], [90, 52]]]]]]], ["element", "action", ["closeMenuPanel"], [], ["loc", [null, [90, 56], [90, 83]]]]],
+      statements: [["element", "action", ["showNav"], ["on", "scroll"], ["loc", [null, [2, 48], [2, 80]]]], ["block", "if", [["get", "menuShowLogo", ["loc", [null, [6, 14], [6, 26]]]]], [], 0, 1, ["loc", [null, [6, 8], [16, 15]]]], ["block", "if", [["get", "menuHideAddNew", ["loc", [null, [18, 16], [18, 30]]]]], [], 2, 3, ["loc", [null, [18, 10], [27, 17]]]], ["attribute", "class", ["concat", ["panel-menu panel left ", ["get", "labelPanelClass", ["loc", [null, [37, 52], [37, 67]]]]]]], ["element", "action", ["closeMenuPanel"], [], ["loc", [null, [42, 30], [42, 57]]]], ["block", "link-to", ["places"], ["class", "navigation--user-link"], 4, null, ["loc", [null, [45, 4], [54, 16]]]], ["element", "action", ["closeMenuPanel"], ["on", "click"], ["loc", [null, [56, 21], [56, 59]]]], ["element", "action", ["logout"], [], ["loc", [null, [58, 43], [58, 62]]]], ["block", "link-to", ["places"], ["class", "button user-button right"], 5, null, ["loc", [null, [61, 8], [61, 105]]]], ["element", "action", ["closeMenuPanel"], ["on", "click"], ["loc", [null, [72, 30], [72, 68]]]], ["block", "link-to", ["places"], ["class", "navigation--link"], 6, null, ["loc", [null, [73, 4], [73, 120]]]], ["element", "action", ["closeMenuPanel"], ["on", "click"], ["loc", [null, [79, 30], [79, 68]]]], ["block", "link-to", ["add-place"], ["class", "navigation--link"], 7, null, ["loc", [null, [80, 4], [80, 115]]]], ["element", "action", ["closeMenuPanel"], ["on", "click"], ["loc", [null, [86, 30], [86, 68]]]], ["block", "link-to", ["search"], ["class", "navigation--link"], 8, null, ["loc", [null, [87, 4], [87, 124]]]], ["element", "action", ["closeMenuPanel"], ["on", "click"], ["loc", [null, [93, 30], [93, 68]]]], ["block", "link-to", ["help"], ["class", "navigation--link"], 9, null, ["loc", [null, [94, 4], [94, 111]]]], ["element", "action", ["closeMenuPanel"], ["on", "click"], ["loc", [null, [99, 44], [99, 82]]]], ["block", "link-to", ["edit-labels"], ["class", "edit-button"], 10, null, ["loc", [null, [101, 4], [101, 66]]]], ["block", "each", [["get", "userLabels", ["loc", [null, [104, 14], [104, 24]]]]], [], 11, null, ["loc", [null, [104, 6], [117, 15]]]], ["attribute", "class", ["concat", ["panel-overlay left __nav ", ["get", "labelPanelClass", ["loc", [null, [123, 37], [123, 52]]]]]]], ["element", "action", ["closeMenuPanel"], [], ["loc", [null, [123, 56], [123, 83]]]]],
       locals: [],
-      templates: [child0, child1, child2, child3, child4, child5, child6, child7, child8]
+      templates: [child0, child1, child2, child3, child4, child5, child6, child7, child8, child9, child10, child11]
+    };
+  })());
+});
+define("finndis/templates/components/place-map", ["exports"], function (exports) {
+  exports["default"] = Ember.HTMLBars.template((function () {
+    var child0 = (function () {
+      return {
+        meta: {
+          "fragmentReason": false,
+          "revision": "Ember@2.3.2",
+          "loc": {
+            "source": null,
+            "start": {
+              "line": 3,
+              "column": 0
+            },
+            "end": {
+              "line": 14,
+              "column": 0
+            }
+          },
+          "moduleName": "finndis/templates/components/place-map.hbs"
+        },
+        isEmpty: false,
+        arity: 0,
+        cachedFragment: null,
+        hasRendered: false,
+        buildFragment: function buildFragment(dom) {
+          var el0 = dom.createDocumentFragment();
+          var el1 = dom.createElement("div");
+          dom.setAttribute(el1, "class", "map_error--holder row");
+          var el2 = dom.createTextNode("\n  ");
+          dom.appendChild(el1, el2);
+          var el2 = dom.createElement("div");
+          dom.setAttribute(el2, "class", "columns shrink");
+          var el3 = dom.createTextNode("\n    ");
+          dom.appendChild(el2, el3);
+          var el3 = dom.createElement("i");
+          dom.setAttribute(el3, "class", "map_error--icon fa fa-exclamation-circle");
+          dom.setAttribute(el3, "aria-hidden", "true");
+          dom.appendChild(el2, el3);
+          var el3 = dom.createTextNode("\n  ");
+          dom.appendChild(el2, el3);
+          dom.appendChild(el1, el2);
+          var el2 = dom.createTextNode("\n  ");
+          dom.appendChild(el1, el2);
+          var el2 = dom.createElement("div");
+          dom.setAttribute(el2, "class", "columns");
+          var el3 = dom.createTextNode("\n    ");
+          dom.appendChild(el2, el3);
+          var el3 = dom.createElement("div");
+          dom.setAttribute(el3, "class", "map_error");
+          var el4 = dom.createTextNode("\n      It seems like there is a problem with the geolocation. Please make sure it is enabled in your settings.\n    ");
+          dom.appendChild(el3, el4);
+          dom.appendChild(el2, el3);
+          var el3 = dom.createTextNode("\n  ");
+          dom.appendChild(el2, el3);
+          dom.appendChild(el1, el2);
+          var el2 = dom.createTextNode("\n");
+          dom.appendChild(el1, el2);
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode("\n");
+          dom.appendChild(el0, el1);
+          return el0;
+        },
+        buildRenderNodes: function buildRenderNodes() {
+          return [];
+        },
+        statements: [],
+        locals: [],
+        templates: []
+      };
+    })();
+    var child1 = (function () {
+      return {
+        meta: {
+          "fragmentReason": false,
+          "revision": "Ember@2.3.2",
+          "loc": {
+            "source": null,
+            "start": {
+              "line": 23,
+              "column": 8
+            },
+            "end": {
+              "line": 23,
+              "column": 126
+            }
+          },
+          "moduleName": "finndis/templates/components/place-map.hbs"
+        },
+        isEmpty: false,
+        arity: 0,
+        cachedFragment: null,
+        hasRendered: false,
+        buildFragment: function buildFragment(dom) {
+          var el0 = dom.createDocumentFragment();
+          var el1 = dom.createElement("i");
+          dom.setAttribute(el1, "class", "place--action--icon fa fa-info-circle");
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode("View details");
+          dom.appendChild(el0, el1);
+          return el0;
+        },
+        buildRenderNodes: function buildRenderNodes() {
+          return [];
+        },
+        statements: [],
+        locals: [],
+        templates: []
+      };
+    })();
+    var child2 = (function () {
+      return {
+        meta: {
+          "fragmentReason": false,
+          "revision": "Ember@2.3.2",
+          "loc": {
+            "source": null,
+            "start": {
+              "line": 37,
+              "column": 10
+            },
+            "end": {
+              "line": 48,
+              "column": 10
+            }
+          },
+          "moduleName": "finndis/templates/components/place-map.hbs"
+        },
+        isEmpty: false,
+        arity: 0,
+        cachedFragment: null,
+        hasRendered: false,
+        buildFragment: function buildFragment(dom) {
+          var el0 = dom.createDocumentFragment();
+          var el1 = dom.createTextNode("          ");
+          dom.appendChild(el0, el1);
+          var el1 = dom.createElement("div");
+          dom.setAttribute(el1, "class", "columns small-12");
+          var el2 = dom.createTextNode("\n            ");
+          dom.appendChild(el1, el2);
+          var el2 = dom.createElement("div");
+          dom.setAttribute(el2, "class", "place--address row");
+          var el3 = dom.createTextNode("\n              ");
+          dom.appendChild(el2, el3);
+          var el3 = dom.createElement("div");
+          dom.setAttribute(el3, "class", "small-1 columns");
+          var el4 = dom.createTextNode("\n                ");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createElement("i");
+          dom.setAttribute(el4, "class", "place--main--icon fa fa-map-marker");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createTextNode("\n              ");
+          dom.appendChild(el3, el4);
+          dom.appendChild(el2, el3);
+          var el3 = dom.createTextNode("\n              ");
+          dom.appendChild(el2, el3);
+          var el3 = dom.createElement("div");
+          dom.setAttribute(el3, "class", "small-11 columns");
+          var el4 = dom.createTextNode("\n                ");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createComment("");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createTextNode("\n              ");
+          dom.appendChild(el3, el4);
+          dom.appendChild(el2, el3);
+          var el3 = dom.createTextNode("\n            ");
+          dom.appendChild(el2, el3);
+          dom.appendChild(el1, el2);
+          var el2 = dom.createTextNode("\n          ");
+          dom.appendChild(el1, el2);
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode("\n");
+          dom.appendChild(el0, el1);
+          return el0;
+        },
+        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+          var morphs = new Array(1);
+          morphs[0] = dom.createMorphAt(dom.childAt(fragment, [1, 1, 3]), 1, 1);
+          return morphs;
+        },
+        statements: [["content", "place.formattedaddress", ["loc", [null, [44, 16], [44, 42]]]]],
+        locals: [],
+        templates: []
+      };
+    })();
+    var child3 = (function () {
+      return {
+        meta: {
+          "fragmentReason": false,
+          "revision": "Ember@2.3.2",
+          "loc": {
+            "source": null,
+            "start": {
+              "line": 49,
+              "column": 10
+            },
+            "end": {
+              "line": 62,
+              "column": 10
+            }
+          },
+          "moduleName": "finndis/templates/components/place-map.hbs"
+        },
+        isEmpty: false,
+        arity: 0,
+        cachedFragment: null,
+        hasRendered: false,
+        buildFragment: function buildFragment(dom) {
+          var el0 = dom.createDocumentFragment();
+          var el1 = dom.createTextNode("          ");
+          dom.appendChild(el0, el1);
+          var el1 = dom.createElement("div");
+          dom.setAttribute(el1, "class", "columns small-12");
+          var el2 = dom.createTextNode("\n            ");
+          dom.appendChild(el1, el2);
+          var el2 = dom.createElement("a");
+          var el3 = dom.createTextNode("\n              ");
+          dom.appendChild(el2, el3);
+          var el3 = dom.createElement("div");
+          dom.setAttribute(el3, "class", "place--phone row");
+          var el4 = dom.createTextNode("\n                ");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createElement("div");
+          dom.setAttribute(el4, "class", "small-1 columns");
+          var el5 = dom.createTextNode("\n                  ");
+          dom.appendChild(el4, el5);
+          var el5 = dom.createElement("i");
+          dom.setAttribute(el5, "class", "place--main--icon fa fa-phone");
+          dom.appendChild(el4, el5);
+          var el5 = dom.createTextNode("\n                ");
+          dom.appendChild(el4, el5);
+          dom.appendChild(el3, el4);
+          var el4 = dom.createTextNode("\n                ");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createElement("div");
+          dom.setAttribute(el4, "class", "small-11 columns");
+          var el5 = dom.createTextNode("\n                  ");
+          dom.appendChild(el4, el5);
+          var el5 = dom.createComment("");
+          dom.appendChild(el4, el5);
+          var el5 = dom.createTextNode("\n                ");
+          dom.appendChild(el4, el5);
+          dom.appendChild(el3, el4);
+          var el4 = dom.createTextNode("\n              ");
+          dom.appendChild(el3, el4);
+          dom.appendChild(el2, el3);
+          var el3 = dom.createTextNode("\n            ");
+          dom.appendChild(el2, el3);
+          dom.appendChild(el1, el2);
+          var el2 = dom.createTextNode("\n          ");
+          dom.appendChild(el1, el2);
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode("\n");
+          dom.appendChild(el0, el1);
+          return el0;
+        },
+        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+          var element2 = dom.childAt(fragment, [1, 1]);
+          var morphs = new Array(2);
+          morphs[0] = dom.createAttrMorph(element2, 'href');
+          morphs[1] = dom.createMorphAt(dom.childAt(element2, [1, 3]), 1, 1);
+          return morphs;
+        },
+        statements: [["attribute", "href", ["concat", ["tel:", ["get", "place.phone", ["loc", [null, [51, 27], [51, 38]]]]]]], ["content", "place.phone", ["loc", [null, [57, 18], [57, 33]]]]],
+        locals: [],
+        templates: []
+      };
+    })();
+    var child4 = (function () {
+      return {
+        meta: {
+          "fragmentReason": false,
+          "revision": "Ember@2.3.2",
+          "loc": {
+            "source": null,
+            "start": {
+              "line": 67,
+              "column": 10
+            },
+            "end": {
+              "line": 80,
+              "column": 10
+            }
+          },
+          "moduleName": "finndis/templates/components/place-map.hbs"
+        },
+        isEmpty: false,
+        arity: 0,
+        cachedFragment: null,
+        hasRendered: false,
+        buildFragment: function buildFragment(dom) {
+          var el0 = dom.createDocumentFragment();
+          var el1 = dom.createTextNode("          ");
+          dom.appendChild(el0, el1);
+          var el1 = dom.createElement("div");
+          dom.setAttribute(el1, "class", "columns small-12");
+          var el2 = dom.createTextNode("\n            ");
+          dom.appendChild(el1, el2);
+          var el2 = dom.createElement("a");
+          var el3 = dom.createTextNode("\n              ");
+          dom.appendChild(el2, el3);
+          var el3 = dom.createElement("div");
+          dom.setAttribute(el3, "class", "place--website row");
+          var el4 = dom.createTextNode("\n                ");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createElement("div");
+          dom.setAttribute(el4, "class", "small-1 columns");
+          var el5 = dom.createTextNode("\n                  ");
+          dom.appendChild(el4, el5);
+          var el5 = dom.createElement("i");
+          dom.setAttribute(el5, "class", "place--main--icon fa fa-globe");
+          dom.appendChild(el4, el5);
+          var el5 = dom.createTextNode("\n                ");
+          dom.appendChild(el4, el5);
+          dom.appendChild(el3, el4);
+          var el4 = dom.createTextNode("\n                ");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createElement("div");
+          dom.setAttribute(el4, "class", "small-11 columns");
+          var el5 = dom.createTextNode("\n                  ");
+          dom.appendChild(el4, el5);
+          var el5 = dom.createComment("");
+          dom.appendChild(el4, el5);
+          var el5 = dom.createTextNode("\n                ");
+          dom.appendChild(el4, el5);
+          dom.appendChild(el3, el4);
+          var el4 = dom.createTextNode("\n              ");
+          dom.appendChild(el3, el4);
+          dom.appendChild(el2, el3);
+          var el3 = dom.createTextNode("\n            ");
+          dom.appendChild(el2, el3);
+          dom.appendChild(el1, el2);
+          var el2 = dom.createTextNode("\n          ");
+          dom.appendChild(el1, el2);
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode("\n");
+          dom.appendChild(el0, el1);
+          return el0;
+        },
+        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+          var element1 = dom.childAt(fragment, [1, 1]);
+          var morphs = new Array(2);
+          morphs[0] = dom.createAttrMorph(element1, 'href');
+          morphs[1] = dom.createMorphAt(dom.childAt(element1, [1, 3]), 1, 1);
+          return morphs;
+        },
+        statements: [["attribute", "href", ["concat", [["get", "place.website", ["loc", [null, [69, 23], [69, 36]]]]]]], ["content", "place.website", ["loc", [null, [75, 18], [75, 35]]]]],
+        locals: [],
+        templates: []
+      };
+    })();
+    var child5 = (function () {
+      return {
+        meta: {
+          "fragmentReason": false,
+          "revision": "Ember@2.3.2",
+          "loc": {
+            "source": null,
+            "start": {
+              "line": 81,
+              "column": 10
+            },
+            "end": {
+              "line": 94,
+              "column": 10
+            }
+          },
+          "moduleName": "finndis/templates/components/place-map.hbs"
+        },
+        isEmpty: false,
+        arity: 0,
+        cachedFragment: null,
+        hasRendered: false,
+        buildFragment: function buildFragment(dom) {
+          var el0 = dom.createDocumentFragment();
+          var el1 = dom.createTextNode("          ");
+          dom.appendChild(el0, el1);
+          var el1 = dom.createElement("div");
+          dom.setAttribute(el1, "class", "columns small-12");
+          var el2 = dom.createTextNode("\n            ");
+          dom.appendChild(el1, el2);
+          var el2 = dom.createElement("a");
+          var el3 = dom.createTextNode("\n              ");
+          dom.appendChild(el2, el3);
+          var el3 = dom.createElement("div");
+          dom.setAttribute(el3, "class", "place--url row");
+          var el4 = dom.createTextNode("\n                ");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createElement("div");
+          dom.setAttribute(el4, "class", "small-1 columns");
+          var el5 = dom.createTextNode("\n                  ");
+          dom.appendChild(el4, el5);
+          var el5 = dom.createElement("i");
+          dom.setAttribute(el5, "class", "place--main--icon fa fa-google");
+          dom.appendChild(el4, el5);
+          var el5 = dom.createTextNode("\n                ");
+          dom.appendChild(el4, el5);
+          dom.appendChild(el3, el4);
+          var el4 = dom.createTextNode("\n                ");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createElement("div");
+          dom.setAttribute(el4, "class", "small-11 columns");
+          var el5 = dom.createTextNode("\n                  Google Map\n                ");
+          dom.appendChild(el4, el5);
+          dom.appendChild(el3, el4);
+          var el4 = dom.createTextNode("\n              ");
+          dom.appendChild(el3, el4);
+          dom.appendChild(el2, el3);
+          var el3 = dom.createTextNode("\n            ");
+          dom.appendChild(el2, el3);
+          dom.appendChild(el1, el2);
+          var el2 = dom.createTextNode("\n          ");
+          dom.appendChild(el1, el2);
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode("\n");
+          dom.appendChild(el0, el1);
+          return el0;
+        },
+        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+          var element0 = dom.childAt(fragment, [1, 1]);
+          var morphs = new Array(1);
+          morphs[0] = dom.createAttrMorph(element0, 'href');
+          return morphs;
+        },
+        statements: [["attribute", "href", ["concat", [["get", "place.url", ["loc", [null, [83, 23], [83, 32]]]]]]]],
+        locals: [],
+        templates: []
+      };
+    })();
+    var child6 = (function () {
+      return {
+        meta: {
+          "fragmentReason": false,
+          "revision": "Ember@2.3.2",
+          "loc": {
+            "source": null,
+            "start": {
+              "line": 112,
+              "column": 8
+            },
+            "end": {
+              "line": 120,
+              "column": 8
+            }
+          },
+          "moduleName": "finndis/templates/components/place-map.hbs"
+        },
+        isEmpty: false,
+        arity: 0,
+        cachedFragment: null,
+        hasRendered: false,
+        buildFragment: function buildFragment(dom) {
+          var el0 = dom.createDocumentFragment();
+          var el1 = dom.createTextNode("        ");
+          dom.appendChild(el0, el1);
+          var el1 = dom.createElement("div");
+          dom.setAttribute(el1, "class", "place--info--holder row");
+          var el2 = dom.createTextNode("\n          ");
+          dom.appendChild(el1, el2);
+          var el2 = dom.createElement("div");
+          dom.setAttribute(el2, "class", "columns");
+          var el3 = dom.createTextNode("\n            ");
+          dom.appendChild(el2, el3);
+          var el3 = dom.createElement("div");
+          dom.setAttribute(el3, "class", "place--rating");
+          var el4 = dom.createTextNode("\n              ");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createComment("");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createTextNode("\n            ");
+          dom.appendChild(el3, el4);
+          dom.appendChild(el2, el3);
+          var el3 = dom.createTextNode("\n          ");
+          dom.appendChild(el2, el3);
+          dom.appendChild(el1, el2);
+          var el2 = dom.createTextNode("\n        ");
+          dom.appendChild(el1, el2);
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode("\n");
+          dom.appendChild(el0, el1);
+          return el0;
+        },
+        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+          var morphs = new Array(1);
+          morphs[0] = dom.createMorphAt(dom.childAt(fragment, [1, 1, 1]), 1, 1);
+          return morphs;
+        },
+        statements: [["inline", "star-rating-fa", [], ["item", ["subexpr", "@mut", [["get", "place", ["loc", [null, [116, 36], [116, 41]]]]], [], []], "rating", ["subexpr", "@mut", [["get", "place.rating", ["loc", [null, [116, 49], [116, 61]]]]], [], []]], ["loc", [null, [116, 14], [116, 63]]]]],
+        locals: [],
+        templates: []
+      };
+    })();
+    return {
+      meta: {
+        "fragmentReason": {
+          "name": "missing-wrapper",
+          "problems": ["multiple-nodes", "wrong-type"]
+        },
+        "revision": "Ember@2.3.2",
+        "loc": {
+          "source": null,
+          "start": {
+            "line": 1,
+            "column": 0
+          },
+          "end": {
+            "line": 130,
+            "column": 0
+          }
+        },
+        "moduleName": "finndis/templates/components/place-map.hbs"
+      },
+      isEmpty: false,
+      arity: 0,
+      cachedFragment: null,
+      hasRendered: false,
+      buildFragment: function buildFragment(dom) {
+        var el0 = dom.createDocumentFragment();
+        var el1 = dom.createElement("div");
+        dom.setAttribute(el1, "id", "load_overlay");
+        dom.setAttribute(el1, "class", "load_overlay");
+        dom.appendChild(el0, el1);
+        var el1 = dom.createTextNode("\n\n");
+        dom.appendChild(el0, el1);
+        var el1 = dom.createComment("");
+        dom.appendChild(el0, el1);
+        var el1 = dom.createTextNode("\n");
+        dom.appendChild(el0, el1);
+        var el1 = dom.createElement("div");
+        dom.setAttribute(el1, "id", "map");
+        dom.setAttribute(el1, "class", "map-canvas map_search");
+        dom.appendChild(el0, el1);
+        var el1 = dom.createTextNode("\n\n");
+        dom.appendChild(el0, el1);
+        var el1 = dom.createElement("div");
+        dom.setAttribute(el1, "id", "place_map");
+        var el2 = dom.createTextNode("\n  ");
+        dom.appendChild(el1, el2);
+        var el2 = dom.createElement("div");
+        dom.setAttribute(el2, "class", "place_map--inner");
+        var el3 = dom.createTextNode("\n    ");
+        dom.appendChild(el2, el3);
+        var el3 = dom.createElement("article");
+        dom.setAttribute(el3, "class", "place");
+        var el4 = dom.createTextNode("\n      ");
+        dom.appendChild(el3, el4);
+        var el4 = dom.createElement("header");
+        dom.setAttribute(el4, "class", "place--header");
+        var el5 = dom.createTextNode("\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createComment("");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createElement("a");
+        dom.setAttribute(el5, "href", "#");
+        dom.setAttribute(el5, "class", "button delete-button");
+        var el6 = dom.createElement("i");
+        dom.setAttribute(el6, "class", "place--action--icon fa fa-times");
+        dom.appendChild(el5, el6);
+        var el6 = dom.createTextNode("Close");
+        dom.appendChild(el5, el6);
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createElement("h2");
+        dom.setAttribute(el5, "class", "place--title");
+        var el6 = dom.createComment("");
+        dom.appendChild(el5, el6);
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createElement("i");
+        dom.setAttribute(el5, "class", "place--labels--icon fa fa-tag");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createElement("ul");
+        dom.setAttribute(el5, "class", "place--labels clearfix");
+        var el6 = dom.createTextNode("\n          ");
+        dom.appendChild(el5, el6);
+        var el6 = dom.createElement("li");
+        dom.setAttribute(el6, "class", "place--labelitem");
+        var el7 = dom.createComment("");
+        dom.appendChild(el6, el7);
+        dom.appendChild(el5, el6);
+        var el6 = dom.createTextNode("\n          ");
+        dom.appendChild(el5, el6);
+        var el6 = dom.createElement("li");
+        dom.setAttribute(el6, "class", "place--labelitem");
+        var el7 = dom.createTextNode("\n            ");
+        dom.appendChild(el6, el7);
+        var el7 = dom.createElement("i");
+        dom.setAttribute(el7, "class", "place--add--icon fa fa-plus");
+        dom.appendChild(el6, el7);
+        var el7 = dom.createTextNode("\n          ");
+        dom.appendChild(el6, el7);
+        dom.appendChild(el5, el6);
+        var el6 = dom.createTextNode("\n        ");
+        dom.appendChild(el5, el6);
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n      ");
+        dom.appendChild(el4, el5);
+        dom.appendChild(el3, el4);
+        var el4 = dom.createTextNode("\n\n      ");
+        dom.appendChild(el3, el4);
+        var el4 = dom.createElement("main");
+        dom.setAttribute(el4, "class", "place--main");
+        var el5 = dom.createTextNode("\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createElement("div");
+        dom.setAttribute(el5, "class", "place--info--holder row");
+        var el6 = dom.createTextNode("\n");
+        dom.appendChild(el5, el6);
+        var el6 = dom.createComment("");
+        dom.appendChild(el5, el6);
+        var el6 = dom.createComment("");
+        dom.appendChild(el5, el6);
+        var el6 = dom.createTextNode("        ");
+        dom.appendChild(el5, el6);
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n\n\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createElement("div");
+        dom.setAttribute(el5, "class", "place--info--holder row");
+        var el6 = dom.createTextNode("\n");
+        dom.appendChild(el5, el6);
+        var el6 = dom.createComment("");
+        dom.appendChild(el5, el6);
+        var el6 = dom.createComment("");
+        dom.appendChild(el5, el6);
+        var el6 = dom.createTextNode("        ");
+        dom.appendChild(el5, el6);
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createElement("div");
+        dom.setAttribute(el5, "class", "place--info--holder row");
+        var el6 = dom.createTextNode("\n          ");
+        dom.appendChild(el5, el6);
+        var el6 = dom.createElement("div");
+        dom.setAttribute(el6, "class", "columns small-12");
+        var el7 = dom.createTextNode("\n            ");
+        dom.appendChild(el6, el7);
+        var el7 = dom.createElement("a");
+        dom.setAttribute(el7, "target", "_blank");
+        var el8 = dom.createTextNode("\n              ");
+        dom.appendChild(el7, el8);
+        var el8 = dom.createElement("div");
+        dom.setAttribute(el8, "class", "place--direction row");
+        var el9 = dom.createTextNode("\n                ");
+        dom.appendChild(el8, el9);
+        var el9 = dom.createElement("div");
+        dom.setAttribute(el9, "class", "small-1 columns");
+        var el10 = dom.createTextNode("\n                  ");
+        dom.appendChild(el9, el10);
+        var el10 = dom.createElement("i");
+        dom.setAttribute(el10, "class", "place--main--icon fa fa-location-arrow");
+        dom.appendChild(el9, el10);
+        var el10 = dom.createTextNode("\n                ");
+        dom.appendChild(el9, el10);
+        dom.appendChild(el8, el9);
+        var el9 = dom.createTextNode("\n                ");
+        dom.appendChild(el8, el9);
+        var el9 = dom.createElement("div");
+        dom.setAttribute(el9, "class", "small-11 columns");
+        var el10 = dom.createTextNode("\n                  Get direction\n                ");
+        dom.appendChild(el9, el10);
+        dom.appendChild(el8, el9);
+        var el9 = dom.createTextNode("\n              ");
+        dom.appendChild(el8, el9);
+        dom.appendChild(el7, el8);
+        var el8 = dom.createTextNode("\n            ");
+        dom.appendChild(el7, el8);
+        dom.appendChild(el6, el7);
+        var el7 = dom.createTextNode("\n          ");
+        dom.appendChild(el6, el7);
+        dom.appendChild(el5, el6);
+        var el6 = dom.createTextNode("\n        ");
+        dom.appendChild(el5, el6);
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n\n");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createComment("");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("      ");
+        dom.appendChild(el4, el5);
+        dom.appendChild(el3, el4);
+        var el4 = dom.createTextNode("\n    ");
+        dom.appendChild(el3, el4);
+        dom.appendChild(el2, el3);
+        var el3 = dom.createTextNode("\n  ");
+        dom.appendChild(el2, el3);
+        dom.appendChild(el1, el2);
+        var el2 = dom.createTextNode("\n");
+        dom.appendChild(el1, el2);
+        dom.appendChild(el0, el1);
+        var el1 = dom.createTextNode("\n\n");
+        dom.appendChild(el0, el1);
+        var el1 = dom.createComment("");
+        dom.appendChild(el0, el1);
+        var el1 = dom.createTextNode("\n\n");
+        dom.appendChild(el0, el1);
+        var el1 = dom.createElement("a");
+        dom.appendChild(el0, el1);
+        var el1 = dom.createTextNode("\n");
+        dom.appendChild(el0, el1);
+        return el0;
+      },
+      buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+        var element3 = dom.childAt(fragment, [6]);
+        var element4 = dom.childAt(element3, [1, 1]);
+        var element5 = dom.childAt(element4, [1]);
+        var element6 = dom.childAt(element5, [3]);
+        var element7 = dom.childAt(element5, [7]);
+        var element8 = dom.childAt(element5, [9]);
+        var element9 = dom.childAt(element4, [3]);
+        var element10 = dom.childAt(element9, [1]);
+        var element11 = dom.childAt(element9, [3]);
+        var element12 = dom.childAt(element9, [5, 1, 1]);
+        var element13 = dom.childAt(fragment, [10]);
+        var morphs = new Array(17);
+        morphs[0] = dom.createMorphAt(fragment, 2, 2, contextualElement);
+        morphs[1] = dom.createAttrMorph(element3, 'class');
+        morphs[2] = dom.createMorphAt(element5, 1, 1);
+        morphs[3] = dom.createElementMorph(element6);
+        morphs[4] = dom.createMorphAt(dom.childAt(element5, [5]), 0, 0);
+        morphs[5] = dom.createElementMorph(element7);
+        morphs[6] = dom.createElementMorph(element8);
+        morphs[7] = dom.createMorphAt(dom.childAt(element8, [1]), 0, 0);
+        morphs[8] = dom.createMorphAt(element10, 1, 1);
+        morphs[9] = dom.createMorphAt(element10, 2, 2);
+        morphs[10] = dom.createMorphAt(element11, 1, 1);
+        morphs[11] = dom.createMorphAt(element11, 2, 2);
+        morphs[12] = dom.createAttrMorph(element12, 'href');
+        morphs[13] = dom.createMorphAt(element9, 7, 7);
+        morphs[14] = dom.createMorphAt(fragment, 8, 8, contextualElement);
+        morphs[15] = dom.createAttrMorph(element13, 'class');
+        morphs[16] = dom.createElementMorph(element13);
+        return morphs;
+      },
+      statements: [["block", "if", [["get", "showErrorLocation", ["loc", [null, [3, 6], [3, 23]]]]], [], 0, null, ["loc", [null, [3, 0], [14, 7]]]], ["attribute", "class", ["concat", ["place_map panel left ", ["get", "placePanelDisplayed", ["loc", [null, [19, 50], [19, 69]]]]]]], ["block", "link-to", ["place", ["get", "place", ["loc", [null, [23, 27], [23, 32]]]]], ["class", "button edit-button"], 1, null, ["loc", [null, [23, 8], [23, 138]]]], ["element", "action", ["closeMenuPanel"], [], ["loc", [null, [24, 49], [24, 76]]]], ["content", "place.name", ["loc", [null, [25, 33], [25, 47]]]], ["element", "action", ["showAddLabel"], ["bubbles", "false"], ["loc", [null, [26, 49], [26, 90]]]], ["element", "action", ["showAddLabel"], ["bubbles", "false"], ["loc", [null, [27, 43], [27, 84]]]], ["content", "place.label.name", ["loc", [null, [28, 39], [28, 59]]]], ["block", "if", [["get", "place.formattedaddress", ["loc", [null, [37, 16], [37, 38]]]]], [], 2, null, ["loc", [null, [37, 10], [48, 17]]]], ["block", "if", [["get", "place.phone", ["loc", [null, [49, 16], [49, 27]]]]], [], 3, null, ["loc", [null, [49, 10], [62, 17]]]], ["block", "if", [["get", "place.website", ["loc", [null, [67, 16], [67, 29]]]]], [], 4, null, ["loc", [null, [67, 10], [80, 17]]]], ["block", "if", [["get", "place.url", ["loc", [null, [81, 16], [81, 25]]]]], [], 5, null, ["loc", [null, [81, 10], [94, 17]]]], ["attribute", "href", ["concat", ["http://maps.google.com/maps?daddr=", ["get", "place.locationlat", ["loc", [null, [99, 57], [99, 74]]]], ",", ["get", "place.locationlng", ["loc", [null, [99, 79], [99, 96]]]], "&ll="]]], ["block", "if", [["get", "place.rating", ["loc", [null, [112, 14], [112, 26]]]]], [], 6, null, ["loc", [null, [112, 8], [120, 15]]]], ["inline", "label-panel", [], ["userLabels", ["subexpr", "@mut", [["get", "userLabels", ["loc", [null, [127, 25], [127, 35]]]]], [], []], "labelPanelDisplayed", ["subexpr", "@mut", [["get", "labelPanelDisplayed", ["loc", [null, [127, 56], [127, 75]]]]], [], []], "model", ["subexpr", "@mut", [["get", "place", ["loc", [null, [127, 82], [127, 87]]]]], [], []], "autoSaveLabel", true], ["loc", [null, [127, 0], [127, 108]]]], ["attribute", "class", ["concat", ["panel-overlay place_map ", ["get", "placePanelDisplayed", ["loc", [null, [129, 36], [129, 55]]]]]]], ["element", "action", ["closeMenuPanel"], [], ["loc", [null, [129, 59], [129, 86]]]]],
+      locals: [],
+      templates: [child0, child1, child2, child3, child4, child5, child6]
     };
   })());
 });
@@ -7534,9 +7728,268 @@ define("finndis/templates/components/signup-form", ["exports"], function (export
     };
   })());
 });
+define("finndis/templates/components/start-guide", ["exports"], function (exports) {
+  exports["default"] = Ember.HTMLBars.template((function () {
+    return {
+      meta: {
+        "fragmentReason": {
+          "name": "triple-curlies"
+        },
+        "revision": "Ember@2.3.2",
+        "loc": {
+          "source": null,
+          "start": {
+            "line": 1,
+            "column": 0
+          },
+          "end": {
+            "line": 62,
+            "column": 0
+          }
+        },
+        "moduleName": "finndis/templates/components/start-guide.hbs"
+      },
+      isEmpty: false,
+      arity: 0,
+      cachedFragment: null,
+      hasRendered: false,
+      buildFragment: function buildFragment(dom) {
+        var el0 = dom.createDocumentFragment();
+        var el1 = dom.createElement("div");
+        dom.setAttribute(el1, "class", "guide row");
+        var el2 = dom.createTextNode("\n  ");
+        dom.appendChild(el1, el2);
+        var el2 = dom.createElement("div");
+        dom.setAttribute(el2, "class", "columns small-12 medium-10 medium-offset-1");
+        var el3 = dom.createTextNode("\n\n    ");
+        dom.appendChild(el2, el3);
+        var el3 = dom.createElement("div");
+        dom.setAttribute(el3, "class", "guide--article row align-middle");
+        var el4 = dom.createTextNode("\n      ");
+        dom.appendChild(el3, el4);
+        var el4 = dom.createElement("div");
+        dom.setAttribute(el4, "class", "small-12 medium-6 columns");
+        var el5 = dom.createTextNode("\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createElement("h3");
+        dom.setAttribute(el5, "class", "guide--title");
+        var el6 = dom.createTextNode("Search & save any place");
+        dom.appendChild(el5, el6);
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createElement("p");
+        dom.setAttribute(el5, "class", "guide--content");
+        var el6 = dom.createTextNode("\n          Use the map to find any place you want.\n          Drop a marker and spot the exact position you want to save.\n          Or use the search box to find any kind of place listed on Google Map.\n        ");
+        dom.appendChild(el5, el6);
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n      ");
+        dom.appendChild(el4, el5);
+        dom.appendChild(el3, el4);
+        var el4 = dom.createTextNode("\n      ");
+        dom.appendChild(el3, el4);
+        var el4 = dom.createElement("div");
+        dom.setAttribute(el4, "class", "small-12 medium-5 medium-offset-1 columns");
+        var el5 = dom.createTextNode("\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createElement("img");
+        dom.setAttribute(el5, "src", "assets/images/guide/maps.png");
+        dom.setAttribute(el5, "alt", "Maps with marker");
+        dom.setAttribute(el5, "class", "guide--image");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n      ");
+        dom.appendChild(el4, el5);
+        dom.appendChild(el3, el4);
+        var el4 = dom.createTextNode("\n    ");
+        dom.appendChild(el3, el4);
+        dom.appendChild(el2, el3);
+        var el3 = dom.createTextNode("\n\n    ");
+        dom.appendChild(el2, el3);
+        var el3 = dom.createElement("div");
+        dom.setAttribute(el3, "class", "guide--article row align-middle reversed");
+        var el4 = dom.createTextNode("\n      ");
+        dom.appendChild(el3, el4);
+        var el4 = dom.createElement("div");
+        dom.setAttribute(el4, "class", "small-12 medium-6 medium-offset-1 columns");
+        var el5 = dom.createTextNode("\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createElement("h3");
+        dom.setAttribute(el5, "class", "guide--title");
+        var el6 = dom.createTextNode("Find your places in a second");
+        dom.appendChild(el5, el6);
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createElement("p");
+        dom.setAttribute(el5, "class", "guide--content");
+        var el6 = dom.createTextNode("\n          Filter by labels or keywords and display only what you're looking for. Or display eveything.\n        ");
+        dom.appendChild(el5, el6);
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n      ");
+        dom.appendChild(el4, el5);
+        dom.appendChild(el3, el4);
+        var el4 = dom.createTextNode("\n\n      ");
+        dom.appendChild(el3, el4);
+        var el4 = dom.createElement("div");
+        dom.setAttribute(el4, "class", "small-12 medium-5 columns");
+        var el5 = dom.createTextNode("\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createElement("img");
+        dom.setAttribute(el5, "src", "assets/images/guide/list.png");
+        dom.setAttribute(el5, "alt", "Maps with marker");
+        dom.setAttribute(el5, "class", "guide--image");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n      ");
+        dom.appendChild(el4, el5);
+        dom.appendChild(el3, el4);
+        var el4 = dom.createTextNode("\n    ");
+        dom.appendChild(el3, el4);
+        dom.appendChild(el2, el3);
+        var el3 = dom.createTextNode("\n\n    ");
+        dom.appendChild(el2, el3);
+        var el3 = dom.createElement("div");
+        dom.setAttribute(el3, "class", "guide--article row align-middle");
+        var el4 = dom.createTextNode("\n      ");
+        dom.appendChild(el3, el4);
+        var el4 = dom.createElement("div");
+        dom.setAttribute(el4, "class", "small-12 medium-6 columns");
+        var el5 = dom.createTextNode("\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createElement("h3");
+        dom.setAttribute(el5, "class", "guide--title");
+        var el6 = dom.createTextNode("Open & edit place's details");
+        dom.appendChild(el5, el6);
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createElement("p");
+        dom.setAttribute(el5, "class", "guide--content");
+        var el6 = dom.createTextNode("\n          Open a place's details to access its information.\n          Saving with Maps allows you to get some information automatically,\n          but you can always update it, add missing information, or just delete everything.\n          It's up to you!\n        ");
+        dom.appendChild(el5, el6);
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n      ");
+        dom.appendChild(el4, el5);
+        dom.appendChild(el3, el4);
+        var el4 = dom.createTextNode("\n\n      ");
+        dom.appendChild(el3, el4);
+        var el4 = dom.createElement("div");
+        dom.setAttribute(el4, "class", "small-12 medium-5 medium-offset-1 columns");
+        var el5 = dom.createTextNode("\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createElement("img");
+        dom.setAttribute(el5, "src", "assets/images/guide/save-edit.png");
+        dom.setAttribute(el5, "alt", "Maps with marker");
+        dom.setAttribute(el5, "class", "guide--image");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n      ");
+        dom.appendChild(el4, el5);
+        dom.appendChild(el3, el4);
+        var el4 = dom.createTextNode("\n    ");
+        dom.appendChild(el3, el4);
+        dom.appendChild(el2, el3);
+        var el3 = dom.createTextNode("\n\n    ");
+        dom.appendChild(el2, el3);
+        var el3 = dom.createElement("div");
+        dom.setAttribute(el3, "class", "guide--article row align-middle reversed");
+        var el4 = dom.createTextNode("\n      ");
+        dom.appendChild(el3, el4);
+        var el4 = dom.createElement("div");
+        dom.setAttribute(el4, "class", "small-12 medium-6 medium-offset-1 columns");
+        var el5 = dom.createTextNode("\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createElement("h3");
+        dom.setAttribute(el5, "class", "guide--title");
+        var el6 = dom.createTextNode("Edit your labels");
+        dom.appendChild(el5, el6);
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createElement("p");
+        dom.setAttribute(el5, "class", "guide--content");
+        var el6 = dom.createTextNode("\n          Add, remove, edit your labels. No limitation, you can add as many labels as you want to create your own categories and organize your list.\n        ");
+        dom.appendChild(el5, el6);
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n      ");
+        dom.appendChild(el4, el5);
+        dom.appendChild(el3, el4);
+        var el4 = dom.createTextNode("\n\n      ");
+        dom.appendChild(el3, el4);
+        var el4 = dom.createElement("div");
+        dom.setAttribute(el4, "class", "small-12 medium-5 columns");
+        var el5 = dom.createTextNode("\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createElement("img");
+        dom.setAttribute(el5, "src", "assets/images/guide/labels.png");
+        dom.setAttribute(el5, "alt", "Maps with marker");
+        dom.setAttribute(el5, "class", "guide--image");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n      ");
+        dom.appendChild(el4, el5);
+        dom.appendChild(el3, el4);
+        var el4 = dom.createTextNode("\n    ");
+        dom.appendChild(el3, el4);
+        dom.appendChild(el2, el3);
+        var el3 = dom.createTextNode("\n\n  ");
+        dom.appendChild(el2, el3);
+        dom.appendChild(el1, el2);
+        var el2 = dom.createTextNode("\n");
+        dom.appendChild(el1, el2);
+        dom.appendChild(el0, el1);
+        var el1 = dom.createTextNode("\n");
+        dom.appendChild(el0, el1);
+        return el0;
+      },
+      buildRenderNodes: function buildRenderNodes() {
+        return [];
+      },
+      statements: [],
+      locals: [],
+      templates: []
+    };
+  })());
+});
 define("finndis/templates/components/tool-box", ["exports"], function (exports) {
   exports["default"] = Ember.HTMLBars.template((function () {
     var child0 = (function () {
+      var child0 = (function () {
+        return {
+          meta: {
+            "fragmentReason": false,
+            "revision": "Ember@2.3.2",
+            "loc": {
+              "source": null,
+              "start": {
+                "line": 9,
+                "column": 10
+              },
+              "end": {
+                "line": 9,
+                "column": 110
+              }
+            },
+            "moduleName": "finndis/templates/components/tool-box.hbs"
+          },
+          isEmpty: false,
+          arity: 0,
+          cachedFragment: null,
+          hasRendered: false,
+          buildFragment: function buildFragment(dom) {
+            var el0 = dom.createDocumentFragment();
+            var el1 = dom.createElement("i");
+            dom.setAttribute(el1, "class", "tool_box--icon fa fa-map-marker");
+            dom.appendChild(el0, el1);
+            var el1 = dom.createTextNode("Map");
+            dom.appendChild(el0, el1);
+            return el0;
+          },
+          buildRenderNodes: function buildRenderNodes() {
+            return [];
+          },
+          statements: [],
+          locals: [],
+          templates: []
+        };
+      })();
       return {
         meta: {
           "fragmentReason": false,
@@ -7548,8 +8001,8 @@ define("finndis/templates/components/tool-box", ["exports"], function (exports) 
               "column": 8
             },
             "end": {
-              "line": 8,
-              "column": 108
+              "line": 10,
+              "column": 8
             }
           },
           "moduleName": "finndis/templates/components/tool-box.hbs"
@@ -7560,22 +8013,64 @@ define("finndis/templates/components/tool-box", ["exports"], function (exports) 
         hasRendered: false,
         buildFragment: function buildFragment(dom) {
           var el0 = dom.createDocumentFragment();
-          var el1 = dom.createElement("i");
-          dom.setAttribute(el1, "class", "tool_box--icon fa fa-plus");
+          var el1 = dom.createTextNode("          ");
           dom.appendChild(el0, el1);
-          var el1 = dom.createTextNode("New");
+          var el1 = dom.createComment("");
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode("\n");
           dom.appendChild(el0, el1);
           return el0;
         },
-        buildRenderNodes: function buildRenderNodes() {
-          return [];
+        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+          var morphs = new Array(1);
+          morphs[0] = dom.createMorphAt(fragment, 1, 1, contextualElement);
+          return morphs;
         },
-        statements: [],
+        statements: [["block", "link-to", ["map"], ["class", "button tool_box--button"], 0, null, ["loc", [null, [9, 10], [9, 122]]]]],
         locals: [],
-        templates: []
+        templates: [child0]
       };
     })();
     var child1 = (function () {
+      var child0 = (function () {
+        return {
+          meta: {
+            "fragmentReason": false,
+            "revision": "Ember@2.3.2",
+            "loc": {
+              "source": null,
+              "start": {
+                "line": 12,
+                "column": 10
+              },
+              "end": {
+                "line": 12,
+                "column": 111
+              }
+            },
+            "moduleName": "finndis/templates/components/tool-box.hbs"
+          },
+          isEmpty: false,
+          arity: 0,
+          cachedFragment: null,
+          hasRendered: false,
+          buildFragment: function buildFragment(dom) {
+            var el0 = dom.createDocumentFragment();
+            var el1 = dom.createElement("i");
+            dom.setAttribute(el1, "class", "tool_box--icon fa fa-th-list");
+            dom.appendChild(el0, el1);
+            var el1 = dom.createTextNode("List");
+            dom.appendChild(el0, el1);
+            return el0;
+          },
+          buildRenderNodes: function buildRenderNodes() {
+            return [];
+          },
+          statements: [],
+          locals: [],
+          templates: []
+        };
+      })();
       return {
         meta: {
           "fragmentReason": false,
@@ -7583,12 +8078,12 @@ define("finndis/templates/components/tool-box", ["exports"], function (exports) 
           "loc": {
             "source": null,
             "start": {
-              "line": 9,
+              "line": 11,
               "column": 8
             },
             "end": {
-              "line": 9,
-              "column": 109
+              "line": 13,
+              "column": 8
             }
           },
           "moduleName": "finndis/templates/components/tool-box.hbs"
@@ -7599,19 +8094,22 @@ define("finndis/templates/components/tool-box", ["exports"], function (exports) 
         hasRendered: false,
         buildFragment: function buildFragment(dom) {
           var el0 = dom.createDocumentFragment();
-          var el1 = dom.createElement("i");
-          dom.setAttribute(el1, "class", "tool_box--icon fa fa-map-marker");
+          var el1 = dom.createTextNode("          ");
           dom.appendChild(el0, el1);
-          var el1 = dom.createTextNode("Maps");
+          var el1 = dom.createComment("");
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode("\n");
           dom.appendChild(el0, el1);
           return el0;
         },
-        buildRenderNodes: function buildRenderNodes() {
-          return [];
+        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+          var morphs = new Array(1);
+          morphs[0] = dom.createMorphAt(fragment, 1, 1, contextualElement);
+          return morphs;
         },
-        statements: [],
+        statements: [["block", "link-to", ["places"], ["class", "button tool_box--button"], 0, null, ["loc", [null, [12, 10], [12, 123]]]]],
         locals: [],
-        templates: []
+        templates: [child0]
       };
     })();
     return {
@@ -7627,7 +8125,7 @@ define("finndis/templates/components/tool-box", ["exports"], function (exports) 
             "column": 0
           },
           "end": {
-            "line": 14,
+            "line": 18,
             "column": 0
           }
         },
@@ -7666,15 +8164,13 @@ define("finndis/templates/components/tool-box", ["exports"], function (exports) 
         dom.appendChild(el3, el4);
         var el4 = dom.createElement("div");
         dom.setAttribute(el4, "class", "button-group tool_box--button-group");
-        var el5 = dom.createTextNode("\n        ");
+        var el5 = dom.createTextNode("\n");
         dom.appendChild(el4, el5);
         var el5 = dom.createComment("");
         dom.appendChild(el4, el5);
-        var el5 = dom.createTextNode("\n        ");
-        dom.appendChild(el4, el5);
         var el5 = dom.createComment("");
         dom.appendChild(el4, el5);
-        var el5 = dom.createTextNode("\n      ");
+        var el5 = dom.createTextNode("      ");
         dom.appendChild(el4, el5);
         dom.appendChild(el3, el4);
         var el4 = dom.createTextNode("\n    ");
@@ -7694,10 +8190,10 @@ define("finndis/templates/components/tool-box", ["exports"], function (exports) 
         var element0 = dom.childAt(fragment, [0, 1, 3, 1]);
         var morphs = new Array(2);
         morphs[0] = dom.createMorphAt(element0, 1, 1);
-        morphs[1] = dom.createMorphAt(element0, 3, 3);
+        morphs[1] = dom.createMorphAt(element0, 2, 2);
         return morphs;
       },
-      statements: [["block", "link-to", ["add-place"], ["class", "button tool_box--button"], 0, null, ["loc", [null, [8, 8], [8, 120]]]], ["block", "link-to", ["map"], ["class", "button tool_box--button"], 1, null, ["loc", [null, [9, 8], [9, 121]]]]],
+      statements: [["block", "if", [["get", "toolShowMap", ["loc", [null, [8, 14], [8, 25]]]]], [], 0, null, ["loc", [null, [8, 8], [10, 15]]]], ["block", "if", [["get", "toolShowList", ["loc", [null, [11, 14], [11, 26]]]]], [], 1, null, ["loc", [null, [11, 8], [13, 15]]]]],
       locals: [],
       templates: [child0, child1]
     };
@@ -7714,11 +8210,11 @@ define("finndis/templates/edit-labels", ["exports"], function (exports) {
             "loc": {
               "source": null,
               "start": {
-                "line": 17,
+                "line": 19,
                 "column": 16
               },
               "end": {
-                "line": 33,
+                "line": 35,
                 "column": 16
               }
             },
@@ -7803,7 +8299,7 @@ define("finndis/templates/edit-labels", ["exports"], function (exports) {
             morphs[4] = dom.createElementMorph(element5);
             return morphs;
           },
-          statements: [["attribute", "id", ["concat", [["get", "label.labelId", ["loc", [null, [18, 28], [18, 41]]]]]]], ["element", "action", ["deleteLabel", ["get", "label.id", ["loc", [null, [20, 115], [20, 123]]]]], ["on", "click"], ["loc", [null, [20, 92], [20, 136]]]], ["element", "action", ["saveLabel", ["get", "label.id", ["loc", [null, [24, 51], [24, 59]]]]], ["on", "submit"], ["loc", [null, [24, 30], [24, 73]]]], ["inline", "input", [], ["type", "text", "class", "label-editor--input", "value", ["subexpr", "@mut", [["get", "labelName", ["loc", [null, [25, 80], [25, 89]]]]], [], []]], ["loc", [null, [25, 26], [25, 91]]]], ["element", "action", ["saveLabel", ["get", "label.id", ["loc", [null, [28, 111], [28, 119]]]]], ["on", "click"], ["loc", [null, [28, 90], [28, 132]]]]],
+          statements: [["attribute", "id", ["concat", [["get", "label.labelId", ["loc", [null, [20, 28], [20, 41]]]]]]], ["element", "action", ["deleteLabel", ["get", "label.id", ["loc", [null, [22, 115], [22, 123]]]]], ["on", "click"], ["loc", [null, [22, 92], [22, 136]]]], ["element", "action", ["saveLabel", ["get", "label.id", ["loc", [null, [26, 51], [26, 59]]]]], ["on", "submit"], ["loc", [null, [26, 30], [26, 73]]]], ["inline", "input", [], ["type", "text", "class", "label-editor--input", "value", ["subexpr", "@mut", [["get", "labelName", ["loc", [null, [27, 80], [27, 89]]]]], [], []]], ["loc", [null, [27, 26], [27, 91]]]], ["element", "action", ["saveLabel", ["get", "label.id", ["loc", [null, [30, 111], [30, 119]]]]], ["on", "click"], ["loc", [null, [30, 90], [30, 132]]]]],
           locals: [],
           templates: []
         };
@@ -7816,11 +8312,11 @@ define("finndis/templates/edit-labels", ["exports"], function (exports) {
             "loc": {
               "source": null,
               "start": {
-                "line": 33,
+                "line": 35,
                 "column": 16
               },
               "end": {
-                "line": 47,
+                "line": 49,
                 "column": 16
               }
             },
@@ -7893,7 +8389,7 @@ define("finndis/templates/edit-labels", ["exports"], function (exports) {
             morphs[2] = dom.createMorphAt(dom.childAt(element0, [1, 3]), 1, 1);
             return morphs;
           },
-          statements: [["attribute", "id", ["concat", [["get", "label.labelId", ["loc", [null, [34, 28], [34, 41]]]]]]], ["element", "action", ["toggleEdition", ["get", "label.id", ["loc", [null, [34, 99], [34, 107]]]]], ["on", "click"], ["loc", [null, [34, 74], [34, 120]]]], ["content", "label.name", ["loc", [null, [40, 24], [40, 38]]]]],
+          statements: [["attribute", "id", ["concat", [["get", "label.labelId", ["loc", [null, [36, 28], [36, 41]]]]]]], ["element", "action", ["toggleEdition", ["get", "label.id", ["loc", [null, [36, 99], [36, 107]]]]], ["on", "click"], ["loc", [null, [36, 74], [36, 120]]]], ["content", "label.name", ["loc", [null, [42, 24], [42, 38]]]]],
           locals: [],
           templates: []
         };
@@ -7905,11 +8401,11 @@ define("finndis/templates/edit-labels", ["exports"], function (exports) {
           "loc": {
             "source": null,
             "start": {
-              "line": 15,
+              "line": 17,
               "column": 14
             },
             "end": {
-              "line": 48,
+              "line": 50,
               "column": 14
             }
           },
@@ -7933,7 +8429,7 @@ define("finndis/templates/edit-labels", ["exports"], function (exports) {
           dom.insertBoundary(fragment, null);
           return morphs;
         },
-        statements: [["block", "if", [["get", "label.isEditing", ["loc", [null, [17, 22], [17, 37]]]]], [], 0, 1, ["loc", [null, [17, 16], [47, 23]]]]],
+        statements: [["block", "if", [["get", "label.isEditing", ["loc", [null, [19, 22], [19, 37]]]]], [], 0, 1, ["loc", [null, [19, 16], [49, 23]]]]],
         locals: ["label"],
         templates: [child0, child1]
       };
@@ -7946,11 +8442,11 @@ define("finndis/templates/edit-labels", ["exports"], function (exports) {
           "loc": {
             "source": null,
             "start": {
-              "line": 55,
+              "line": 57,
               "column": 4
             },
             "end": {
-              "line": 57,
+              "line": 59,
               "column": 4
             }
           },
@@ -7975,7 +8471,7 @@ define("finndis/templates/edit-labels", ["exports"], function (exports) {
           morphs[0] = dom.createMorphAt(fragment, 1, 1, contextualElement);
           return morphs;
         },
-        statements: [["content", "tool-box", ["loc", [null, [56, 6], [56, 18]]]]],
+        statements: [["content", "tool-box", ["loc", [null, [58, 6], [58, 18]]]]],
         locals: [],
         templates: []
       };
@@ -7983,7 +8479,8 @@ define("finndis/templates/edit-labels", ["exports"], function (exports) {
     return {
       meta: {
         "fragmentReason": {
-          "name": "triple-curlies"
+          "name": "missing-wrapper",
+          "problems": ["wrong-type", "multiple-nodes"]
         },
         "revision": "Ember@2.3.2",
         "loc": {
@@ -7993,7 +8490,7 @@ define("finndis/templates/edit-labels", ["exports"], function (exports) {
             "column": 0
           },
           "end": {
-            "line": 60,
+            "line": 62,
             "column": 0
           }
         },
@@ -8005,6 +8502,10 @@ define("finndis/templates/edit-labels", ["exports"], function (exports) {
       hasRendered: false,
       buildFragment: function buildFragment(dom) {
         var el0 = dom.createDocumentFragment();
+        var el1 = dom.createComment("");
+        dom.appendChild(el0, el1);
+        var el1 = dom.createTextNode("\n\n");
+        dom.appendChild(el0, el1);
         var el1 = dom.createElement("div");
         dom.setAttribute(el1, "class", "page-wrapper row");
         var el2 = dom.createTextNode("\n  ");
@@ -8083,17 +8584,119 @@ define("finndis/templates/edit-labels", ["exports"], function (exports) {
         return el0;
       },
       buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
-        var element6 = dom.childAt(fragment, [0, 1]);
+        var element6 = dom.childAt(fragment, [2, 1]);
         var element7 = dom.childAt(element6, [1, 1]);
-        var morphs = new Array(3);
-        morphs[0] = dom.createMorphAt(dom.childAt(element7, [1, 1]), 1, 1);
-        morphs[1] = dom.createMorphAt(dom.childAt(element7, [3, 1, 1]), 1, 1);
-        morphs[2] = dom.createMorphAt(element6, 3, 3);
+        var morphs = new Array(4);
+        morphs[0] = dom.createMorphAt(fragment, 0, 0, contextualElement);
+        morphs[1] = dom.createMorphAt(dom.childAt(element7, [1, 1]), 1, 1);
+        morphs[2] = dom.createMorphAt(dom.childAt(element7, [3, 1, 1]), 1, 1);
+        morphs[3] = dom.createMorphAt(element6, 3, 3);
+        dom.insertBoundary(fragment, 0);
         return morphs;
       },
-      statements: [["content", "add-label", ["loc", [null, [8, 12], [8, 25]]]], ["block", "each", [["get", "userLabels", ["loc", [null, [15, 22], [15, 32]]]]], [], 0, null, ["loc", [null, [15, 14], [48, 23]]]], ["block", "if", [["get", "session.isAuthenticated", ["loc", [null, [55, 10], [55, 33]]]]], [], 1, null, ["loc", [null, [55, 4], [57, 11]]]]],
+      statements: [["content", "main-header", ["loc", [null, [1, 0], [1, 15]]]], ["content", "add-label", ["loc", [null, [10, 12], [10, 25]]]], ["block", "each", [["get", "sortedLabels", ["loc", [null, [17, 22], [17, 34]]]]], [], 0, null, ["loc", [null, [17, 14], [50, 23]]]], ["block", "if", [["get", "session.isAuthenticated", ["loc", [null, [57, 10], [57, 33]]]]], [], 1, null, ["loc", [null, [57, 4], [59, 11]]]]],
       locals: [],
       templates: [child0, child1]
+    };
+  })());
+});
+define("finndis/templates/help", ["exports"], function (exports) {
+  exports["default"] = Ember.HTMLBars.template((function () {
+    return {
+      meta: {
+        "fragmentReason": {
+          "name": "missing-wrapper",
+          "problems": ["wrong-type", "multiple-nodes"]
+        },
+        "revision": "Ember@2.3.2",
+        "loc": {
+          "source": null,
+          "start": {
+            "line": 1,
+            "column": 0
+          },
+          "end": {
+            "line": 17,
+            "column": 0
+          }
+        },
+        "moduleName": "finndis/templates/help.hbs"
+      },
+      isEmpty: false,
+      arity: 0,
+      cachedFragment: null,
+      hasRendered: false,
+      buildFragment: function buildFragment(dom) {
+        var el0 = dom.createDocumentFragment();
+        var el1 = dom.createComment("");
+        dom.appendChild(el0, el1);
+        var el1 = dom.createTextNode("\n\n");
+        dom.appendChild(el0, el1);
+        var el1 = dom.createElement("div");
+        dom.setAttribute(el1, "class", "page-wrapper row");
+        var el2 = dom.createTextNode("\n  ");
+        dom.appendChild(el1, el2);
+        var el2 = dom.createElement("div");
+        dom.setAttribute(el2, "class", "columns");
+        var el3 = dom.createTextNode("\n    ");
+        dom.appendChild(el2, el3);
+        var el3 = dom.createElement("div");
+        dom.setAttribute(el3, "class", "banner row");
+        var el4 = dom.createTextNode("\n      ");
+        dom.appendChild(el3, el4);
+        var el4 = dom.createElement("div");
+        dom.setAttribute(el4, "class", "columns");
+        var el5 = dom.createTextNode("\n        ");
+        dom.appendChild(el4, el5);
+        var el5 = dom.createElement("div");
+        dom.setAttribute(el5, "class", "banner--content");
+        var el6 = dom.createTextNode("\n          ");
+        dom.appendChild(el5, el6);
+        var el6 = dom.createElement("h2");
+        dom.setAttribute(el6, "class", "banner--title");
+        var el7 = dom.createTextNode("Welcome in Finndis");
+        dom.appendChild(el6, el7);
+        dom.appendChild(el5, el6);
+        var el6 = dom.createTextNode("\n          ");
+        dom.appendChild(el5, el6);
+        var el6 = dom.createElement("h3");
+        dom.setAttribute(el6, "class", "banner--subtitle");
+        var el7 = dom.createTextNode("Simplify your life by saving all the places you want to remember");
+        dom.appendChild(el6, el7);
+        dom.appendChild(el5, el6);
+        var el6 = dom.createTextNode("\n        ");
+        dom.appendChild(el5, el6);
+        dom.appendChild(el4, el5);
+        var el5 = dom.createTextNode("\n      ");
+        dom.appendChild(el4, el5);
+        dom.appendChild(el3, el4);
+        var el4 = dom.createTextNode("\n    ");
+        dom.appendChild(el3, el4);
+        dom.appendChild(el2, el3);
+        var el3 = dom.createTextNode("\n\n    ");
+        dom.appendChild(el2, el3);
+        var el3 = dom.createComment("");
+        dom.appendChild(el2, el3);
+        var el3 = dom.createTextNode("\n  ");
+        dom.appendChild(el2, el3);
+        dom.appendChild(el1, el2);
+        var el2 = dom.createTextNode("\n");
+        dom.appendChild(el1, el2);
+        dom.appendChild(el0, el1);
+        var el1 = dom.createTextNode("\n");
+        dom.appendChild(el0, el1);
+        return el0;
+      },
+      buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+        var morphs = new Array(2);
+        morphs[0] = dom.createMorphAt(fragment, 0, 0, contextualElement);
+        morphs[1] = dom.createMorphAt(dom.childAt(fragment, [2, 1]), 3, 3);
+        dom.insertBoundary(fragment, 0);
+        return morphs;
+      },
+      statements: [["content", "main-header", ["loc", [null, [1, 0], [1, 15]]]], ["content", "start-guide", ["loc", [null, [14, 4], [14, 19]]]]],
+      locals: [],
+      templates: []
     };
   })());
 });
@@ -8171,11 +8774,11 @@ define("finndis/templates/label", ["exports"], function (exports) {
                 "loc": {
                   "source": null,
                   "start": {
-                    "line": 11,
+                    "line": 13,
                     "column": 18
                   },
                   "end": {
-                    "line": 20,
+                    "line": 22,
                     "column": 18
                   }
                 },
@@ -8226,7 +8829,7 @@ define("finndis/templates/label", ["exports"], function (exports) {
                 morphs[0] = dom.createMorphAt(dom.childAt(fragment, [1, 3]), 1, 1);
                 return morphs;
               },
-              statements: [["content", "place.formattedaddress", ["loc", [null, [17, 24], [17, 50]]]]],
+              statements: [["content", "place.formattedaddress", ["loc", [null, [19, 24], [19, 50]]]]],
               locals: [],
               templates: []
             };
@@ -8239,11 +8842,11 @@ define("finndis/templates/label", ["exports"], function (exports) {
                 "loc": {
                   "source": null,
                   "start": {
-                    "line": 22,
+                    "line": 24,
                     "column": 18
                   },
                   "end": {
-                    "line": 31,
+                    "line": 33,
                     "column": 18
                   }
                 },
@@ -8294,7 +8897,7 @@ define("finndis/templates/label", ["exports"], function (exports) {
                 morphs[0] = dom.createMorphAt(dom.childAt(fragment, [1, 3]), 1, 1);
                 return morphs;
               },
-              statements: [["content", "place.phone", ["loc", [null, [28, 24], [28, 39]]]]],
+              statements: [["content", "place.phone", ["loc", [null, [30, 24], [30, 39]]]]],
               locals: [],
               templates: []
             };
@@ -8306,11 +8909,11 @@ define("finndis/templates/label", ["exports"], function (exports) {
               "loc": {
                 "source": null,
                 "start": {
-                  "line": 7,
+                  "line": 9,
                   "column": 12
                 },
                 "end": {
-                  "line": 37,
+                  "line": 39,
                   "column": 12
                 }
               },
@@ -8380,7 +8983,7 @@ define("finndis/templates/label", ["exports"], function (exports) {
               morphs[4] = dom.createMorphAt(dom.childAt(element1, [5]), 2, 2);
               return morphs;
             },
-            statements: [["attribute", "id", ["concat", ["card_", ["get", "index", ["loc", [null, [8, 34], [8, 39]]]]]]], ["content", "place.name", ["loc", [null, [9, 40], [9, 54]]]], ["block", "if", [["get", "place.formattedaddress", ["loc", [null, [11, 24], [11, 46]]]]], [], 0, null, ["loc", [null, [11, 18], [20, 25]]]], ["block", "if", [["get", "place.phone", ["loc", [null, [22, 24], [22, 35]]]]], [], 1, null, ["loc", [null, [22, 18], [31, 25]]]], ["content", "place.label.name", ["loc", [null, [33, 56], [33, 76]]]]],
+            statements: [["attribute", "id", ["concat", ["card_", ["get", "index", ["loc", [null, [10, 34], [10, 39]]]]]]], ["content", "place.name", ["loc", [null, [11, 40], [11, 54]]]], ["block", "if", [["get", "place.formattedaddress", ["loc", [null, [13, 24], [13, 46]]]]], [], 0, null, ["loc", [null, [13, 18], [22, 25]]]], ["block", "if", [["get", "place.phone", ["loc", [null, [24, 24], [24, 35]]]]], [], 1, null, ["loc", [null, [24, 18], [33, 25]]]], ["content", "place.label.name", ["loc", [null, [35, 56], [35, 76]]]]],
             locals: [],
             templates: [child0, child1]
           };
@@ -8392,11 +8995,11 @@ define("finndis/templates/label", ["exports"], function (exports) {
             "loc": {
               "source": null,
               "start": {
-                "line": 6,
+                "line": 8,
                 "column": 10
               },
               "end": {
-                "line": 38,
+                "line": 40,
                 "column": 10
               }
             },
@@ -8419,7 +9022,7 @@ define("finndis/templates/label", ["exports"], function (exports) {
             dom.insertBoundary(fragment, null);
             return morphs;
           },
-          statements: [["block", "link-to", ["place", ["get", "place", ["loc", [null, [7, 31], [7, 36]]]]], [], 0, null, ["loc", [null, [7, 12], [37, 24]]]]],
+          statements: [["block", "link-to", ["place", ["get", "place", ["loc", [null, [9, 31], [9, 36]]]]], [], 0, null, ["loc", [null, [9, 12], [39, 24]]]]],
           locals: [],
           templates: [child0]
         };
@@ -8431,11 +9034,11 @@ define("finndis/templates/label", ["exports"], function (exports) {
           "loc": {
             "source": null,
             "start": {
-              "line": 5,
+              "line": 7,
               "column": 8
             },
             "end": {
-              "line": 39,
+              "line": 41,
               "column": 8
             }
           },
@@ -8458,7 +9061,7 @@ define("finndis/templates/label", ["exports"], function (exports) {
           dom.insertBoundary(fragment, null);
           return morphs;
         },
-        statements: [["block", "masonry-item", [], ["item", ["subexpr", "@mut", [["get", "place", ["loc", [null, [6, 31], [6, 36]]]]], [], []], "grid", ["subexpr", "@mut", [["get", "grid", ["loc", [null, [6, 42], [6, 46]]]]], [], []]], 0, null, ["loc", [null, [6, 10], [38, 27]]]]],
+        statements: [["block", "masonry-item", [], ["item", ["subexpr", "@mut", [["get", "place", ["loc", [null, [8, 31], [8, 36]]]]], [], []], "grid", ["subexpr", "@mut", [["get", "grid", ["loc", [null, [8, 42], [8, 46]]]]], [], []]], 0, null, ["loc", [null, [8, 10], [40, 27]]]]],
         locals: ["place", "index", "grid"],
         templates: [child0]
       };
@@ -8471,11 +9074,11 @@ define("finndis/templates/label", ["exports"], function (exports) {
           "loc": {
             "source": null,
             "start": {
-              "line": 45,
+              "line": 47,
               "column": 4
             },
             "end": {
-              "line": 47,
+              "line": 49,
               "column": 4
             }
           },
@@ -8500,7 +9103,7 @@ define("finndis/templates/label", ["exports"], function (exports) {
           morphs[0] = dom.createMorphAt(fragment, 1, 1, contextualElement);
           return morphs;
         },
-        statements: [["content", "tool-box", ["loc", [null, [46, 6], [46, 18]]]]],
+        statements: [["content", "tool-box", ["loc", [null, [48, 6], [48, 18]]]]],
         locals: [],
         templates: []
       };
@@ -8508,7 +9111,8 @@ define("finndis/templates/label", ["exports"], function (exports) {
     return {
       meta: {
         "fragmentReason": {
-          "name": "triple-curlies"
+          "name": "missing-wrapper",
+          "problems": ["wrong-type", "multiple-nodes"]
         },
         "revision": "Ember@2.3.2",
         "loc": {
@@ -8518,7 +9122,7 @@ define("finndis/templates/label", ["exports"], function (exports) {
             "column": 0
           },
           "end": {
-            "line": 50,
+            "line": 52,
             "column": 0
           }
         },
@@ -8530,6 +9134,10 @@ define("finndis/templates/label", ["exports"], function (exports) {
       hasRendered: false,
       buildFragment: function buildFragment(dom) {
         var el0 = dom.createDocumentFragment();
+        var el1 = dom.createComment("");
+        dom.appendChild(el0, el1);
+        var el1 = dom.createTextNode("\n\n");
+        dom.appendChild(el0, el1);
         var el1 = dom.createElement("div");
         dom.setAttribute(el1, "class", "page-wrapper row");
         var el2 = dom.createTextNode("\n  ");
@@ -8573,15 +9181,17 @@ define("finndis/templates/label", ["exports"], function (exports) {
         return el0;
       },
       buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
-        var element2 = dom.childAt(fragment, [0, 1]);
+        var element2 = dom.childAt(fragment, [2, 1]);
         var element3 = dom.childAt(element2, [1, 1]);
-        var morphs = new Array(3);
-        morphs[0] = dom.createMorphAt(element3, 1, 1);
-        morphs[1] = dom.createMorphAt(element3, 3, 3);
-        morphs[2] = dom.createMorphAt(element2, 3, 3);
+        var morphs = new Array(4);
+        morphs[0] = dom.createMorphAt(fragment, 0, 0, contextualElement);
+        morphs[1] = dom.createMorphAt(element3, 1, 1);
+        morphs[2] = dom.createMorphAt(element3, 3, 3);
+        morphs[3] = dom.createMorphAt(element2, 3, 3);
+        dom.insertBoundary(fragment, 0);
         return morphs;
       },
-      statements: [["block", "masonry-grid", [], ["items", ["subexpr", "@mut", [["get", "model.places", ["loc", [null, [5, 30], [5, 42]]]]], [], []], "customLayout", true], 0, null, ["loc", [null, [5, 8], [39, 25]]]], ["content", "outlet", ["loc", [null, [41, 8], [41, 18]]]], ["block", "if", [["get", "session.isAuthenticated", ["loc", [null, [45, 10], [45, 33]]]]], [], 1, null, ["loc", [null, [45, 4], [47, 11]]]]],
+      statements: [["content", "main-header", ["loc", [null, [1, 0], [1, 15]]]], ["block", "masonry-grid", [], ["items", ["subexpr", "@mut", [["get", "model.places", ["loc", [null, [7, 30], [7, 42]]]]], [], []], "customLayout", true], 0, null, ["loc", [null, [7, 8], [41, 25]]]], ["content", "outlet", ["loc", [null, [43, 8], [43, 18]]]], ["block", "if", [["get", "session.isAuthenticated", ["loc", [null, [47, 10], [47, 33]]]]], [], 1, null, ["loc", [null, [47, 4], [49, 11]]]]],
       locals: [],
       templates: [child0, child1]
     };
@@ -8597,11 +9207,11 @@ define("finndis/templates/labels", ["exports"], function (exports) {
           "loc": {
             "source": null,
             "start": {
-              "line": 9,
+              "line": 11,
               "column": 16
             },
             "end": {
-              "line": 9,
+              "line": 11,
               "column": 61
             }
           },
@@ -8634,11 +9244,11 @@ define("finndis/templates/labels", ["exports"], function (exports) {
             "loc": {
               "source": null,
               "start": {
-                "line": 20,
+                "line": 22,
                 "column": 18
               },
               "end": {
-                "line": 29,
+                "line": 31,
                 "column": 18
               }
             },
@@ -8689,7 +9299,7 @@ define("finndis/templates/labels", ["exports"], function (exports) {
             morphs[0] = dom.createMorphAt(dom.childAt(fragment, [1, 3]), 1, 1);
             return morphs;
           },
-          statements: [["content", "label.name", ["loc", [null, [26, 22], [26, 36]]]]],
+          statements: [["content", "label.name", ["loc", [null, [28, 22], [28, 36]]]]],
           locals: [],
           templates: []
         };
@@ -8701,11 +9311,11 @@ define("finndis/templates/labels", ["exports"], function (exports) {
           "loc": {
             "source": null,
             "start": {
-              "line": 18,
+              "line": 20,
               "column": 14
             },
             "end": {
-              "line": 31,
+              "line": 33,
               "column": 14
             }
           },
@@ -8739,7 +9349,7 @@ define("finndis/templates/labels", ["exports"], function (exports) {
           morphs[1] = dom.createMorphAt(element0, 1, 1);
           return morphs;
         },
-        statements: [["attribute", "id", ["concat", [["get", "label.labelId", ["loc", [null, [19, 26], [19, 39]]]]]]], ["block", "link-to", ["label", ["get", "label", ["loc", [null, [20, 37], [20, 42]]]]], [], 0, null, ["loc", [null, [20, 18], [29, 30]]]]],
+        statements: [["attribute", "id", ["concat", [["get", "label.labelId", ["loc", [null, [21, 26], [21, 39]]]]]]], ["block", "link-to", ["label", ["get", "label", ["loc", [null, [22, 37], [22, 42]]]]], [], 0, null, ["loc", [null, [22, 18], [31, 30]]]]],
         locals: ["label"],
         templates: [child0]
       };
@@ -8752,11 +9362,11 @@ define("finndis/templates/labels", ["exports"], function (exports) {
           "loc": {
             "source": null,
             "start": {
-              "line": 38,
+              "line": 40,
               "column": 4
             },
             "end": {
-              "line": 40,
+              "line": 42,
               "column": 4
             }
           },
@@ -8781,7 +9391,7 @@ define("finndis/templates/labels", ["exports"], function (exports) {
           morphs[0] = dom.createMorphAt(fragment, 1, 1, contextualElement);
           return morphs;
         },
-        statements: [["content", "tool-box", ["loc", [null, [39, 6], [39, 18]]]]],
+        statements: [["content", "tool-box", ["loc", [null, [41, 6], [41, 18]]]]],
         locals: [],
         templates: []
       };
@@ -8789,7 +9399,8 @@ define("finndis/templates/labels", ["exports"], function (exports) {
     return {
       meta: {
         "fragmentReason": {
-          "name": "triple-curlies"
+          "name": "missing-wrapper",
+          "problems": ["wrong-type", "multiple-nodes"]
         },
         "revision": "Ember@2.3.2",
         "loc": {
@@ -8799,7 +9410,7 @@ define("finndis/templates/labels", ["exports"], function (exports) {
             "column": 0
           },
           "end": {
-            "line": 43,
+            "line": 45,
             "column": 0
           }
         },
@@ -8811,6 +9422,10 @@ define("finndis/templates/labels", ["exports"], function (exports) {
       hasRendered: false,
       buildFragment: function buildFragment(dom) {
         var el0 = dom.createDocumentFragment();
+        var el1 = dom.createComment("");
+        dom.appendChild(el0, el1);
+        var el1 = dom.createTextNode("\n\n");
+        dom.appendChild(el0, el1);
         var el1 = dom.createElement("div");
         dom.setAttribute(el1, "class", "page-wrapper row");
         var el2 = dom.createTextNode("\n  ");
@@ -8903,15 +9518,17 @@ define("finndis/templates/labels", ["exports"], function (exports) {
         return el0;
       },
       buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
-        var element1 = dom.childAt(fragment, [0, 1]);
+        var element1 = dom.childAt(fragment, [2, 1]);
         var element2 = dom.childAt(element1, [1, 1]);
-        var morphs = new Array(3);
-        morphs[0] = dom.createMorphAt(dom.childAt(element2, [1, 1, 1, 1]), 1, 1);
-        morphs[1] = dom.createMorphAt(dom.childAt(element2, [3, 1, 1]), 1, 1);
-        morphs[2] = dom.createMorphAt(element1, 3, 3);
+        var morphs = new Array(4);
+        morphs[0] = dom.createMorphAt(fragment, 0, 0, contextualElement);
+        morphs[1] = dom.createMorphAt(dom.childAt(element2, [1, 1, 1, 1]), 1, 1);
+        morphs[2] = dom.createMorphAt(dom.childAt(element2, [3, 1, 1]), 1, 1);
+        morphs[3] = dom.createMorphAt(element1, 3, 3);
+        dom.insertBoundary(fragment, 0);
         return morphs;
       },
-      statements: [["block", "link-to", ["edit-labels"], ["class", "button"], 0, null, ["loc", [null, [9, 16], [9, 73]]]], ["block", "each", [["get", "session.user.labels", ["loc", [null, [18, 22], [18, 41]]]]], [], 1, null, ["loc", [null, [18, 14], [31, 23]]]], ["block", "if", [["get", "session.isAuthenticated", ["loc", [null, [38, 10], [38, 33]]]]], [], 2, null, ["loc", [null, [38, 4], [40, 11]]]]],
+      statements: [["content", "main-header", ["loc", [null, [1, 0], [1, 15]]]], ["block", "link-to", ["edit-labels"], ["class", "button"], 0, null, ["loc", [null, [11, 16], [11, 73]]]], ["block", "each", [["get", "session.user.labels", ["loc", [null, [20, 22], [20, 41]]]]], [], 1, null, ["loc", [null, [20, 14], [33, 23]]]], ["block", "if", [["get", "session.isAuthenticated", ["loc", [null, [40, 10], [40, 33]]]]], [], 2, null, ["loc", [null, [40, 4], [42, 11]]]]],
       locals: [],
       templates: [child0, child1, child2]
     };
@@ -8919,10 +9536,105 @@ define("finndis/templates/labels", ["exports"], function (exports) {
 });
 define("finndis/templates/login", ["exports"], function (exports) {
   exports["default"] = Ember.HTMLBars.template((function () {
+    var child0 = (function () {
+      return {
+        meta: {
+          "fragmentReason": false,
+          "revision": "Ember@2.3.2",
+          "loc": {
+            "source": null,
+            "start": {
+              "line": 14,
+              "column": 4
+            },
+            "end": {
+              "line": 15,
+              "column": 4
+            }
+          },
+          "moduleName": "finndis/templates/login.hbs"
+        },
+        isEmpty: true,
+        arity: 0,
+        cachedFragment: null,
+        hasRendered: false,
+        buildFragment: function buildFragment(dom) {
+          var el0 = dom.createDocumentFragment();
+          return el0;
+        },
+        buildRenderNodes: function buildRenderNodes() {
+          return [];
+        },
+        statements: [],
+        locals: [],
+        templates: []
+      };
+    })();
+    var child1 = (function () {
+      return {
+        meta: {
+          "fragmentReason": false,
+          "revision": "Ember@2.3.2",
+          "loc": {
+            "source": null,
+            "start": {
+              "line": 15,
+              "column": 4
+            },
+            "end": {
+              "line": 21,
+              "column": 4
+            }
+          },
+          "moduleName": "finndis/templates/login.hbs"
+        },
+        isEmpty: false,
+        arity: 0,
+        cachedFragment: null,
+        hasRendered: false,
+        buildFragment: function buildFragment(dom) {
+          var el0 = dom.createDocumentFragment();
+          var el1 = dom.createTextNode("    ");
+          dom.appendChild(el0, el1);
+          var el1 = dom.createElement("div");
+          dom.setAttribute(el1, "class", "row");
+          var el2 = dom.createTextNode("\n      ");
+          dom.appendChild(el1, el2);
+          var el2 = dom.createElement("div");
+          dom.setAttribute(el2, "class", "small-6 small-offset-3 medium-4 medium-offset-4 large-4 large-offset-4 columns");
+          var el3 = dom.createTextNode("\n        ");
+          dom.appendChild(el2, el3);
+          var el3 = dom.createElement("a");
+          dom.setAttribute(el3, "class", "button expanded button_login");
+          var el4 = dom.createTextNode("Login / Signup");
+          dom.appendChild(el3, el4);
+          dom.appendChild(el2, el3);
+          var el3 = dom.createTextNode("\n      ");
+          dom.appendChild(el2, el3);
+          dom.appendChild(el1, el2);
+          var el2 = dom.createTextNode("\n    ");
+          dom.appendChild(el1, el2);
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode("\n");
+          dom.appendChild(el0, el1);
+          return el0;
+        },
+        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+          var element0 = dom.childAt(fragment, [1, 1, 1]);
+          var morphs = new Array(1);
+          morphs[0] = dom.createElementMorph(element0);
+          return morphs;
+        },
+        statements: [["element", "action", ["login"], [], ["loc", [null, [18, 48], [18, 66]]]]],
+        locals: [],
+        templates: []
+      };
+    })();
     return {
       meta: {
         "fragmentReason": {
-          "name": "triple-curlies"
+          "name": "missing-wrapper",
+          "problems": ["wrong-type", "multiple-nodes"]
         },
         "revision": "Ember@2.3.2",
         "loc": {
@@ -8932,7 +9644,7 @@ define("finndis/templates/login", ["exports"], function (exports) {
             "column": 0
           },
           "end": {
-            "line": 13,
+            "line": 27,
             "column": 0
           }
         },
@@ -8944,6 +9656,10 @@ define("finndis/templates/login", ["exports"], function (exports) {
       hasRendered: false,
       buildFragment: function buildFragment(dom) {
         var el0 = dom.createDocumentFragment();
+        var el1 = dom.createComment("");
+        dom.appendChild(el0, el1);
+        var el1 = dom.createTextNode("\n\n");
+        dom.appendChild(el0, el1);
         var el1 = dom.createElement("div");
         dom.setAttribute(el1, "class", "page-wrapper row");
         var el2 = dom.createTextNode("\n  ");
@@ -8957,7 +9673,7 @@ define("finndis/templates/login", ["exports"], function (exports) {
         var el4 = dom.createTextNode("\n      ");
         dom.appendChild(el3, el4);
         var el4 = dom.createElement("div");
-        dom.setAttribute(el4, "class", "columns");
+        dom.setAttribute(el4, "class", "small-12 columns");
         var el5 = dom.createTextNode("\n        ");
         dom.appendChild(el4, el5);
         var el5 = dom.createElement("div");
@@ -8985,7 +9701,15 @@ define("finndis/templates/login", ["exports"], function (exports) {
         var el4 = dom.createTextNode("\n    ");
         dom.appendChild(el3, el4);
         dom.appendChild(el2, el3);
-        var el3 = dom.createTextNode("\n  ");
+        var el3 = dom.createTextNode("\n\n");
+        dom.appendChild(el2, el3);
+        var el3 = dom.createComment("");
+        dom.appendChild(el2, el3);
+        var el3 = dom.createTextNode("\n    ");
+        dom.appendChild(el2, el3);
+        var el3 = dom.createComment("");
+        dom.appendChild(el2, el3);
+        var el3 = dom.createTextNode("\n\n  ");
         dom.appendChild(el2, el3);
         dom.appendChild(el1, el2);
         var el2 = dom.createTextNode("\n");
@@ -8995,12 +9719,18 @@ define("finndis/templates/login", ["exports"], function (exports) {
         dom.appendChild(el0, el1);
         return el0;
       },
-      buildRenderNodes: function buildRenderNodes() {
-        return [];
+      buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+        var element1 = dom.childAt(fragment, [2, 1]);
+        var morphs = new Array(3);
+        morphs[0] = dom.createMorphAt(fragment, 0, 0, contextualElement);
+        morphs[1] = dom.createMorphAt(element1, 3, 3);
+        morphs[2] = dom.createMorphAt(element1, 5, 5);
+        dom.insertBoundary(fragment, 0);
+        return morphs;
       },
-      statements: [],
+      statements: [["inline", "main-header", [], ["menuShowLogo", true], ["loc", [null, [1, 0], [1, 33]]]], ["block", "if", [["get", "session.isAuthenticated", ["loc", [null, [14, 10], [14, 33]]]]], [], 0, 1, ["loc", [null, [14, 4], [21, 11]]]], ["content", "start-guide", ["loc", [null, [23, 4], [23, 19]]]]],
       locals: [],
-      templates: []
+      templates: [child0, child1]
     };
   })());
 });
@@ -9009,7 +9739,8 @@ define("finndis/templates/map", ["exports"], function (exports) {
     return {
       meta: {
         "fragmentReason": {
-          "name": "triple-curlies"
+          "name": "missing-wrapper",
+          "problems": ["wrong-type", "multiple-nodes"]
         },
         "revision": "Ember@2.3.2",
         "loc": {
@@ -9019,7 +9750,7 @@ define("finndis/templates/map", ["exports"], function (exports) {
             "column": 0
           },
           "end": {
-            "line": 10,
+            "line": 14,
             "column": 0
           }
         },
@@ -9031,8 +9762,12 @@ define("finndis/templates/map", ["exports"], function (exports) {
       hasRendered: false,
       buildFragment: function buildFragment(dom) {
         var el0 = dom.createDocumentFragment();
+        var el1 = dom.createComment("");
+        dom.appendChild(el0, el1);
+        var el1 = dom.createTextNode("\n\n");
+        dom.appendChild(el0, el1);
         var el1 = dom.createElement("div");
-        dom.setAttribute(el1, "class", "page-wrapper row __map");
+        dom.setAttribute(el1, "class", "page-wrapper row big");
         var el2 = dom.createTextNode("\n  ");
         dom.appendChild(el1, el2);
         var el2 = dom.createElement("div");
@@ -9061,22 +9796,2179 @@ define("finndis/templates/map", ["exports"], function (exports) {
         var el2 = dom.createTextNode("\n");
         dom.appendChild(el1, el2);
         dom.appendChild(el0, el1);
+        var el1 = dom.createTextNode("\n\n");
+        dom.appendChild(el0, el1);
+        var el1 = dom.createComment("");
+        dom.appendChild(el0, el1);
         var el1 = dom.createTextNode("\n");
         dom.appendChild(el0, el1);
         return el0;
       },
       buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
-        var morphs = new Array(1);
-        morphs[0] = dom.createMorphAt(dom.childAt(fragment, [0, 1, 1, 1]), 1, 1);
+        var morphs = new Array(3);
+        morphs[0] = dom.createMorphAt(fragment, 0, 0, contextualElement);
+        morphs[1] = dom.createMorphAt(dom.childAt(fragment, [2, 1, 1, 1]), 1, 1);
+        morphs[2] = dom.createMorphAt(fragment, 4, 4, contextualElement);
+        dom.insertBoundary(fragment, 0);
         return morphs;
       },
-      statements: [["inline", "google-search", [], ["latitude", "34.851939", "longitude", "-82.399752"], ["loc", [null, [5, 8], [5, 69]]]]],
+      statements: [["inline", "main-header", [], ["menuShowLogo", true], ["loc", [null, [1, 0], [1, 33]]]], ["inline", "place-map", [], ["model", ["subexpr", "@mut", [["get", "model", ["loc", [null, [7, 26], [7, 31]]]]], [], []], "latitude", "34.851939", "longitude", "-82.399752"], ["loc", [null, [7, 8], [7, 77]]]], ["inline", "tool-box", [], ["toolShowList", true], ["loc", [null, [13, 0], [13, 30]]]]],
       locals: [],
       templates: []
     };
   })());
 });
-define("finndis/templates/place",["exports"],function(exports){exports["default"] = Ember.HTMLBars.template((function(){var child0=(function(){return {meta:{"fragmentReason":false,"revision":"Ember@2.3.2","loc":{"source":null,"start":{"line":16,"column":14},"end":{"line":37,"column":14}},"moduleName":"finndis/templates/place.hbs"},isEmpty:false,arity:1,cachedFragment:null,hasRendered:false,buildFragment:function buildFragment(dom){var el0=dom.createDocumentFragment();var el1=dom.createTextNode("                ");dom.appendChild(el0,el1);var el1=dom.createElement("li");dom.setAttribute(el1,"class","label-editor--holder");var el2=dom.createTextNode("\n                  ");dom.appendChild(el1,el2);var el2=dom.createElement("label");dom.setAttribute(el2,"class","label--listitem--label");var el3=dom.createTextNode("\n                    ");dom.appendChild(el2,el3);var el3=dom.createElement("div");dom.setAttribute(el3,"class","label--listitem label-editor collapse align-middle row");var el4=dom.createTextNode("\n                      ");dom.appendChild(el3,el4);var el4=dom.createElement("div");dom.setAttribute(el4,"class","label--icon-holder small-1 columns");var el5=dom.createTextNode("\n                        ");dom.appendChild(el4,el5);var el5=dom.createElement("i");dom.setAttribute(el5,"class","label--icon fa fa-tag");dom.appendChild(el4,el5);var el5=dom.createTextNode("\n                      ");dom.appendChild(el4,el5);dom.appendChild(el3,el4);var el4=dom.createTextNode("\n                      ");dom.appendChild(el3,el4);var el4=dom.createElement("div");dom.setAttribute(el4,"class","small-10 columns");var el5=dom.createTextNode("\n                        ");dom.appendChild(el4,el5);var el5=dom.createComment("");dom.appendChild(el4,el5);var el5=dom.createTextNode("\n                      ");dom.appendChild(el4,el5);dom.appendChild(el3,el4);var el4=dom.createTextNode("\n                      ");dom.appendChild(el3,el4);var el4=dom.createElement("div");dom.setAttribute(el4,"class","label--icon-holder small-1 columns");var el5=dom.createTextNode("\n                        ");dom.appendChild(el4,el5);var el5=dom.createComment("");dom.appendChild(el4,el5);var el5=dom.createTextNode("\n                      ");dom.appendChild(el4,el5);dom.appendChild(el3,el4);var el4=dom.createTextNode("\n                    ");dom.appendChild(el3,el4);dom.appendChild(el2,el3);var el3=dom.createTextNode("\n                  ");dom.appendChild(el2,el3);dom.appendChild(el1,el2);var el2=dom.createTextNode("\n                ");dom.appendChild(el1,el2);dom.appendChild(el0,el1);var el1=dom.createTextNode("\n");dom.appendChild(el0,el1);return el0;},buildRenderNodes:function buildRenderNodes(dom,fragment,contextualElement){var element32=dom.childAt(fragment,[1,1,1]);var morphs=new Array(2);morphs[0] = dom.createMorphAt(dom.childAt(element32,[3]),1,1);morphs[1] = dom.createMorphAt(dom.childAt(element32,[5]),1,1);return morphs;},statements:[["content","label.name",["loc",[null,[24,24],[24,38]]]],["inline","radio-button",[],["id",["subexpr","@mut",[["get","label.id",["loc",[null,[28,29],[28,37]]]]],[],[]],"value",["subexpr","@mut",[["get","label.id",["loc",[null,[29,32],[29,40]]]]],[],[]],"groupValue",["subexpr","@mut",[["get","labelValue",["loc",[null,[30,37],[30,47]]]]],[],[]],"changed","updateLabel","name","label"],["loc",[null,[27,24],[32,40]]]]],locals:["label"],templates:[]};})();var child1=(function(){var child0=(function(){var child0=(function(){var child0=(function(){return {meta:{"fragmentReason":false,"revision":"Ember@2.3.2","loc":{"source":null,"start":{"line":115,"column":32},"end":{"line":117,"column":32}},"moduleName":"finndis/templates/place.hbs"},isEmpty:false,arity:0,cachedFragment:null,hasRendered:false,buildFragment:function buildFragment(dom){var el0=dom.createDocumentFragment();var el1=dom.createTextNode("                                  ");dom.appendChild(el0,el1);var el1=dom.createElement("a");dom.setAttribute(el1,"class","price-rating fa fa-square");dom.appendChild(el0,el1);var el1=dom.createTextNode("\n");dom.appendChild(el0,el1);return el0;},buildRenderNodes:function buildRenderNodes(dom,fragment,contextualElement){var element22=dom.childAt(fragment,[1]);var morphs=new Array(1);morphs[0] = dom.createElementMorph(element22);return morphs;},statements:[["element","action",[["get","set",["loc",[null,[116,80],[116,83]]]],["get","star.rating",["loc",[null,[116,84],[116,95]]]]],[],["loc",[null,[116,71],[116,97]]]]],locals:[],templates:[]};})();var child1=(function(){return {meta:{"fragmentReason":false,"revision":"Ember@2.3.2","loc":{"source":null,"start":{"line":117,"column":32},"end":{"line":119,"column":32}},"moduleName":"finndis/templates/place.hbs"},isEmpty:false,arity:0,cachedFragment:null,hasRendered:false,buildFragment:function buildFragment(dom){var el0=dom.createDocumentFragment();var el1=dom.createTextNode("                                  ");dom.appendChild(el0,el1);var el1=dom.createElement("a");dom.setAttribute(el1,"class","price-rating fa fa-square-o");dom.appendChild(el0,el1);var el1=dom.createTextNode("\n");dom.appendChild(el0,el1);return el0;},buildRenderNodes:function buildRenderNodes(dom,fragment,contextualElement){var element21=dom.childAt(fragment,[1]);var morphs=new Array(1);morphs[0] = dom.createElementMorph(element21);return morphs;},statements:[["element","action",[["get","set",["loc",[null,[118,82],[118,85]]]],["get","star.rating",["loc",[null,[118,86],[118,97]]]]],[],["loc",[null,[118,73],[118,99]]]]],locals:[],templates:[]};})();return {meta:{"fragmentReason":false,"revision":"Ember@2.3.2","loc":{"source":null,"start":{"line":114,"column":30},"end":{"line":120,"column":30}},"moduleName":"finndis/templates/place.hbs"},isEmpty:false,arity:1,cachedFragment:null,hasRendered:false,buildFragment:function buildFragment(dom){var el0=dom.createDocumentFragment();var el1=dom.createComment("");dom.appendChild(el0,el1);return el0;},buildRenderNodes:function buildRenderNodes(dom,fragment,contextualElement){var morphs=new Array(1);morphs[0] = dom.createMorphAt(fragment,0,0,contextualElement);dom.insertBoundary(fragment,0);dom.insertBoundary(fragment,null);return morphs;},statements:[["block","if",[["get","star.full",["loc",[null,[115,38],[115,47]]]]],[],0,1,["loc",[null,[115,32],[119,39]]]]],locals:["star"],templates:[child0,child1]};})();return {meta:{"fragmentReason":false,"revision":"Ember@2.3.2","loc":{"source":null,"start":{"line":113,"column":28},"end":{"line":121,"column":28}},"moduleName":"finndis/templates/place.hbs"},isEmpty:false,arity:2,cachedFragment:null,hasRendered:false,buildFragment:function buildFragment(dom){var el0=dom.createDocumentFragment();var el1=dom.createComment("");dom.appendChild(el0,el1);return el0;},buildRenderNodes:function buildRenderNodes(dom,fragment,contextualElement){var morphs=new Array(1);morphs[0] = dom.createMorphAt(fragment,0,0,contextualElement);dom.insertBoundary(fragment,0);dom.insertBoundary(fragment,null);return morphs;},statements:[["block","each",[["get","stars",["loc",[null,[114,38],[114,43]]]]],[],0,null,["loc",[null,[114,30],[120,39]]]]],locals:["stars","set"],templates:[child0]};})();var child1=(function(){var child0=(function(){var child0=(function(){return {meta:{"fragmentReason":false,"revision":"Ember@2.3.2","loc":{"source":null,"start":{"line":145,"column":28},"end":{"line":147,"column":28}},"moduleName":"finndis/templates/place.hbs"},isEmpty:false,arity:0,cachedFragment:null,hasRendered:false,buildFragment:function buildFragment(dom){var el0=dom.createDocumentFragment();var el1=dom.createTextNode("                              ");dom.appendChild(el0,el1);var el1=dom.createElement("a");dom.setAttribute(el1,"class","star-rating fa fa-star");dom.appendChild(el0,el1);var el1=dom.createTextNode("\n");dom.appendChild(el0,el1);return el0;},buildRenderNodes:function buildRenderNodes(dom,fragment,contextualElement){var element20=dom.childAt(fragment,[1]);var morphs=new Array(1);morphs[0] = dom.createElementMorph(element20);return morphs;},statements:[["element","action",[["get","set",["loc",[null,[146,73],[146,76]]]],["get","star.rating",["loc",[null,[146,77],[146,88]]]]],[],["loc",[null,[146,64],[146,90]]]]],locals:[],templates:[]};})();var child1=(function(){return {meta:{"fragmentReason":false,"revision":"Ember@2.3.2","loc":{"source":null,"start":{"line":147,"column":28},"end":{"line":149,"column":28}},"moduleName":"finndis/templates/place.hbs"},isEmpty:false,arity:0,cachedFragment:null,hasRendered:false,buildFragment:function buildFragment(dom){var el0=dom.createDocumentFragment();var el1=dom.createTextNode("                              ");dom.appendChild(el0,el1);var el1=dom.createElement("a");dom.setAttribute(el1,"class","star-rating fa fa-star-o");dom.appendChild(el0,el1);var el1=dom.createTextNode("\n");dom.appendChild(el0,el1);return el0;},buildRenderNodes:function buildRenderNodes(dom,fragment,contextualElement){var element19=dom.childAt(fragment,[1]);var morphs=new Array(1);morphs[0] = dom.createElementMorph(element19);return morphs;},statements:[["element","action",[["get","set",["loc",[null,[148,75],[148,78]]]],["get","star.rating",["loc",[null,[148,79],[148,90]]]]],[],["loc",[null,[148,66],[148,92]]]]],locals:[],templates:[]};})();return {meta:{"fragmentReason":false,"revision":"Ember@2.3.2","loc":{"source":null,"start":{"line":144,"column":26},"end":{"line":150,"column":26}},"moduleName":"finndis/templates/place.hbs"},isEmpty:false,arity:1,cachedFragment:null,hasRendered:false,buildFragment:function buildFragment(dom){var el0=dom.createDocumentFragment();var el1=dom.createComment("");dom.appendChild(el0,el1);return el0;},buildRenderNodes:function buildRenderNodes(dom,fragment,contextualElement){var morphs=new Array(1);morphs[0] = dom.createMorphAt(fragment,0,0,contextualElement);dom.insertBoundary(fragment,0);dom.insertBoundary(fragment,null);return morphs;},statements:[["block","if",[["get","star.full",["loc",[null,[145,34],[145,43]]]]],[],0,1,["loc",[null,[145,28],[149,35]]]]],locals:["star"],templates:[child0,child1]};})();return {meta:{"fragmentReason":false,"revision":"Ember@2.3.2","loc":{"source":null,"start":{"line":143,"column":24},"end":{"line":151,"column":24}},"moduleName":"finndis/templates/place.hbs"},isEmpty:false,arity:2,cachedFragment:null,hasRendered:false,buildFragment:function buildFragment(dom){var el0=dom.createDocumentFragment();var el1=dom.createComment("");dom.appendChild(el0,el1);return el0;},buildRenderNodes:function buildRenderNodes(dom,fragment,contextualElement){var morphs=new Array(1);morphs[0] = dom.createMorphAt(fragment,0,0,contextualElement);dom.insertBoundary(fragment,0);dom.insertBoundary(fragment,null);return morphs;},statements:[["block","each",[["get","stars",["loc",[null,[144,34],[144,39]]]]],[],0,null,["loc",[null,[144,26],[150,35]]]]],locals:["stars","set"],templates:[child0]};})();return {meta:{"fragmentReason":false,"revision":"Ember@2.3.2","loc":{"source":null,"start":{"line":45,"column":0},"end":{"line":170,"column":0}},"moduleName":"finndis/templates/place.hbs"},isEmpty:false,arity:0,cachedFragment:null,hasRendered:false,buildFragment:function buildFragment(dom){var el0=dom.createDocumentFragment();var el1=dom.createTextNode("\n");dom.appendChild(el0,el1);var el1=dom.createTextNode("  ");dom.appendChild(el0,el1);var el1=dom.createElement("div");dom.setAttribute(el1,"class","place_details row");var el2=dom.createTextNode("\n    ");dom.appendChild(el1,el2);var el2=dom.createElement("div");dom.setAttribute(el2,"class","__edition medium-8 medium-offset-2 columns");var el3=dom.createTextNode("\n      ");dom.appendChild(el2,el3);var el3=dom.createElement("form");var el4=dom.createTextNode("\n        ");dom.appendChild(el3,el4);var el4=dom.createElement("div");dom.setAttribute(el4,"class","row");var el5=dom.createTextNode("\n          ");dom.appendChild(el4,el5);var el5=dom.createElement("div");dom.setAttribute(el5,"class","columns");var el6=dom.createTextNode("\n            ");dom.appendChild(el5,el6);var el6=dom.createElement("div");dom.setAttribute(el6,"class","place--holder");var el7=dom.createTextNode("\n              ");dom.appendChild(el6,el7);var el7=dom.createElement("article");dom.setAttribute(el7,"class","place");var el8=dom.createTextNode("\n                ");dom.appendChild(el7,el8);var el8=dom.createElement("header");dom.setAttribute(el8,"class","place--header");var el9=dom.createTextNode("\n                  ");dom.appendChild(el8,el9);var el9=dom.createElement("a");dom.setAttribute(el9,"href","#");dom.setAttribute(el9,"class","button delete-button");var el10=dom.createElement("i");dom.setAttribute(el10,"class","place--action--icon fa fa-trash");dom.appendChild(el9,el10);var el10=dom.createTextNode("Delete");dom.appendChild(el9,el10);dom.appendChild(el8,el9);var el9=dom.createTextNode("\n                  ");dom.appendChild(el8,el9);var el9=dom.createElement("a");dom.setAttribute(el9,"href","#");dom.setAttribute(el9,"class","button cancel-button");var el10=dom.createElement("i");dom.setAttribute(el10,"class","place--action--icon fa fa-times");dom.appendChild(el9,el10);var el10=dom.createTextNode("Cancel");dom.appendChild(el9,el10);dom.appendChild(el8,el9);var el9=dom.createTextNode("\n                  ");dom.appendChild(el8,el9);var el9=dom.createElement("button");dom.setAttribute(el9,"type","submit");dom.setAttribute(el9,"class","button edit-button");var el10=dom.createElement("i");dom.setAttribute(el10,"class","place--action--icon fa fa-check");dom.appendChild(el9,el10);var el10=dom.createTextNode("Save");dom.appendChild(el9,el10);dom.appendChild(el8,el9);var el9=dom.createTextNode("\n\n                  ");dom.appendChild(el8,el9);var el9=dom.createElement("h2");dom.setAttribute(el9,"class","place--title");var el10=dom.createTextNode("\n                    ");dom.appendChild(el9,el10);var el10=dom.createComment("");dom.appendChild(el9,el10);var el10=dom.createTextNode("\n                  ");dom.appendChild(el9,el10);dom.appendChild(el8,el9);var el9=dom.createTextNode("\n                  ");dom.appendChild(el8,el9);var el9=dom.createElement("i");dom.setAttribute(el9,"class","place--labels--icon fa fa-tag");dom.appendChild(el8,el9);var el9=dom.createTextNode("\n                  ");dom.appendChild(el8,el9);var el9=dom.createElement("ul");dom.setAttribute(el9,"class","place--labels clearfix");var el10=dom.createTextNode("\n                    ");dom.appendChild(el9,el10);var el10=dom.createElement("li");dom.setAttribute(el10,"class","place--labelitem");var el11=dom.createComment("");dom.appendChild(el10,el11);dom.appendChild(el9,el10);var el10=dom.createTextNode("\n                    ");dom.appendChild(el9,el10);var el10=dom.createElement("li");dom.setAttribute(el10,"class","place--labelitem");var el11=dom.createTextNode("\n                      ");dom.appendChild(el10,el11);var el11=dom.createElement("i");dom.setAttribute(el11,"class","place--add--icon fa fa-plus");dom.appendChild(el10,el11);var el11=dom.createTextNode("\n                    ");dom.appendChild(el10,el11);dom.appendChild(el9,el10);var el10=dom.createTextNode("\n                  ");dom.appendChild(el9,el10);dom.appendChild(el8,el9);var el9=dom.createTextNode("\n                ");dom.appendChild(el8,el9);dom.appendChild(el7,el8);var el8=dom.createTextNode("\n                ");dom.appendChild(el7,el8);var el8=dom.createElement("main");dom.setAttribute(el8,"class","place--main");var el9=dom.createTextNode("\n                  ");dom.appendChild(el8,el9);var el9=dom.createElement("div");dom.setAttribute(el9,"class","place--info--holder align-middle row");var el10=dom.createTextNode("\n");dom.appendChild(el9,el10);var el10=dom.createTextNode("                    ");dom.appendChild(el9,el10);var el10=dom.createElement("div");dom.setAttribute(el10,"class","small-12 columns");var el11=dom.createTextNode("\n                      ");dom.appendChild(el10,el11);var el11=dom.createElement("div");dom.setAttribute(el11,"class","row");var el12=dom.createTextNode("\n                        ");dom.appendChild(el11,el12);var el12=dom.createElement("div");dom.setAttribute(el12,"class","columns");var el13=dom.createTextNode("\n                          ");dom.appendChild(el12,el13);var el13=dom.createElement("label");var el14=dom.createElement("i");dom.setAttribute(el14,"class","fa fa-map-marker");dom.appendChild(el13,el14);var el14=dom.createTextNode(" Address\n                            ");dom.appendChild(el13,el14);var el14=dom.createComment("");dom.appendChild(el13,el14);var el14=dom.createTextNode("\n                          ");dom.appendChild(el13,el14);dom.appendChild(el12,el13);var el13=dom.createTextNode("\n                        ");dom.appendChild(el12,el13);dom.appendChild(el11,el12);var el12=dom.createTextNode("\n                      ");dom.appendChild(el11,el12);dom.appendChild(el10,el11);var el11=dom.createTextNode("\n                    ");dom.appendChild(el10,el11);dom.appendChild(el9,el10);var el10=dom.createTextNode("\n");dom.appendChild(el9,el10);var el10=dom.createTextNode("                  ");dom.appendChild(el9,el10);dom.appendChild(el8,el9);var el9=dom.createTextNode("\n\n                  ");dom.appendChild(el8,el9);var el9=dom.createElement("div");dom.setAttribute(el9,"class","place--info--holder row");var el10=dom.createTextNode("\n                    ");dom.appendChild(el9,el10);var el10=dom.createElement("div");dom.setAttribute(el10,"class","columns small-12 medium-6");var el11=dom.createTextNode("\n                      ");dom.appendChild(el10,el11);var el11=dom.createElement("div");dom.setAttribute(el11,"class","place--website align-middle row");var el12=dom.createTextNode("\n                        ");dom.appendChild(el11,el12);var el12=dom.createElement("div");dom.setAttribute(el12,"class","small-12 columns");var el13=dom.createTextNode("\n                          ");dom.appendChild(el12,el13);var el13=dom.createElement("label");var el14=dom.createElement("i");dom.setAttribute(el14,"class","fa fa-globe");dom.appendChild(el13,el14);var el14=dom.createTextNode(" Website\n                            ");dom.appendChild(el13,el14);var el14=dom.createComment("");dom.appendChild(el13,el14);var el14=dom.createTextNode("\n                          ");dom.appendChild(el13,el14);dom.appendChild(el12,el13);var el13=dom.createTextNode("\n                        ");dom.appendChild(el12,el13);dom.appendChild(el11,el12);var el12=dom.createTextNode("\n                      ");dom.appendChild(el11,el12);dom.appendChild(el10,el11);var el11=dom.createTextNode("\n                    ");dom.appendChild(el10,el11);dom.appendChild(el9,el10);var el10=dom.createTextNode("\n                    ");dom.appendChild(el9,el10);var el10=dom.createElement("div");dom.setAttribute(el10,"class","columns small-12 medium-6");var el11=dom.createTextNode("\n                      ");dom.appendChild(el10,el11);var el11=dom.createElement("div");dom.setAttribute(el11,"class","place--phone align-middle row");var el12=dom.createTextNode("\n                        ");dom.appendChild(el11,el12);var el12=dom.createElement("div");dom.setAttribute(el12,"class","small-12 columns");var el13=dom.createTextNode("\n                          ");dom.appendChild(el12,el13);var el13=dom.createElement("label");var el14=dom.createElement("i");dom.setAttribute(el14,"class","fa fa-phone");dom.appendChild(el13,el14);var el14=dom.createTextNode(" Phone number\n                            ");dom.appendChild(el13,el14);var el14=dom.createComment("");dom.appendChild(el13,el14);var el14=dom.createTextNode("\n                          ");dom.appendChild(el13,el14);dom.appendChild(el12,el13);var el13=dom.createTextNode("\n                        ");dom.appendChild(el12,el13);dom.appendChild(el11,el12);var el12=dom.createTextNode("\n                      ");dom.appendChild(el11,el12);dom.appendChild(el10,el11);var el11=dom.createTextNode("\n                    ");dom.appendChild(el10,el11);dom.appendChild(el9,el10);var el10=dom.createTextNode("\n                  ");dom.appendChild(el9,el10);dom.appendChild(el8,el9);var el9=dom.createTextNode("\n\n                  ");dom.appendChild(el8,el9);var el9=dom.createElement("div");dom.setAttribute(el9,"class","place--info--holder row");var el10=dom.createTextNode("\n                    ");dom.appendChild(el9,el10);var el10=dom.createElement("div");dom.setAttribute(el10,"class","columns small-12 medium-6");var el11=dom.createTextNode("\n                      ");dom.appendChild(el10,el11);var el11=dom.createElement("div");dom.setAttribute(el11,"class","place--phone align-middle row");var el12=dom.createTextNode("\n                        ");dom.appendChild(el11,el12);var el12=dom.createElement("div");dom.setAttribute(el12,"class","small-12 columns");var el13=dom.createTextNode("\n                          ");dom.appendChild(el12,el13);var el13=dom.createElement("label");var el14=dom.createElement("i");dom.setAttribute(el14,"class","fa fa-usd");dom.appendChild(el13,el14);var el14=dom.createTextNode(" Price\n");dom.appendChild(el13,el14);var el14=dom.createComment("");dom.appendChild(el13,el14);var el14=dom.createTextNode("                          ");dom.appendChild(el13,el14);dom.appendChild(el12,el13);var el13=dom.createTextNode("\n                        ");dom.appendChild(el12,el13);dom.appendChild(el11,el12);var el12=dom.createTextNode("\n                      ");dom.appendChild(el11,el12);dom.appendChild(el10,el11);var el11=dom.createTextNode("\n                    ");dom.appendChild(el10,el11);dom.appendChild(el9,el10);var el10=dom.createTextNode("\n                  ");dom.appendChild(el9,el10);dom.appendChild(el8,el9);var el9=dom.createTextNode("\n\n                  ");dom.appendChild(el8,el9);var el9=dom.createElement("div");dom.setAttribute(el9,"class","place--info--holder row");var el10=dom.createTextNode("\n                    ");dom.appendChild(el9,el10);var el10=dom.createElement("div");dom.setAttribute(el10,"class","columns");var el11=dom.createTextNode("\n                      ");dom.appendChild(el10,el11);var el11=dom.createElement("div");dom.setAttribute(el11,"class","place--phone align-middle row");var el12=dom.createTextNode("\n                        ");dom.appendChild(el11,el12);var el12=dom.createElement("div");dom.setAttribute(el12,"class","small-12 columns");var el13=dom.createTextNode("\n                          ");dom.appendChild(el12,el13);var el13=dom.createElement("label");var el14=dom.createElement("i");dom.setAttribute(el14,"class","fa fa-info");dom.appendChild(el13,el14);var el14=dom.createTextNode(" Description\n                            ");dom.appendChild(el13,el14);var el14=dom.createComment("");dom.appendChild(el13,el14);var el14=dom.createTextNode("\n                          ");dom.appendChild(el13,el14);dom.appendChild(el12,el13);var el13=dom.createTextNode("\n                        ");dom.appendChild(el12,el13);dom.appendChild(el11,el12);var el12=dom.createTextNode("\n                      ");dom.appendChild(el11,el12);dom.appendChild(el10,el11);var el11=dom.createTextNode("\n                    ");dom.appendChild(el10,el11);dom.appendChild(el9,el10);var el10=dom.createTextNode("\n                  ");dom.appendChild(el9,el10);dom.appendChild(el8,el9);var el9=dom.createTextNode("\n\n                  ");dom.appendChild(el8,el9);var el9=dom.createElement("div");dom.setAttribute(el9,"class","place--info--holder row");var el10=dom.createTextNode("\n                    ");dom.appendChild(el9,el10);var el10=dom.createElement("div");dom.setAttribute(el10,"class","columns");var el11=dom.createTextNode("\n                      ");dom.appendChild(el10,el11);var el11=dom.createElement("div");dom.setAttribute(el11,"class","place--rating");var el12=dom.createTextNode("\n");dom.appendChild(el11,el12);var el12=dom.createComment("");dom.appendChild(el11,el12);var el12=dom.createTextNode("                      ");dom.appendChild(el11,el12);dom.appendChild(el10,el11);var el11=dom.createTextNode("\n                    ");dom.appendChild(el10,el11);dom.appendChild(el9,el10);var el10=dom.createTextNode("\n                  ");dom.appendChild(el9,el10);dom.appendChild(el8,el9);var el9=dom.createTextNode("\n                ");dom.appendChild(el8,el9);dom.appendChild(el7,el8);var el8=dom.createTextNode("\n              ");dom.appendChild(el7,el8);dom.appendChild(el6,el7);var el7=dom.createTextNode("\n            ");dom.appendChild(el6,el7);dom.appendChild(el5,el6);var el6=dom.createTextNode("\n          ");dom.appendChild(el5,el6);dom.appendChild(el4,el5);var el5=dom.createTextNode("\n        ");dom.appendChild(el4,el5);dom.appendChild(el3,el4);var el4=dom.createTextNode("\n        ");dom.appendChild(el3,el4);var el4=dom.createElement("div");dom.setAttribute(el4,"class","place--info--holder row");var el5=dom.createTextNode("\n          ");dom.appendChild(el4,el5);var el5=dom.createElement("div");dom.setAttribute(el5,"class","columns");var el6=dom.createTextNode("\n            ");dom.appendChild(el5,el6);var el6=dom.createElement("button");dom.setAttribute(el6,"type","submit");dom.setAttribute(el6,"class","button expanded");var el7=dom.createTextNode("Save");dom.appendChild(el6,el7);dom.appendChild(el5,el6);var el6=dom.createTextNode("\n          ");dom.appendChild(el5,el6);dom.appendChild(el4,el5);var el5=dom.createTextNode("\n        ");dom.appendChild(el4,el5);dom.appendChild(el3,el4);var el4=dom.createTextNode("\n      ");dom.appendChild(el3,el4);dom.appendChild(el2,el3);var el3=dom.createTextNode("\n    ");dom.appendChild(el2,el3);dom.appendChild(el1,el2);var el2=dom.createTextNode("\n  ");dom.appendChild(el1,el2);dom.appendChild(el0,el1);var el1=dom.createTextNode("\n");dom.appendChild(el0,el1);var el1=dom.createTextNode("\n");dom.appendChild(el0,el1);return el0;},buildRenderNodes:function buildRenderNodes(dom,fragment,contextualElement){var element23=dom.childAt(fragment,[2,1,1]);var element24=dom.childAt(element23,[1,1,1,1]);var element25=dom.childAt(element24,[1]);var element26=dom.childAt(element25,[1]);var element27=dom.childAt(element25,[3]);var element28=dom.childAt(element25,[11]);var element29=dom.childAt(element28,[3,1]);var element30=dom.childAt(element24,[3]);var element31=dom.childAt(element30,[3]);var morphs=new Array(12);morphs[0] = dom.createElementMorph(element23);morphs[1] = dom.createElementMorph(element26);morphs[2] = dom.createElementMorph(element27);morphs[3] = dom.createMorphAt(dom.childAt(element25,[7]),1,1);morphs[4] = dom.createMorphAt(dom.childAt(element28,[1]),0,0);morphs[5] = dom.createElementMorph(element29);morphs[6] = dom.createMorphAt(dom.childAt(element30,[1,2,1,1,1]),2,2);morphs[7] = dom.createMorphAt(dom.childAt(element31,[1,1,1,1]),2,2);morphs[8] = dom.createMorphAt(dom.childAt(element31,[3,1,1,1]),2,2);morphs[9] = dom.createMorphAt(dom.childAt(element30,[5,1,1,1,1]),2,2);morphs[10] = dom.createMorphAt(dom.childAt(element30,[7,1,1,1,1]),2,2);morphs[11] = dom.createMorphAt(dom.childAt(element30,[9,1,1]),1,1);return morphs;},statements:[["element","action",["savePlace",["get","model",["loc",[null,[50,33],[50,38]]]]],["on","submit"],["loc",[null,[50,12],[50,52]]]],["element","action",["deletePlace",["get","model",["loc",[null,[56,82],[56,87]]]]],["bubbles","false"],["loc",[null,[56,59],[56,105]]]],["element","action",["cancelPlace",["get","model",["loc",[null,[57,82],[57,87]]]]],["bubbles","false"],["loc",[null,[57,59],[57,105]]]],["inline","input",[],["type","text","class","place--input","value",["subexpr","@mut",[["get","model.name",["loc",[null,[61,67],[61,77]]]]],[],[]]],["loc",[null,[61,20],[61,79]]]],["content","model.label.name",["loc",[null,[65,49],[65,69]]]],["element","action",["showAddLabel"],["bubbles","false"],["loc",[null,[67,61],[67,102]]]],["inline","input",[],["value",["subexpr","@mut",[["get","model.formattedaddress",["loc",[null,[78,42],[78,64]]]]],[],[]],"class","place--main-input","type","text"],["loc",[null,[78,28],[78,105]]]],["inline","input",[],["value",["subexpr","@mut",[["get","model.website",["loc",[null,[91,42],[91,55]]]]],[],[]],"class","place--main-input","type","text"],["loc",[null,[91,28],[91,95]]]],["inline","input",[],["value",["subexpr","@mut",[["get","model.phone",["loc",[null,[100,42],[100,53]]]]],[],[]],"class","place--main-input","type","text"],["loc",[null,[100,28],[100,93]]]],["block","star-rating-fa",[],["item",["subexpr","@mut",[["get","model",["loc",[null,[113,52],[113,57]]]]],[],[]],"rating",["subexpr","@mut",[["get","model.pricerange",["loc",[null,[113,65],[113,81]]]]],[],[]],"on-click",["subexpr","action",["setPrice"],[],["loc",[null,[113,91],[113,110]]]]],0,null,["loc",[null,[113,28],[121,47]]]],["inline","textarea",[],["type","text","cols","60","rows","3","class","place--main-input","value",["subexpr","@mut",[["get","model.description",["loc",[null,[133,102],[133,119]]]]],[],[]]],["loc",[null,[133,28],[133,121]]]],["block","star-rating-fa",[],["item",["subexpr","@mut",[["get","model",["loc",[null,[143,48],[143,53]]]]],[],[]],"rating",["subexpr","@mut",[["get","model.rating",["loc",[null,[143,61],[143,73]]]]],[],[]],"on-click",["subexpr","action",["setRating"],[],["loc",[null,[143,83],[143,103]]]]],1,null,["loc",[null,[143,24],[151,43]]]]],locals:[],templates:[child0,child1]};})();var child2=(function(){var child0=(function(){return {meta:{"fragmentReason":false,"revision":"Ember@2.3.2","loc":{"source":null,"start":{"line":176,"column":6},"end":{"line":182,"column":6}},"moduleName":"finndis/templates/place.hbs"},isEmpty:false,arity:0,cachedFragment:null,hasRendered:false,buildFragment:function buildFragment(dom){var el0=dom.createDocumentFragment();var el1=dom.createTextNode("      ");dom.appendChild(el0,el1);var el1=dom.createElement("div");dom.setAttribute(el1,"class","row");var el2=dom.createTextNode("\n        ");dom.appendChild(el1,el2);var el2=dom.createElement("div");dom.setAttribute(el2,"class","columns");var el3=dom.createTextNode("\n          ");dom.appendChild(el2,el3);var el3=dom.createComment("");dom.appendChild(el2,el3);var el3=dom.createTextNode("\n        ");dom.appendChild(el2,el3);dom.appendChild(el1,el2);var el2=dom.createTextNode("\n      ");dom.appendChild(el1,el2);dom.appendChild(el0,el1);var el1=dom.createTextNode("\n");dom.appendChild(el0,el1);return el0;},buildRenderNodes:function buildRenderNodes(dom,fragment,contextualElement){var morphs=new Array(1);morphs[0] = dom.createMorphAt(dom.childAt(fragment,[1,1]),1,1);return morphs;},statements:[["inline","google-map",[],["longitude",["subexpr","@mut",[["get","mapLng",["loc",[null,[179,33],[179,39]]]]],[],[]],"latitude",["subexpr","@mut",[["get","mapLat",["loc",[null,[179,49],[179,55]]]]],[],[]]],["loc",[null,[179,10],[179,57]]]]],locals:[],templates:[]};})();var child1=(function(){var child0=(function(){return {meta:{"fragmentReason":false,"revision":"Ember@2.3.2","loc":{"source":null,"start":{"line":205,"column":18},"end":{"line":216,"column":18}},"moduleName":"finndis/templates/place.hbs"},isEmpty:false,arity:0,cachedFragment:null,hasRendered:false,buildFragment:function buildFragment(dom){var el0=dom.createDocumentFragment();var el1=dom.createTextNode("                  ");dom.appendChild(el0,el1);var el1=dom.createElement("div");dom.setAttribute(el1,"class","columns small-12 medium-6");var el2=dom.createTextNode("\n                    ");dom.appendChild(el1,el2);var el2=dom.createElement("div");dom.setAttribute(el2,"class","place--spacing place--address row");var el3=dom.createTextNode("\n                      ");dom.appendChild(el2,el3);var el3=dom.createElement("div");dom.setAttribute(el3,"class","place--main--icon--holder small-1 columns");var el4=dom.createTextNode("\n                        ");dom.appendChild(el3,el4);var el4=dom.createElement("i");dom.setAttribute(el4,"class","place--main--icon fa fa-map-marker");dom.appendChild(el3,el4);var el4=dom.createTextNode("\n                      ");dom.appendChild(el3,el4);dom.appendChild(el2,el3);var el3=dom.createTextNode("\n                      ");dom.appendChild(el2,el3);var el3=dom.createElement("div");dom.setAttribute(el3,"class","small-11 columns");var el4=dom.createTextNode("\n                        ");dom.appendChild(el3,el4);var el4=dom.createComment("");dom.appendChild(el3,el4);var el4=dom.createTextNode("\n                      ");dom.appendChild(el3,el4);dom.appendChild(el2,el3);var el3=dom.createTextNode("\n                    ");dom.appendChild(el2,el3);dom.appendChild(el1,el2);var el2=dom.createTextNode("\n                  ");dom.appendChild(el1,el2);dom.appendChild(el0,el1);var el1=dom.createTextNode("\n");dom.appendChild(el0,el1);return el0;},buildRenderNodes:function buildRenderNodes(dom,fragment,contextualElement){var morphs=new Array(1);morphs[0] = dom.createMorphAt(dom.childAt(fragment,[1,1,3]),1,1);return morphs;},statements:[["content","model.formattedaddress",["loc",[null,[212,24],[212,50]]]]],locals:[],templates:[]};})();var child1=(function(){return {meta:{"fragmentReason":false,"revision":"Ember@2.3.2","loc":{"source":null,"start":{"line":217,"column":18},"end":{"line":230,"column":18}},"moduleName":"finndis/templates/place.hbs"},isEmpty:false,arity:0,cachedFragment:null,hasRendered:false,buildFragment:function buildFragment(dom){var el0=dom.createDocumentFragment();var el1=dom.createTextNode("                  ");dom.appendChild(el0,el1);var el1=dom.createElement("div");dom.setAttribute(el1,"class","columns small-12 medium-6");var el2=dom.createTextNode("\n                    ");dom.appendChild(el1,el2);var el2=dom.createElement("a");var el3=dom.createTextNode("\n                      ");dom.appendChild(el2,el3);var el3=dom.createElement("div");dom.setAttribute(el3,"class","place--phone row");var el4=dom.createTextNode("\n                        ");dom.appendChild(el3,el4);var el4=dom.createElement("div");dom.setAttribute(el4,"class","place--main--icon--holder small-1 columns");var el5=dom.createTextNode("\n                          ");dom.appendChild(el4,el5);var el5=dom.createElement("i");dom.setAttribute(el5,"class","place--main--icon fa fa-phone");dom.appendChild(el4,el5);var el5=dom.createTextNode("\n                        ");dom.appendChild(el4,el5);dom.appendChild(el3,el4);var el4=dom.createTextNode("\n                        ");dom.appendChild(el3,el4);var el4=dom.createElement("div");dom.setAttribute(el4,"class","small-11 columns");var el5=dom.createTextNode("\n                          ");dom.appendChild(el4,el5);var el5=dom.createComment("");dom.appendChild(el4,el5);var el5=dom.createTextNode("\n                        ");dom.appendChild(el4,el5);dom.appendChild(el3,el4);var el4=dom.createTextNode("\n                      ");dom.appendChild(el3,el4);dom.appendChild(el2,el3);var el3=dom.createTextNode("\n                    ");dom.appendChild(el2,el3);dom.appendChild(el1,el2);var el2=dom.createTextNode("\n                  ");dom.appendChild(el1,el2);dom.appendChild(el0,el1);var el1=dom.createTextNode("\n");dom.appendChild(el0,el1);return el0;},buildRenderNodes:function buildRenderNodes(dom,fragment,contextualElement){var element7=dom.childAt(fragment,[1,1]);var morphs=new Array(2);morphs[0] = dom.createAttrMorph(element7,'href');morphs[1] = dom.createMorphAt(dom.childAt(element7,[1,3]),1,1);return morphs;},statements:[["attribute","href",["concat",["tel:",["get","model.phone",["loc",[null,[219,35],[219,46]]]]]]],["content","model.phone",["loc",[null,[225,26],[225,41]]]]],locals:[],templates:[]};})();return {meta:{"fragmentReason":false,"revision":"Ember@2.3.2","loc":{"source":null,"start":{"line":203,"column":16},"end":{"line":232,"column":16}},"moduleName":"finndis/templates/place.hbs"},isEmpty:false,arity:0,cachedFragment:null,hasRendered:false,buildFragment:function buildFragment(dom){var el0=dom.createDocumentFragment();var el1=dom.createTextNode("                ");dom.appendChild(el0,el1);var el1=dom.createElement("div");dom.setAttribute(el1,"class","place--info--holder row");var el2=dom.createTextNode("\n");dom.appendChild(el1,el2);var el2=dom.createComment("");dom.appendChild(el1,el2);var el2=dom.createComment("");dom.appendChild(el1,el2);var el2=dom.createTextNode("                ");dom.appendChild(el1,el2);dom.appendChild(el0,el1);var el1=dom.createTextNode("\n");dom.appendChild(el0,el1);return el0;},buildRenderNodes:function buildRenderNodes(dom,fragment,contextualElement){var element8=dom.childAt(fragment,[1]);var morphs=new Array(2);morphs[0] = dom.createMorphAt(element8,1,1);morphs[1] = dom.createMorphAt(element8,2,2);return morphs;},statements:[["block","if",[["get","model.formattedaddress",["loc",[null,[205,24],[205,46]]]]],[],0,null,["loc",[null,[205,18],[216,25]]]],["block","if",[["get","model.phone",["loc",[null,[217,24],[217,35]]]]],[],1,null,["loc",[null,[217,18],[230,25]]]]],locals:[],templates:[child0,child1]};})();var child2=(function(){var child0=(function(){return {meta:{"fragmentReason":false,"revision":"Ember@2.3.2","loc":{"source":null,"start":{"line":237,"column":18},"end":{"line":250,"column":18}},"moduleName":"finndis/templates/place.hbs"},isEmpty:false,arity:0,cachedFragment:null,hasRendered:false,buildFragment:function buildFragment(dom){var el0=dom.createDocumentFragment();var el1=dom.createTextNode("                  ");dom.appendChild(el0,el1);var el1=dom.createElement("div");dom.setAttribute(el1,"class","columns small-12 medium-6");var el2=dom.createTextNode("\n                    ");dom.appendChild(el1,el2);var el2=dom.createElement("a");var el3=dom.createTextNode("\n                      ");dom.appendChild(el2,el3);var el3=dom.createElement("div");dom.setAttribute(el3,"class","place--spacing place--website row align-middle");var el4=dom.createTextNode("\n                        ");dom.appendChild(el3,el4);var el4=dom.createElement("div");dom.setAttribute(el4,"class","place--main--icon--holder small-1 columns");var el5=dom.createTextNode("\n                          ");dom.appendChild(el4,el5);var el5=dom.createElement("i");dom.setAttribute(el5,"class","place--main--icon fa fa-globe");dom.appendChild(el4,el5);var el5=dom.createTextNode("\n                        ");dom.appendChild(el4,el5);dom.appendChild(el3,el4);var el4=dom.createTextNode("\n                        ");dom.appendChild(el3,el4);var el4=dom.createElement("div");dom.setAttribute(el4,"class","small-11 columns");var el5=dom.createTextNode("\n                          ");dom.appendChild(el4,el5);var el5=dom.createComment("");dom.appendChild(el4,el5);var el5=dom.createTextNode("\n                        ");dom.appendChild(el4,el5);dom.appendChild(el3,el4);var el4=dom.createTextNode("\n                      ");dom.appendChild(el3,el4);dom.appendChild(el2,el3);var el3=dom.createTextNode("\n                    ");dom.appendChild(el2,el3);dom.appendChild(el1,el2);var el2=dom.createTextNode("\n                  ");dom.appendChild(el1,el2);dom.appendChild(el0,el1);var el1=dom.createTextNode("\n");dom.appendChild(el0,el1);return el0;},buildRenderNodes:function buildRenderNodes(dom,fragment,contextualElement){var element5=dom.childAt(fragment,[1,1]);var morphs=new Array(2);morphs[0] = dom.createAttrMorph(element5,'href');morphs[1] = dom.createMorphAt(dom.childAt(element5,[1,3]),1,1);return morphs;},statements:[["attribute","href",["concat",[["get","model.website",["loc",[null,[239,31],[239,44]]]]]]],["content","model.website",["loc",[null,[245,26],[245,43]]]]],locals:[],templates:[]};})();var child1=(function(){return {meta:{"fragmentReason":false,"revision":"Ember@2.3.2","loc":{"source":null,"start":{"line":251,"column":18},"end":{"line":264,"column":18}},"moduleName":"finndis/templates/place.hbs"},isEmpty:false,arity:0,cachedFragment:null,hasRendered:false,buildFragment:function buildFragment(dom){var el0=dom.createDocumentFragment();var el1=dom.createTextNode("                  ");dom.appendChild(el0,el1);var el1=dom.createElement("div");dom.setAttribute(el1,"class","columns small-12 medium-6");var el2=dom.createTextNode("\n                    ");dom.appendChild(el1,el2);var el2=dom.createElement("a");dom.setAttribute(el2,"target","_blank");var el3=dom.createTextNode("\n                      ");dom.appendChild(el2,el3);var el3=dom.createElement("div");dom.setAttribute(el3,"class","place--url row align-middle");var el4=dom.createTextNode("\n                        ");dom.appendChild(el3,el4);var el4=dom.createElement("div");dom.setAttribute(el4,"class","place--main--icon--holder small-1 columns");var el5=dom.createTextNode("\n                          ");dom.appendChild(el4,el5);var el5=dom.createElement("i");dom.setAttribute(el5,"class","place--main--icon fa fa-google");dom.appendChild(el4,el5);var el5=dom.createTextNode("\n                        ");dom.appendChild(el4,el5);dom.appendChild(el3,el4);var el4=dom.createTextNode("\n                        ");dom.appendChild(el3,el4);var el4=dom.createElement("div");dom.setAttribute(el4,"class","small-11 columns");var el5=dom.createTextNode("\n                          Google Map\n                        ");dom.appendChild(el4,el5);dom.appendChild(el3,el4);var el4=dom.createTextNode("\n                      ");dom.appendChild(el3,el4);dom.appendChild(el2,el3);var el3=dom.createTextNode("\n                    ");dom.appendChild(el2,el3);dom.appendChild(el1,el2);var el2=dom.createTextNode("\n                  ");dom.appendChild(el1,el2);dom.appendChild(el0,el1);var el1=dom.createTextNode("\n");dom.appendChild(el0,el1);return el0;},buildRenderNodes:function buildRenderNodes(dom,fragment,contextualElement){var element4=dom.childAt(fragment,[1,1]);var morphs=new Array(1);morphs[0] = dom.createAttrMorph(element4,'href');return morphs;},statements:[["attribute","href",["concat",[["get","model.url",["loc",[null,[253,31],[253,40]]]]]]]],locals:[],templates:[]};})();return {meta:{"fragmentReason":false,"revision":"Ember@2.3.2","loc":{"source":null,"start":{"line":235,"column":16},"end":{"line":266,"column":16}},"moduleName":"finndis/templates/place.hbs"},isEmpty:false,arity:0,cachedFragment:null,hasRendered:false,buildFragment:function buildFragment(dom){var el0=dom.createDocumentFragment();var el1=dom.createTextNode("                ");dom.appendChild(el0,el1);var el1=dom.createElement("div");dom.setAttribute(el1,"class","place--info--holder row");var el2=dom.createTextNode("\n");dom.appendChild(el1,el2);var el2=dom.createComment("");dom.appendChild(el1,el2);var el2=dom.createComment("");dom.appendChild(el1,el2);var el2=dom.createTextNode("                ");dom.appendChild(el1,el2);dom.appendChild(el0,el1);var el1=dom.createTextNode("\n");dom.appendChild(el0,el1);return el0;},buildRenderNodes:function buildRenderNodes(dom,fragment,contextualElement){var element6=dom.childAt(fragment,[1]);var morphs=new Array(2);morphs[0] = dom.createMorphAt(element6,1,1);morphs[1] = dom.createMorphAt(element6,2,2);return morphs;},statements:[["block","if",[["get","model.website",["loc",[null,[237,24],[237,37]]]]],[],0,null,["loc",[null,[237,18],[250,25]]]],["block","if",[["get","model.url",["loc",[null,[251,24],[251,33]]]]],[],1,null,["loc",[null,[251,18],[264,25]]]]],locals:[],templates:[child0,child1]};})();var child3=(function(){var child0=(function(){var child0=(function(){var child0=(function(){return {meta:{"fragmentReason":false,"revision":"Ember@2.3.2","loc":{"source":null,"start":{"line":290,"column":28},"end":{"line":292,"column":28}},"moduleName":"finndis/templates/place.hbs"},isEmpty:false,arity:0,cachedFragment:null,hasRendered:false,buildFragment:function buildFragment(dom){var el0=dom.createDocumentFragment();var el1=dom.createTextNode("                              ");dom.appendChild(el0,el1);var el1=dom.createElement("a");dom.setAttribute(el1,"class","price-rating fa fa-square");dom.appendChild(el0,el1);var el1=dom.createTextNode("\n");dom.appendChild(el0,el1);return el0;},buildRenderNodes:function buildRenderNodes(dom,fragment,contextualElement){var element3=dom.childAt(fragment,[1]);var morphs=new Array(1);morphs[0] = dom.createElementMorph(element3);return morphs;},statements:[["element","action",[["get","set",["loc",[null,[291,76],[291,79]]]],["get","star.rating",["loc",[null,[291,80],[291,91]]]]],[],["loc",[null,[291,67],[291,93]]]]],locals:[],templates:[]};})();var child1=(function(){return {meta:{"fragmentReason":false,"revision":"Ember@2.3.2","loc":{"source":null,"start":{"line":292,"column":28},"end":{"line":294,"column":28}},"moduleName":"finndis/templates/place.hbs"},isEmpty:false,arity:0,cachedFragment:null,hasRendered:false,buildFragment:function buildFragment(dom){var el0=dom.createDocumentFragment();var el1=dom.createTextNode("                              ");dom.appendChild(el0,el1);var el1=dom.createElement("a");dom.setAttribute(el1,"class","price-rating fa fa-square-o");dom.appendChild(el0,el1);var el1=dom.createTextNode("\n");dom.appendChild(el0,el1);return el0;},buildRenderNodes:function buildRenderNodes(dom,fragment,contextualElement){var element2=dom.childAt(fragment,[1]);var morphs=new Array(1);morphs[0] = dom.createElementMorph(element2);return morphs;},statements:[["element","action",[["get","set",["loc",[null,[293,78],[293,81]]]],["get","star.rating",["loc",[null,[293,82],[293,93]]]]],[],["loc",[null,[293,69],[293,95]]]]],locals:[],templates:[]};})();return {meta:{"fragmentReason":false,"revision":"Ember@2.3.2","loc":{"source":null,"start":{"line":289,"column":26},"end":{"line":295,"column":26}},"moduleName":"finndis/templates/place.hbs"},isEmpty:false,arity:1,cachedFragment:null,hasRendered:false,buildFragment:function buildFragment(dom){var el0=dom.createDocumentFragment();var el1=dom.createComment("");dom.appendChild(el0,el1);return el0;},buildRenderNodes:function buildRenderNodes(dom,fragment,contextualElement){var morphs=new Array(1);morphs[0] = dom.createMorphAt(fragment,0,0,contextualElement);dom.insertBoundary(fragment,0);dom.insertBoundary(fragment,null);return morphs;},statements:[["block","if",[["get","star.full",["loc",[null,[290,34],[290,43]]]]],[],0,1,["loc",[null,[290,28],[294,35]]]]],locals:["star"],templates:[child0,child1]};})();return {meta:{"fragmentReason":false,"revision":"Ember@2.3.2","loc":{"source":null,"start":{"line":288,"column":24},"end":{"line":296,"column":24}},"moduleName":"finndis/templates/place.hbs"},isEmpty:false,arity:2,cachedFragment:null,hasRendered:false,buildFragment:function buildFragment(dom){var el0=dom.createDocumentFragment();var el1=dom.createComment("");dom.appendChild(el0,el1);return el0;},buildRenderNodes:function buildRenderNodes(dom,fragment,contextualElement){var morphs=new Array(1);morphs[0] = dom.createMorphAt(fragment,0,0,contextualElement);dom.insertBoundary(fragment,0);dom.insertBoundary(fragment,null);return morphs;},statements:[["block","each",[["get","stars",["loc",[null,[289,34],[289,39]]]]],[],0,null,["loc",[null,[289,26],[295,35]]]]],locals:["stars","set"],templates:[child0]};})();return {meta:{"fragmentReason":false,"revision":"Ember@2.3.2","loc":{"source":null,"start":{"line":281,"column":18},"end":{"line":300,"column":18}},"moduleName":"finndis/templates/place.hbs"},isEmpty:false,arity:0,cachedFragment:null,hasRendered:false,buildFragment:function buildFragment(dom){var el0=dom.createDocumentFragment();var el1=dom.createTextNode("                  ");dom.appendChild(el0,el1);var el1=dom.createElement("div");dom.setAttribute(el1,"class","columns small-12 medium-6");var el2=dom.createTextNode("\n                    ");dom.appendChild(el1,el2);var el2=dom.createElement("div");dom.setAttribute(el2,"class","place--price row align-middle");var el3=dom.createTextNode("\n                      ");dom.appendChild(el2,el3);var el3=dom.createElement("div");dom.setAttribute(el3,"class","place--main--icon--holder small-1 columns");var el4=dom.createTextNode("\n                        ");dom.appendChild(el3,el4);var el4=dom.createElement("i");dom.setAttribute(el4,"class","place--main--icon fa fa-usd");dom.appendChild(el3,el4);var el4=dom.createTextNode("\n                      ");dom.appendChild(el3,el4);dom.appendChild(el2,el3);var el3=dom.createTextNode("\n                      ");dom.appendChild(el2,el3);var el3=dom.createElement("div");dom.setAttribute(el3,"class","small-11 columns");var el4=dom.createTextNode("\n");dom.appendChild(el3,el4);var el4=dom.createComment("");dom.appendChild(el3,el4);var el4=dom.createTextNode("                      ");dom.appendChild(el3,el4);dom.appendChild(el2,el3);var el3=dom.createTextNode("\n                    ");dom.appendChild(el2,el3);dom.appendChild(el1,el2);var el2=dom.createTextNode("\n                  ");dom.appendChild(el1,el2);dom.appendChild(el0,el1);var el1=dom.createTextNode("\n");dom.appendChild(el0,el1);return el0;},buildRenderNodes:function buildRenderNodes(dom,fragment,contextualElement){var morphs=new Array(1);morphs[0] = dom.createMorphAt(dom.childAt(fragment,[1,1,3]),1,1);return morphs;},statements:[["block","star-rating-fa",[],["item",["subexpr","@mut",[["get","model",["loc",[null,[288,48],[288,53]]]]],[],[]],"rating",["subexpr","@mut",[["get","model.pricerange",["loc",[null,[288,61],[288,77]]]]],[],[]],"on-click",["subexpr","action",["setPrice"],[],["loc",[null,[288,87],[288,106]]]]],0,null,["loc",[null,[288,24],[296,43]]]]],locals:[],templates:[child0]};})();var child4=(function(){return {meta:{"fragmentReason":false,"revision":"Ember@2.3.2","loc":{"source":null,"start":{"line":303,"column":16},"end":{"line":316,"column":16}},"moduleName":"finndis/templates/place.hbs"},isEmpty:false,arity:0,cachedFragment:null,hasRendered:false,buildFragment:function buildFragment(dom){var el0=dom.createDocumentFragment();var el1=dom.createTextNode("                ");dom.appendChild(el0,el1);var el1=dom.createElement("div");dom.setAttribute(el1,"class","place--info--holder row");var el2=dom.createTextNode("\n                  ");dom.appendChild(el1,el2);var el2=dom.createElement("div");dom.setAttribute(el2,"class","columns small-12 medium-6");var el3=dom.createTextNode("\n                    ");dom.appendChild(el2,el3);var el3=dom.createElement("div");dom.setAttribute(el3,"class","place--description row");var el4=dom.createTextNode("\n                      ");dom.appendChild(el3,el4);var el4=dom.createElement("div");dom.setAttribute(el4,"class","place--main--icon--holder small-1 columns");var el5=dom.createTextNode("\n                        ");dom.appendChild(el4,el5);var el5=dom.createElement("i");dom.setAttribute(el5,"class","place--main--icon fa fa-info");dom.appendChild(el4,el5);var el5=dom.createTextNode("\n                      ");dom.appendChild(el4,el5);dom.appendChild(el3,el4);var el4=dom.createTextNode("\n                      ");dom.appendChild(el3,el4);var el4=dom.createElement("div");dom.setAttribute(el4,"class","small-11 columns");var el5=dom.createTextNode("\n                        ");dom.appendChild(el4,el5);var el5=dom.createComment("");dom.appendChild(el4,el5);var el5=dom.createTextNode("\n                      ");dom.appendChild(el4,el5);dom.appendChild(el3,el4);var el4=dom.createTextNode("\n                    ");dom.appendChild(el3,el4);dom.appendChild(el2,el3);var el3=dom.createTextNode("\n                  ");dom.appendChild(el2,el3);dom.appendChild(el1,el2);var el2=dom.createTextNode("\n                ");dom.appendChild(el1,el2);dom.appendChild(el0,el1);var el1=dom.createTextNode("\n");dom.appendChild(el0,el1);return el0;},buildRenderNodes:function buildRenderNodes(dom,fragment,contextualElement){var morphs=new Array(1);morphs[0] = dom.createMorphAt(dom.childAt(fragment,[1,1,1,3]),1,1);return morphs;},statements:[["content","model.description",["loc",[null,[311,24],[311,45]]]]],locals:[],templates:[]};})();var child5=(function(){var child0=(function(){var child0=(function(){return {meta:{"fragmentReason":false,"revision":"Ember@2.3.2","loc":{"source":null,"start":{"line":322,"column":26},"end":{"line":324,"column":26}},"moduleName":"finndis/templates/place.hbs"},isEmpty:false,arity:0,cachedFragment:null,hasRendered:false,buildFragment:function buildFragment(dom){var el0=dom.createDocumentFragment();var el1=dom.createTextNode("                            ");dom.appendChild(el0,el1);var el1=dom.createElement("a");dom.setAttribute(el1,"class","star-rating fa fa-star");dom.appendChild(el0,el1);var el1=dom.createTextNode("\n");dom.appendChild(el0,el1);return el0;},buildRenderNodes:function buildRenderNodes(dom,fragment,contextualElement){var element1=dom.childAt(fragment,[1]);var morphs=new Array(1);morphs[0] = dom.createElementMorph(element1);return morphs;},statements:[["element","action",[["get","set",["loc",[null,[323,71],[323,74]]]],["get","star.rating",["loc",[null,[323,75],[323,86]]]]],[],["loc",[null,[323,62],[323,88]]]]],locals:[],templates:[]};})();var child1=(function(){return {meta:{"fragmentReason":false,"revision":"Ember@2.3.2","loc":{"source":null,"start":{"line":324,"column":26},"end":{"line":326,"column":26}},"moduleName":"finndis/templates/place.hbs"},isEmpty:false,arity:0,cachedFragment:null,hasRendered:false,buildFragment:function buildFragment(dom){var el0=dom.createDocumentFragment();var el1=dom.createTextNode("                            ");dom.appendChild(el0,el1);var el1=dom.createElement("a");dom.setAttribute(el1,"class","star-rating fa fa-star-o");dom.appendChild(el0,el1);var el1=dom.createTextNode("\n");dom.appendChild(el0,el1);return el0;},buildRenderNodes:function buildRenderNodes(dom,fragment,contextualElement){var element0=dom.childAt(fragment,[1]);var morphs=new Array(1);morphs[0] = dom.createElementMorph(element0);return morphs;},statements:[["element","action",[["get","set",["loc",[null,[325,73],[325,76]]]],["get","star.rating",["loc",[null,[325,77],[325,88]]]]],[],["loc",[null,[325,64],[325,90]]]]],locals:[],templates:[]};})();return {meta:{"fragmentReason":false,"revision":"Ember@2.3.2","loc":{"source":null,"start":{"line":321,"column":24},"end":{"line":327,"column":24}},"moduleName":"finndis/templates/place.hbs"},isEmpty:false,arity:1,cachedFragment:null,hasRendered:false,buildFragment:function buildFragment(dom){var el0=dom.createDocumentFragment();var el1=dom.createComment("");dom.appendChild(el0,el1);return el0;},buildRenderNodes:function buildRenderNodes(dom,fragment,contextualElement){var morphs=new Array(1);morphs[0] = dom.createMorphAt(fragment,0,0,contextualElement);dom.insertBoundary(fragment,0);dom.insertBoundary(fragment,null);return morphs;},statements:[["block","if",[["get","star.full",["loc",[null,[322,32],[322,41]]]]],[],0,1,["loc",[null,[322,26],[326,33]]]]],locals:["star"],templates:[child0,child1]};})();return {meta:{"fragmentReason":false,"revision":"Ember@2.3.2","loc":{"source":null,"start":{"line":320,"column":22},"end":{"line":328,"column":22}},"moduleName":"finndis/templates/place.hbs"},isEmpty:false,arity:2,cachedFragment:null,hasRendered:false,buildFragment:function buildFragment(dom){var el0=dom.createDocumentFragment();var el1=dom.createComment("");dom.appendChild(el0,el1);return el0;},buildRenderNodes:function buildRenderNodes(dom,fragment,contextualElement){var morphs=new Array(1);morphs[0] = dom.createMorphAt(fragment,0,0,contextualElement);dom.insertBoundary(fragment,0);dom.insertBoundary(fragment,null);return morphs;},statements:[["block","each",[["get","stars",["loc",[null,[321,32],[321,37]]]]],[],0,null,["loc",[null,[321,24],[327,33]]]]],locals:["stars","set"],templates:[child0]};})();return {meta:{"fragmentReason":false,"revision":"Ember@2.3.2","loc":{"source":null,"start":{"line":170,"column":0},"end":{"line":341,"column":0}},"moduleName":"finndis/templates/place.hbs"},isEmpty:false,arity:0,cachedFragment:null,hasRendered:false,buildFragment:function buildFragment(dom){var el0=dom.createDocumentFragment();var el1=dom.createTextNode("\n");dom.appendChild(el0,el1);var el1=dom.createTextNode("  ");dom.appendChild(el0,el1);var el1=dom.createElement("div");dom.setAttribute(el1,"class","place_details __display row");var el2=dom.createTextNode("\n    ");dom.appendChild(el1,el2);var el2=dom.createElement("div");dom.setAttribute(el2,"class","__display medium-12 columns");var el3=dom.createTextNode("\n\n");dom.appendChild(el2,el3);var el3=dom.createComment("");dom.appendChild(el2,el3);var el3=dom.createTextNode("\n      ");dom.appendChild(el2,el3);var el3=dom.createElement("div");dom.setAttribute(el3,"class","row");var el4=dom.createTextNode("\n        ");dom.appendChild(el3,el4);var el4=dom.createElement("div");dom.setAttribute(el4,"class","columns");var el5=dom.createTextNode("\n          ");dom.appendChild(el4,el5);var el5=dom.createElement("div");dom.setAttribute(el5,"class","place--holder");var el6=dom.createTextNode("\n            ");dom.appendChild(el5,el6);var el6=dom.createElement("article");dom.setAttribute(el6,"class","place");var el7=dom.createTextNode("\n              ");dom.appendChild(el6,el7);var el7=dom.createElement("header");dom.setAttribute(el7,"class","place--header");var el8=dom.createTextNode("\n                ");dom.appendChild(el7,el8);var el8=dom.createElement("a");dom.setAttribute(el8,"href","#");dom.setAttribute(el8,"class","button share-button");var el9=dom.createElement("i");dom.setAttribute(el9,"class","place--action--icon fa fa-share-alt");dom.appendChild(el8,el9);var el9=dom.createTextNode("Share");dom.appendChild(el8,el9);dom.appendChild(el7,el8);var el8=dom.createTextNode("\n                ");dom.appendChild(el7,el8);var el8=dom.createElement("a");dom.setAttribute(el8,"href","#");dom.setAttribute(el8,"class","button edit-button");var el9=dom.createElement("i");dom.setAttribute(el9,"class","place--action--icon fa fa-pencil-square-o");dom.appendChild(el8,el9);var el9=dom.createTextNode("Edit");dom.appendChild(el8,el9);dom.appendChild(el7,el8);var el8=dom.createTextNode("\n\n                ");dom.appendChild(el7,el8);var el8=dom.createElement("h2");dom.setAttribute(el8,"class","place--title");var el9=dom.createComment("");dom.appendChild(el8,el9);dom.appendChild(el7,el8);var el8=dom.createTextNode("\n                ");dom.appendChild(el7,el8);var el8=dom.createElement("i");dom.setAttribute(el8,"class","place--labels--icon fa fa-tag");dom.appendChild(el7,el8);var el8=dom.createTextNode("\n                ");dom.appendChild(el7,el8);var el8=dom.createElement("ul");dom.setAttribute(el8,"class","place--labels clearfix");var el9=dom.createTextNode("\n                  ");dom.appendChild(el8,el9);var el9=dom.createElement("li");dom.setAttribute(el9,"class","place--labelitem");var el10=dom.createComment("");dom.appendChild(el9,el10);dom.appendChild(el8,el9);var el9=dom.createTextNode("\n                  ");dom.appendChild(el8,el9);var el9=dom.createElement("li");dom.setAttribute(el9,"class","place--labelitem");var el10=dom.createTextNode("\n                    ");dom.appendChild(el9,el10);var el10=dom.createElement("i");dom.setAttribute(el10,"class","place--add--icon fa fa-plus");dom.appendChild(el9,el10);var el10=dom.createTextNode("\n                  ");dom.appendChild(el9,el10);dom.appendChild(el8,el9);var el9=dom.createTextNode("\n                ");dom.appendChild(el8,el9);dom.appendChild(el7,el8);var el8=dom.createTextNode("\n              ");dom.appendChild(el7,el8);dom.appendChild(el6,el7);var el7=dom.createTextNode("\n\n              ");dom.appendChild(el6,el7);var el7=dom.createElement("main");dom.setAttribute(el7,"class","place--main");var el8=dom.createTextNode("\n");dom.appendChild(el7,el8);var el8=dom.createComment("");dom.appendChild(el7,el8);var el8=dom.createTextNode("\n\n");dom.appendChild(el7,el8);var el8=dom.createComment("");dom.appendChild(el7,el8);var el8=dom.createTextNode("\n                ");dom.appendChild(el7,el8);var el8=dom.createElement("div");dom.setAttribute(el8,"class","place--info--holder row");var el9=dom.createTextNode("\n                  ");dom.appendChild(el8,el9);var el9=dom.createElement("div");dom.setAttribute(el9,"class","columns small-12 medium-6");var el10=dom.createTextNode("\n                    ");dom.appendChild(el9,el10);var el10=dom.createElement("a");dom.setAttribute(el10,"target","_blank");var el11=dom.createTextNode("\n                      ");dom.appendChild(el10,el11);var el11=dom.createElement("div");dom.setAttribute(el11,"class","place--spacing place--direction align-middle row");var el12=dom.createTextNode("\n                        ");dom.appendChild(el11,el12);var el12=dom.createElement("div");dom.setAttribute(el12,"class","place--main--icon--holder small-1 columns");var el13=dom.createTextNode("\n                          ");dom.appendChild(el12,el13);var el13=dom.createElement("i");dom.setAttribute(el13,"class","place--main--icon fa fa-location-arrow");dom.appendChild(el12,el13);var el13=dom.createTextNode("\n                        ");dom.appendChild(el12,el13);dom.appendChild(el11,el12);var el12=dom.createTextNode("\n                        ");dom.appendChild(el11,el12);var el12=dom.createElement("div");dom.setAttribute(el12,"class","small-11 columns");var el13=dom.createTextNode("\n                          Get direction\n                        ");dom.appendChild(el12,el13);dom.appendChild(el11,el12);var el12=dom.createTextNode("\n                      ");dom.appendChild(el11,el12);dom.appendChild(el10,el11);var el11=dom.createTextNode("\n                    ");dom.appendChild(el10,el11);dom.appendChild(el9,el10);var el10=dom.createTextNode("\n                  ");dom.appendChild(el9,el10);dom.appendChild(el8,el9);var el9=dom.createTextNode("\n");dom.appendChild(el8,el9);var el9=dom.createComment("");dom.appendChild(el8,el9);var el9=dom.createTextNode("                ");dom.appendChild(el8,el9);dom.appendChild(el7,el8);var el8=dom.createTextNode("\n\n");dom.appendChild(el7,el8);var el8=dom.createComment("");dom.appendChild(el7,el8);var el8=dom.createTextNode("                ");dom.appendChild(el7,el8);var el8=dom.createElement("div");dom.setAttribute(el8,"class","place--info--holder row");var el9=dom.createTextNode("\n                  ");dom.appendChild(el8,el9);var el9=dom.createElement("div");dom.setAttribute(el9,"class","columns");var el10=dom.createTextNode("\n                    ");dom.appendChild(el9,el10);var el10=dom.createElement("div");dom.setAttribute(el10,"class","place--rating");var el11=dom.createTextNode("\n");dom.appendChild(el10,el11);var el11=dom.createComment("");dom.appendChild(el10,el11);var el11=dom.createTextNode("                    ");dom.appendChild(el10,el11);dom.appendChild(el9,el10);var el10=dom.createTextNode("\n                  ");dom.appendChild(el9,el10);dom.appendChild(el8,el9);var el9=dom.createTextNode("\n                ");dom.appendChild(el8,el9);dom.appendChild(el7,el8);var el8=dom.createTextNode("\n              ");dom.appendChild(el7,el8);dom.appendChild(el6,el7);var el7=dom.createTextNode("\n            ");dom.appendChild(el6,el7);dom.appendChild(el5,el6);var el6=dom.createTextNode("\n          ");dom.appendChild(el5,el6);dom.appendChild(el4,el5);var el5=dom.createTextNode("\n        ");dom.appendChild(el4,el5);dom.appendChild(el3,el4);var el4=dom.createTextNode("\n      ");dom.appendChild(el3,el4);dom.appendChild(el2,el3);var el3=dom.createTextNode("\n    ");dom.appendChild(el2,el3);dom.appendChild(el1,el2);var el2=dom.createTextNode("\n  ");dom.appendChild(el1,el2);dom.appendChild(el0,el1);var el1=dom.createTextNode("\n");dom.appendChild(el0,el1);var el1=dom.createTextNode("\n");dom.appendChild(el0,el1);return el0;},buildRenderNodes:function buildRenderNodes(dom,fragment,contextualElement){var element9=dom.childAt(fragment,[2,1]);var element10=dom.childAt(element9,[3,1,1,1]);var element11=dom.childAt(element10,[1]);var element12=dom.childAt(element11,[1]);var element13=dom.childAt(element11,[3]);var element14=dom.childAt(element11,[9]);var element15=dom.childAt(element14,[3,1]);var element16=dom.childAt(element10,[3]);var element17=dom.childAt(element16,[5]);var element18=dom.childAt(element17,[1,1]);var morphs=new Array(12);morphs[0] = dom.createMorphAt(element9,1,1);morphs[1] = dom.createElementMorph(element12);morphs[2] = dom.createElementMorph(element13);morphs[3] = dom.createMorphAt(dom.childAt(element11,[5]),0,0);morphs[4] = dom.createMorphAt(dom.childAt(element14,[1]),0,0);morphs[5] = dom.createElementMorph(element15);morphs[6] = dom.createMorphAt(element16,1,1);morphs[7] = dom.createMorphAt(element16,3,3);morphs[8] = dom.createAttrMorph(element18,'href');morphs[9] = dom.createMorphAt(element17,3,3);morphs[10] = dom.createMorphAt(element16,7,7);morphs[11] = dom.createMorphAt(dom.childAt(element16,[9,1,1]),1,1);return morphs;},statements:[["block","if",[["get","model.locationlat",["loc",[null,[176,12],[176,29]]]]],[],0,null,["loc",[null,[176,6],[182,13]]]],["element","action",["sharePlace"],[],["loc",[null,[189,56],[189,79]]]],["element","action",["toggleEdition"],[],["loc",[null,[190,55],[190,81]]]],["content","model.name",["loc",[null,[192,41],[192,55]]]],["content","model.label.name",["loc",[null,[195,47],[195,67]]]],["element","action",["showAddLabel"],["bubbles","false"],["loc",[null,[197,59],[197,100]]]],["block","if",[["get","hasPhoneOrAddress",["loc",[null,[203,22],[203,39]]]]],[],1,null,["loc",[null,[203,16],[232,23]]]],["block","if",[["get","hasUrlOrWebsite",["loc",[null,[235,22],[235,37]]]]],[],2,null,["loc",[null,[235,16],[266,23]]]],["attribute","href",["concat",["http://maps.google.com/maps?daddr=",["get","model.locationlat",["loc",[null,[270,65],[270,82]]]],",",["get","model.locationlng",["loc",[null,[270,87],[270,104]]]],"&ll="]]],["block","if",[["get","model.pricerange",["loc",[null,[281,24],[281,40]]]]],[],3,null,["loc",[null,[281,18],[300,25]]]],["block","if",[["get","model.description",["loc",[null,[303,22],[303,39]]]]],[],4,null,["loc",[null,[303,16],[316,23]]]],["block","star-rating-fa",[],["item",["subexpr","@mut",[["get","model",["loc",[null,[320,46],[320,51]]]]],[],[]],"rating",["subexpr","@mut",[["get","model.rating",["loc",[null,[320,59],[320,71]]]]],[],[]],"on-click",["subexpr","action",["setRating"],[],["loc",[null,[320,81],[320,101]]]]],5,null,["loc",[null,[320,22],[328,41]]]]],locals:[],templates:[child0,child1,child2,child3,child4,child5]};})();var child3=(function(){return {meta:{"fragmentReason":false,"revision":"Ember@2.3.2","loc":{"source":null,"start":{"line":344,"column":2},"end":{"line":346,"column":2}},"moduleName":"finndis/templates/place.hbs"},isEmpty:false,arity:0,cachedFragment:null,hasRendered:false,buildFragment:function buildFragment(dom){var el0=dom.createDocumentFragment();var el1=dom.createTextNode("    ");dom.appendChild(el0,el1);var el1=dom.createComment("");dom.appendChild(el0,el1);var el1=dom.createTextNode("\n");dom.appendChild(el0,el1);return el0;},buildRenderNodes:function buildRenderNodes(dom,fragment,contextualElement){var morphs=new Array(1);morphs[0] = dom.createMorphAt(fragment,1,1,contextualElement);return morphs;},statements:[["content","tool-box",["loc",[null,[345,4],[345,16]]]]],locals:[],templates:[]};})();return {meta:{"fragmentReason":{"name":"triple-curlies"},"revision":"Ember@2.3.2","loc":{"source":null,"start":{"line":1,"column":0},"end":{"line":349,"column":0}},"moduleName":"finndis/templates/place.hbs"},isEmpty:false,arity:0,cachedFragment:null,hasRendered:false,buildFragment:function buildFragment(dom){var el0=dom.createDocumentFragment();var el1=dom.createElement("div");dom.setAttribute(el1,"class","page-wrapper row");var el2=dom.createTextNode("\n  ");dom.appendChild(el1,el2);var el2=dom.createElement("div");dom.setAttribute(el2,"class","columns");var el3=dom.createTextNode("\n    ");dom.appendChild(el2,el3);var el3=dom.createElement("div");var el4=dom.createTextNode("\n      ");dom.appendChild(el3,el4);var el4=dom.createElement("form");dom.setAttribute(el4,"class","add-label--form");var el5=dom.createTextNode("\n        ");dom.appendChild(el4,el5);var el5=dom.createElement("div");dom.setAttribute(el5,"class","row");var el6=dom.createTextNode("\n          ");dom.appendChild(el5,el6);var el6=dom.createElement("div");dom.setAttribute(el6,"class","back-button--holder small-2 columns");var el7=dom.createTextNode("\n            ");dom.appendChild(el6,el7);var el7=dom.createElement("a");var el8=dom.createElement("i");dom.setAttribute(el8,"class","back-button fa fa-arrow-left");dom.appendChild(el7,el8);dom.appendChild(el6,el7);var el7=dom.createTextNode("\n          ");dom.appendChild(el6,el7);dom.appendChild(el5,el6);var el6=dom.createTextNode("\n          ");dom.appendChild(el5,el6);var el6=dom.createElement("div");dom.setAttribute(el6,"class","small-10 columns");var el7=dom.createTextNode("\n            ");dom.appendChild(el6,el7);var el7=dom.createComment("");dom.appendChild(el6,el7);var el7=dom.createTextNode("\n          ");dom.appendChild(el6,el7);dom.appendChild(el5,el6);var el6=dom.createTextNode("\n        ");dom.appendChild(el5,el6);dom.appendChild(el4,el5);var el5=dom.createTextNode("\n        ");dom.appendChild(el4,el5);var el5=dom.createElement("div");dom.setAttribute(el5,"class","row");var el6=dom.createTextNode("\n          ");dom.appendChild(el5,el6);var el6=dom.createElement("div");dom.setAttribute(el6,"class","medium-12 columns");var el7=dom.createTextNode("\n            ");dom.appendChild(el6,el7);var el7=dom.createElement("ul");dom.setAttribute(el7,"class","label--list");var el8=dom.createTextNode("\n");dom.appendChild(el7,el8);var el8=dom.createComment("");dom.appendChild(el7,el8);var el8=dom.createTextNode("            ");dom.appendChild(el7,el8);dom.appendChild(el6,el7);var el7=dom.createTextNode("\n          ");dom.appendChild(el6,el7);dom.appendChild(el5,el6);var el6=dom.createTextNode("\n        ");dom.appendChild(el5,el6);dom.appendChild(el4,el5);var el5=dom.createTextNode("\n      ");dom.appendChild(el4,el5);dom.appendChild(el3,el4);var el4=dom.createTextNode("\n    ");dom.appendChild(el3,el4);dom.appendChild(el2,el3);var el3=dom.createTextNode("\n    ");dom.appendChild(el2,el3);var el3=dom.createElement("a");dom.appendChild(el2,el3);var el3=dom.createTextNode("\n\n");dom.appendChild(el2,el3);var el3=dom.createComment("");dom.appendChild(el2,el3);var el3=dom.createTextNode("\n\n");dom.appendChild(el2,el3);var el3=dom.createComment("");dom.appendChild(el2,el3);var el3=dom.createTextNode("  ");dom.appendChild(el2,el3);dom.appendChild(el1,el2);var el2=dom.createTextNode("\n");dom.appendChild(el1,el2);dom.appendChild(el0,el1);var el1=dom.createTextNode("\n");dom.appendChild(el0,el1);return el0;},buildRenderNodes:function buildRenderNodes(dom,fragment,contextualElement){var element33=dom.childAt(fragment,[0,1]);var element34=dom.childAt(element33,[1]);var element35=dom.childAt(element34,[1]);var element36=dom.childAt(element35,[1]);var element37=dom.childAt(element36,[1,1]);var element38=dom.childAt(element33,[3]);var morphs=new Array(8);morphs[0] = dom.createAttrMorph(element34,'class');morphs[1] = dom.createElementMorph(element37);morphs[2] = dom.createMorphAt(dom.childAt(element36,[3]),1,1);morphs[3] = dom.createMorphAt(dom.childAt(element35,[3,1,1]),1,1);morphs[4] = dom.createAttrMorph(element38,'class');morphs[5] = dom.createElementMorph(element38);morphs[6] = dom.createMorphAt(element33,5,5);morphs[7] = dom.createMorphAt(element33,7,7);return morphs;},statements:[["attribute","class",["concat",["panel right ",["get","labelPanelDisplayed",["loc",[null,[3,30],[3,49]]]]]]],["element","action",["closeMenuPanel"],[],["loc",[null,[7,15],[7,42]]]],["content","add-label",["loc",[null,[10,12],[10,25]]]],["block","each",[["get","userLabels",["loc",[null,[16,22],[16,32]]]]],[],0,null,["loc",[null,[16,14],[37,23]]]],["attribute","class",["concat",["panel-overlay right ",["get","labelPanelDisplayed",["loc",[null,[43,36],[43,55]]]]]]],["element","action",["closeMenuPanel"],[],["loc",[null,[43,59],[43,86]]]],["block","if",[["get","isEditing",["loc",[null,[45,6],[45,15]]]]],[],1,2,["loc",[null,[45,0],[341,7]]]],["block","if",[["get","session.isAuthenticated",["loc",[null,[344,8],[344,31]]]]],[],3,null,["loc",[null,[344,2],[346,9]]]]],locals:[],templates:[child0,child1,child2,child3]};})());});
+define("finndis/templates/place", ["exports"], function (exports) {
+  exports["default"] = Ember.HTMLBars.template((function () {
+    var child0 = (function () {
+      var child0 = (function () {
+        var child0 = (function () {
+          var child0 = (function () {
+            return {
+              meta: {
+                "fragmentReason": false,
+                "revision": "Ember@2.3.2",
+                "loc": {
+                  "source": null,
+                  "start": {
+                    "line": 39,
+                    "column": 28
+                  },
+                  "end": {
+                    "line": 41,
+                    "column": 28
+                  }
+                },
+                "moduleName": "finndis/templates/place.hbs"
+              },
+              isEmpty: false,
+              arity: 0,
+              cachedFragment: null,
+              hasRendered: false,
+              buildFragment: function buildFragment(dom) {
+                var el0 = dom.createDocumentFragment();
+                var el1 = dom.createTextNode("                              ");
+                dom.appendChild(el0, el1);
+                var el1 = dom.createElement("a");
+                dom.setAttribute(el1, "class", "star-rating fa fa-star");
+                dom.appendChild(el0, el1);
+                var el1 = dom.createTextNode("\n");
+                dom.appendChild(el0, el1);
+                return el0;
+              },
+              buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+                var element22 = dom.childAt(fragment, [1]);
+                var morphs = new Array(1);
+                morphs[0] = dom.createElementMorph(element22);
+                return morphs;
+              },
+              statements: [["element", "action", [["get", "set", ["loc", [null, [40, 73], [40, 76]]]], ["get", "star.rating", ["loc", [null, [40, 77], [40, 88]]]]], [], ["loc", [null, [40, 64], [40, 90]]]]],
+              locals: [],
+              templates: []
+            };
+          })();
+          var child1 = (function () {
+            return {
+              meta: {
+                "fragmentReason": false,
+                "revision": "Ember@2.3.2",
+                "loc": {
+                  "source": null,
+                  "start": {
+                    "line": 41,
+                    "column": 28
+                  },
+                  "end": {
+                    "line": 43,
+                    "column": 28
+                  }
+                },
+                "moduleName": "finndis/templates/place.hbs"
+              },
+              isEmpty: false,
+              arity: 0,
+              cachedFragment: null,
+              hasRendered: false,
+              buildFragment: function buildFragment(dom) {
+                var el0 = dom.createDocumentFragment();
+                var el1 = dom.createTextNode("                              ");
+                dom.appendChild(el0, el1);
+                var el1 = dom.createElement("a");
+                dom.setAttribute(el1, "class", "star-rating fa fa-star-o");
+                dom.appendChild(el0, el1);
+                var el1 = dom.createTextNode("\n");
+                dom.appendChild(el0, el1);
+                return el0;
+              },
+              buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+                var element21 = dom.childAt(fragment, [1]);
+                var morphs = new Array(1);
+                morphs[0] = dom.createElementMorph(element21);
+                return morphs;
+              },
+              statements: [["element", "action", [["get", "set", ["loc", [null, [42, 75], [42, 78]]]], ["get", "star.rating", ["loc", [null, [42, 79], [42, 90]]]]], [], ["loc", [null, [42, 66], [42, 92]]]]],
+              locals: [],
+              templates: []
+            };
+          })();
+          return {
+            meta: {
+              "fragmentReason": false,
+              "revision": "Ember@2.3.2",
+              "loc": {
+                "source": null,
+                "start": {
+                  "line": 38,
+                  "column": 26
+                },
+                "end": {
+                  "line": 44,
+                  "column": 26
+                }
+              },
+              "moduleName": "finndis/templates/place.hbs"
+            },
+            isEmpty: false,
+            arity: 1,
+            cachedFragment: null,
+            hasRendered: false,
+            buildFragment: function buildFragment(dom) {
+              var el0 = dom.createDocumentFragment();
+              var el1 = dom.createComment("");
+              dom.appendChild(el0, el1);
+              return el0;
+            },
+            buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+              var morphs = new Array(1);
+              morphs[0] = dom.createMorphAt(fragment, 0, 0, contextualElement);
+              dom.insertBoundary(fragment, 0);
+              dom.insertBoundary(fragment, null);
+              return morphs;
+            },
+            statements: [["block", "if", [["get", "star.full", ["loc", [null, [39, 34], [39, 43]]]]], [], 0, 1, ["loc", [null, [39, 28], [43, 35]]]]],
+            locals: ["star"],
+            templates: [child0, child1]
+          };
+        })();
+        return {
+          meta: {
+            "fragmentReason": false,
+            "revision": "Ember@2.3.2",
+            "loc": {
+              "source": null,
+              "start": {
+                "line": 37,
+                "column": 24
+              },
+              "end": {
+                "line": 45,
+                "column": 24
+              }
+            },
+            "moduleName": "finndis/templates/place.hbs"
+          },
+          isEmpty: false,
+          arity: 2,
+          cachedFragment: null,
+          hasRendered: false,
+          buildFragment: function buildFragment(dom) {
+            var el0 = dom.createDocumentFragment();
+            var el1 = dom.createComment("");
+            dom.appendChild(el0, el1);
+            return el0;
+          },
+          buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+            var morphs = new Array(1);
+            morphs[0] = dom.createMorphAt(fragment, 0, 0, contextualElement);
+            dom.insertBoundary(fragment, 0);
+            dom.insertBoundary(fragment, null);
+            return morphs;
+          },
+          statements: [["block", "each", [["get", "stars", ["loc", [null, [38, 34], [38, 39]]]]], [], 0, null, ["loc", [null, [38, 26], [44, 35]]]]],
+          locals: ["stars", "set"],
+          templates: [child0]
+        };
+      })();
+      var child1 = (function () {
+        var child0 = (function () {
+          var child0 = (function () {
+            return {
+              meta: {
+                "fragmentReason": false,
+                "revision": "Ember@2.3.2",
+                "loc": {
+                  "source": null,
+                  "start": {
+                    "line": 106,
+                    "column": 32
+                  },
+                  "end": {
+                    "line": 108,
+                    "column": 32
+                  }
+                },
+                "moduleName": "finndis/templates/place.hbs"
+              },
+              isEmpty: false,
+              arity: 0,
+              cachedFragment: null,
+              hasRendered: false,
+              buildFragment: function buildFragment(dom) {
+                var el0 = dom.createDocumentFragment();
+                var el1 = dom.createTextNode("                                  ");
+                dom.appendChild(el0, el1);
+                var el1 = dom.createElement("a");
+                dom.setAttribute(el1, "class", "price-rating fa fa-square");
+                dom.appendChild(el0, el1);
+                var el1 = dom.createTextNode("\n");
+                dom.appendChild(el0, el1);
+                return el0;
+              },
+              buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+                var element20 = dom.childAt(fragment, [1]);
+                var morphs = new Array(1);
+                morphs[0] = dom.createElementMorph(element20);
+                return morphs;
+              },
+              statements: [["element", "action", [["get", "set", ["loc", [null, [107, 80], [107, 83]]]], ["get", "star.rating", ["loc", [null, [107, 84], [107, 95]]]]], [], ["loc", [null, [107, 71], [107, 97]]]]],
+              locals: [],
+              templates: []
+            };
+          })();
+          var child1 = (function () {
+            return {
+              meta: {
+                "fragmentReason": false,
+                "revision": "Ember@2.3.2",
+                "loc": {
+                  "source": null,
+                  "start": {
+                    "line": 108,
+                    "column": 32
+                  },
+                  "end": {
+                    "line": 110,
+                    "column": 32
+                  }
+                },
+                "moduleName": "finndis/templates/place.hbs"
+              },
+              isEmpty: false,
+              arity: 0,
+              cachedFragment: null,
+              hasRendered: false,
+              buildFragment: function buildFragment(dom) {
+                var el0 = dom.createDocumentFragment();
+                var el1 = dom.createTextNode("                                  ");
+                dom.appendChild(el0, el1);
+                var el1 = dom.createElement("a");
+                dom.setAttribute(el1, "class", "price-rating fa fa-square-o");
+                dom.appendChild(el0, el1);
+                var el1 = dom.createTextNode("\n");
+                dom.appendChild(el0, el1);
+                return el0;
+              },
+              buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+                var element19 = dom.childAt(fragment, [1]);
+                var morphs = new Array(1);
+                morphs[0] = dom.createElementMorph(element19);
+                return morphs;
+              },
+              statements: [["element", "action", [["get", "set", ["loc", [null, [109, 82], [109, 85]]]], ["get", "star.rating", ["loc", [null, [109, 86], [109, 97]]]]], [], ["loc", [null, [109, 73], [109, 99]]]]],
+              locals: [],
+              templates: []
+            };
+          })();
+          return {
+            meta: {
+              "fragmentReason": false,
+              "revision": "Ember@2.3.2",
+              "loc": {
+                "source": null,
+                "start": {
+                  "line": 105,
+                  "column": 30
+                },
+                "end": {
+                  "line": 111,
+                  "column": 30
+                }
+              },
+              "moduleName": "finndis/templates/place.hbs"
+            },
+            isEmpty: false,
+            arity: 1,
+            cachedFragment: null,
+            hasRendered: false,
+            buildFragment: function buildFragment(dom) {
+              var el0 = dom.createDocumentFragment();
+              var el1 = dom.createComment("");
+              dom.appendChild(el0, el1);
+              return el0;
+            },
+            buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+              var morphs = new Array(1);
+              morphs[0] = dom.createMorphAt(fragment, 0, 0, contextualElement);
+              dom.insertBoundary(fragment, 0);
+              dom.insertBoundary(fragment, null);
+              return morphs;
+            },
+            statements: [["block", "if", [["get", "star.full", ["loc", [null, [106, 38], [106, 47]]]]], [], 0, 1, ["loc", [null, [106, 32], [110, 39]]]]],
+            locals: ["star"],
+            templates: [child0, child1]
+          };
+        })();
+        return {
+          meta: {
+            "fragmentReason": false,
+            "revision": "Ember@2.3.2",
+            "loc": {
+              "source": null,
+              "start": {
+                "line": 104,
+                "column": 28
+              },
+              "end": {
+                "line": 112,
+                "column": 28
+              }
+            },
+            "moduleName": "finndis/templates/place.hbs"
+          },
+          isEmpty: false,
+          arity: 2,
+          cachedFragment: null,
+          hasRendered: false,
+          buildFragment: function buildFragment(dom) {
+            var el0 = dom.createDocumentFragment();
+            var el1 = dom.createComment("");
+            dom.appendChild(el0, el1);
+            return el0;
+          },
+          buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+            var morphs = new Array(1);
+            morphs[0] = dom.createMorphAt(fragment, 0, 0, contextualElement);
+            dom.insertBoundary(fragment, 0);
+            dom.insertBoundary(fragment, null);
+            return morphs;
+          },
+          statements: [["block", "each", [["get", "stars", ["loc", [null, [105, 38], [105, 43]]]]], [], 0, null, ["loc", [null, [105, 30], [111, 39]]]]],
+          locals: ["stars", "set"],
+          templates: [child0]
+        };
+      })();
+      return {
+        meta: {
+          "fragmentReason": false,
+          "revision": "Ember@2.3.2",
+          "loc": {
+            "source": null,
+            "start": {
+              "line": 7,
+              "column": 0
+            },
+            "end": {
+              "line": 136,
+              "column": 0
+            }
+          },
+          "moduleName": "finndis/templates/place.hbs"
+        },
+        isEmpty: false,
+        arity: 0,
+        cachedFragment: null,
+        hasRendered: false,
+        buildFragment: function buildFragment(dom) {
+          var el0 = dom.createDocumentFragment();
+          var el1 = dom.createTextNode("\n");
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode("  ");
+          dom.appendChild(el0, el1);
+          var el1 = dom.createElement("div");
+          dom.setAttribute(el1, "class", "place_details row");
+          var el2 = dom.createTextNode("\n    ");
+          dom.appendChild(el1, el2);
+          var el2 = dom.createElement("div");
+          dom.setAttribute(el2, "class", "__edition medium-8 medium-offset-2 columns");
+          var el3 = dom.createTextNode("\n      ");
+          dom.appendChild(el2, el3);
+          var el3 = dom.createElement("form");
+          var el4 = dom.createTextNode("\n        ");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createElement("div");
+          dom.setAttribute(el4, "class", "row");
+          var el5 = dom.createTextNode("\n          ");
+          dom.appendChild(el4, el5);
+          var el5 = dom.createElement("div");
+          dom.setAttribute(el5, "class", "columns");
+          var el6 = dom.createTextNode("\n            ");
+          dom.appendChild(el5, el6);
+          var el6 = dom.createElement("div");
+          dom.setAttribute(el6, "class", "place--holder");
+          var el7 = dom.createTextNode("\n              ");
+          dom.appendChild(el6, el7);
+          var el7 = dom.createElement("article");
+          dom.setAttribute(el7, "class", "place");
+          var el8 = dom.createTextNode("\n                ");
+          dom.appendChild(el7, el8);
+          var el8 = dom.createElement("header");
+          dom.setAttribute(el8, "class", "place--header");
+          var el9 = dom.createTextNode("\n                  ");
+          dom.appendChild(el8, el9);
+          var el9 = dom.createElement("a");
+          dom.setAttribute(el9, "href", "#");
+          dom.setAttribute(el9, "class", "button delete-button");
+          var el10 = dom.createElement("i");
+          dom.setAttribute(el10, "class", "place--action--icon fa fa-trash");
+          dom.appendChild(el9, el10);
+          var el10 = dom.createTextNode("Delete");
+          dom.appendChild(el9, el10);
+          dom.appendChild(el8, el9);
+          var el9 = dom.createTextNode("\n                  ");
+          dom.appendChild(el8, el9);
+          var el9 = dom.createElement("a");
+          dom.setAttribute(el9, "href", "#");
+          dom.setAttribute(el9, "class", "button cancel-button");
+          var el10 = dom.createElement("i");
+          dom.setAttribute(el10, "class", "place--action--icon fa fa-times");
+          dom.appendChild(el9, el10);
+          var el10 = dom.createTextNode("Cancel");
+          dom.appendChild(el9, el10);
+          dom.appendChild(el8, el9);
+          var el9 = dom.createTextNode("\n                  ");
+          dom.appendChild(el8, el9);
+          var el9 = dom.createElement("button");
+          dom.setAttribute(el9, "type", "submit");
+          dom.setAttribute(el9, "class", "button edit-button");
+          var el10 = dom.createElement("i");
+          dom.setAttribute(el10, "class", "place--action--icon fa fa-check");
+          dom.appendChild(el9, el10);
+          var el10 = dom.createTextNode("Save");
+          dom.appendChild(el9, el10);
+          dom.appendChild(el8, el9);
+          var el9 = dom.createTextNode("\n\n                  ");
+          dom.appendChild(el8, el9);
+          var el9 = dom.createElement("h2");
+          dom.setAttribute(el9, "class", "place--title");
+          var el10 = dom.createTextNode("\n                    ");
+          dom.appendChild(el9, el10);
+          var el10 = dom.createComment("");
+          dom.appendChild(el9, el10);
+          var el10 = dom.createTextNode("\n                  ");
+          dom.appendChild(el9, el10);
+          dom.appendChild(el8, el9);
+          var el9 = dom.createTextNode("\n                  ");
+          dom.appendChild(el8, el9);
+          var el9 = dom.createElement("i");
+          dom.setAttribute(el9, "class", "place--labels--icon fa fa-tag");
+          dom.appendChild(el8, el9);
+          var el9 = dom.createTextNode("\n                  ");
+          dom.appendChild(el8, el9);
+          var el9 = dom.createElement("ul");
+          dom.setAttribute(el9, "class", "place--labels clearfix");
+          var el10 = dom.createTextNode("\n                    ");
+          dom.appendChild(el9, el10);
+          var el10 = dom.createElement("li");
+          dom.setAttribute(el10, "class", "place--labelitem");
+          var el11 = dom.createComment("");
+          dom.appendChild(el10, el11);
+          dom.appendChild(el9, el10);
+          var el10 = dom.createTextNode("\n                    ");
+          dom.appendChild(el9, el10);
+          var el10 = dom.createElement("li");
+          dom.setAttribute(el10, "class", "place--labelitem");
+          var el11 = dom.createTextNode("\n                      ");
+          dom.appendChild(el10, el11);
+          var el11 = dom.createElement("i");
+          dom.setAttribute(el11, "class", "place--add--icon fa fa-plus");
+          dom.appendChild(el10, el11);
+          var el11 = dom.createTextNode("\n                    ");
+          dom.appendChild(el10, el11);
+          dom.appendChild(el9, el10);
+          var el10 = dom.createTextNode("\n                  ");
+          dom.appendChild(el9, el10);
+          dom.appendChild(el8, el9);
+          var el9 = dom.createTextNode("\n                ");
+          dom.appendChild(el8, el9);
+          dom.appendChild(el7, el8);
+          var el8 = dom.createTextNode("\n                ");
+          dom.appendChild(el7, el8);
+          var el8 = dom.createElement("main");
+          dom.setAttribute(el8, "class", "place--main");
+          var el9 = dom.createTextNode("\n                  ");
+          dom.appendChild(el8, el9);
+          var el9 = dom.createElement("div");
+          dom.setAttribute(el9, "class", "place--info--holder row");
+          var el10 = dom.createTextNode("\n                    ");
+          dom.appendChild(el9, el10);
+          var el10 = dom.createElement("div");
+          dom.setAttribute(el10, "class", "columns");
+          var el11 = dom.createTextNode("\n                      ");
+          dom.appendChild(el10, el11);
+          var el11 = dom.createElement("div");
+          dom.setAttribute(el11, "class", "place--rating");
+          var el12 = dom.createTextNode("\n");
+          dom.appendChild(el11, el12);
+          var el12 = dom.createComment("");
+          dom.appendChild(el11, el12);
+          var el12 = dom.createTextNode("                      ");
+          dom.appendChild(el11, el12);
+          dom.appendChild(el10, el11);
+          var el11 = dom.createTextNode("\n                    ");
+          dom.appendChild(el10, el11);
+          dom.appendChild(el9, el10);
+          var el10 = dom.createTextNode("\n                  ");
+          dom.appendChild(el9, el10);
+          dom.appendChild(el8, el9);
+          var el9 = dom.createTextNode("\n\n                  ");
+          dom.appendChild(el8, el9);
+          var el9 = dom.createElement("div");
+          dom.setAttribute(el9, "class", "place--info--holder align-middle row");
+          var el10 = dom.createTextNode("\n");
+          dom.appendChild(el9, el10);
+          var el10 = dom.createTextNode("                    ");
+          dom.appendChild(el9, el10);
+          var el10 = dom.createElement("div");
+          dom.setAttribute(el10, "class", "small-12 columns");
+          var el11 = dom.createTextNode("\n                      ");
+          dom.appendChild(el10, el11);
+          var el11 = dom.createElement("div");
+          dom.setAttribute(el11, "class", "row");
+          var el12 = dom.createTextNode("\n                        ");
+          dom.appendChild(el11, el12);
+          var el12 = dom.createElement("div");
+          dom.setAttribute(el12, "class", "columns");
+          var el13 = dom.createTextNode("\n                          ");
+          dom.appendChild(el12, el13);
+          var el13 = dom.createElement("label");
+          var el14 = dom.createElement("i");
+          dom.setAttribute(el14, "class", "fa fa-map-marker");
+          dom.appendChild(el13, el14);
+          var el14 = dom.createTextNode(" Address\n                            ");
+          dom.appendChild(el13, el14);
+          var el14 = dom.createComment("");
+          dom.appendChild(el13, el14);
+          var el14 = dom.createTextNode("\n                          ");
+          dom.appendChild(el13, el14);
+          dom.appendChild(el12, el13);
+          var el13 = dom.createTextNode("\n                        ");
+          dom.appendChild(el12, el13);
+          dom.appendChild(el11, el12);
+          var el12 = dom.createTextNode("\n                      ");
+          dom.appendChild(el11, el12);
+          dom.appendChild(el10, el11);
+          var el11 = dom.createTextNode("\n                    ");
+          dom.appendChild(el10, el11);
+          dom.appendChild(el9, el10);
+          var el10 = dom.createTextNode("\n");
+          dom.appendChild(el9, el10);
+          var el10 = dom.createTextNode("                  ");
+          dom.appendChild(el9, el10);
+          dom.appendChild(el8, el9);
+          var el9 = dom.createTextNode("\n\n                  ");
+          dom.appendChild(el8, el9);
+          var el9 = dom.createElement("div");
+          dom.setAttribute(el9, "class", "place--info--holder row");
+          var el10 = dom.createTextNode("\n                    ");
+          dom.appendChild(el9, el10);
+          var el10 = dom.createElement("div");
+          dom.setAttribute(el10, "class", "columns small-12 medium-6");
+          var el11 = dom.createTextNode("\n                      ");
+          dom.appendChild(el10, el11);
+          var el11 = dom.createElement("div");
+          dom.setAttribute(el11, "class", "place--website align-middle row");
+          var el12 = dom.createTextNode("\n                        ");
+          dom.appendChild(el11, el12);
+          var el12 = dom.createElement("div");
+          dom.setAttribute(el12, "class", "small-12 columns");
+          var el13 = dom.createTextNode("\n                          ");
+          dom.appendChild(el12, el13);
+          var el13 = dom.createElement("label");
+          var el14 = dom.createElement("i");
+          dom.setAttribute(el14, "class", "fa fa-globe");
+          dom.appendChild(el13, el14);
+          var el14 = dom.createTextNode(" Website\n                            ");
+          dom.appendChild(el13, el14);
+          var el14 = dom.createComment("");
+          dom.appendChild(el13, el14);
+          var el14 = dom.createTextNode("\n                          ");
+          dom.appendChild(el13, el14);
+          dom.appendChild(el12, el13);
+          var el13 = dom.createTextNode("\n                        ");
+          dom.appendChild(el12, el13);
+          dom.appendChild(el11, el12);
+          var el12 = dom.createTextNode("\n                      ");
+          dom.appendChild(el11, el12);
+          dom.appendChild(el10, el11);
+          var el11 = dom.createTextNode("\n                    ");
+          dom.appendChild(el10, el11);
+          dom.appendChild(el9, el10);
+          var el10 = dom.createTextNode("\n                    ");
+          dom.appendChild(el9, el10);
+          var el10 = dom.createElement("div");
+          dom.setAttribute(el10, "class", "columns small-12 medium-6");
+          var el11 = dom.createTextNode("\n                      ");
+          dom.appendChild(el10, el11);
+          var el11 = dom.createElement("div");
+          dom.setAttribute(el11, "class", "place--phone align-middle row");
+          var el12 = dom.createTextNode("\n                        ");
+          dom.appendChild(el11, el12);
+          var el12 = dom.createElement("div");
+          dom.setAttribute(el12, "class", "small-12 columns");
+          var el13 = dom.createTextNode("\n                          ");
+          dom.appendChild(el12, el13);
+          var el13 = dom.createElement("label");
+          var el14 = dom.createElement("i");
+          dom.setAttribute(el14, "class", "fa fa-phone");
+          dom.appendChild(el13, el14);
+          var el14 = dom.createTextNode(" Phone number\n                            ");
+          dom.appendChild(el13, el14);
+          var el14 = dom.createComment("");
+          dom.appendChild(el13, el14);
+          var el14 = dom.createTextNode("\n                          ");
+          dom.appendChild(el13, el14);
+          dom.appendChild(el12, el13);
+          var el13 = dom.createTextNode("\n                        ");
+          dom.appendChild(el12, el13);
+          dom.appendChild(el11, el12);
+          var el12 = dom.createTextNode("\n                      ");
+          dom.appendChild(el11, el12);
+          dom.appendChild(el10, el11);
+          var el11 = dom.createTextNode("\n                    ");
+          dom.appendChild(el10, el11);
+          dom.appendChild(el9, el10);
+          var el10 = dom.createTextNode("\n                  ");
+          dom.appendChild(el9, el10);
+          dom.appendChild(el8, el9);
+          var el9 = dom.createTextNode("\n\n                  ");
+          dom.appendChild(el8, el9);
+          var el9 = dom.createElement("div");
+          dom.setAttribute(el9, "class", "place--info--holder row");
+          var el10 = dom.createTextNode("\n                    ");
+          dom.appendChild(el9, el10);
+          var el10 = dom.createElement("div");
+          dom.setAttribute(el10, "class", "columns");
+          var el11 = dom.createTextNode("\n                      ");
+          dom.appendChild(el10, el11);
+          var el11 = dom.createElement("div");
+          dom.setAttribute(el11, "class", "place--phone align-middle row");
+          var el12 = dom.createTextNode("\n                        ");
+          dom.appendChild(el11, el12);
+          var el12 = dom.createElement("div");
+          dom.setAttribute(el12, "class", "small-12 columns");
+          var el13 = dom.createTextNode("\n                          ");
+          dom.appendChild(el12, el13);
+          var el13 = dom.createElement("label");
+          var el14 = dom.createElement("i");
+          dom.setAttribute(el14, "class", "fa fa-info");
+          dom.appendChild(el13, el14);
+          var el14 = dom.createTextNode(" Notes\n                            ");
+          dom.appendChild(el13, el14);
+          var el14 = dom.createComment("");
+          dom.appendChild(el13, el14);
+          var el14 = dom.createTextNode("\n                          ");
+          dom.appendChild(el13, el14);
+          dom.appendChild(el12, el13);
+          var el13 = dom.createTextNode("\n                        ");
+          dom.appendChild(el12, el13);
+          dom.appendChild(el11, el12);
+          var el12 = dom.createTextNode("\n                      ");
+          dom.appendChild(el11, el12);
+          dom.appendChild(el10, el11);
+          var el11 = dom.createTextNode("\n                    ");
+          dom.appendChild(el10, el11);
+          dom.appendChild(el9, el10);
+          var el10 = dom.createTextNode("\n                  ");
+          dom.appendChild(el9, el10);
+          dom.appendChild(el8, el9);
+          var el9 = dom.createTextNode("\n\n");
+          dom.appendChild(el8, el9);
+          var el9 = dom.createTextNode("\n                  ");
+          dom.appendChild(el8, el9);
+          var el9 = dom.createElement("div");
+          dom.setAttribute(el9, "class", "place--info--holder row");
+          var el10 = dom.createTextNode("\n                    ");
+          dom.appendChild(el9, el10);
+          var el10 = dom.createElement("div");
+          dom.setAttribute(el10, "class", "columns small-12 medium-6");
+          var el11 = dom.createTextNode("\n                      ");
+          dom.appendChild(el10, el11);
+          var el11 = dom.createElement("div");
+          dom.setAttribute(el11, "class", "place--phone align-middle row");
+          var el12 = dom.createTextNode("\n                        ");
+          dom.appendChild(el11, el12);
+          var el12 = dom.createElement("div");
+          dom.setAttribute(el12, "class", "small-12 columns");
+          var el13 = dom.createTextNode("\n                          ");
+          dom.appendChild(el12, el13);
+          var el13 = dom.createElement("label");
+          var el14 = dom.createElement("i");
+          dom.setAttribute(el14, "class", "fa fa-usd");
+          dom.appendChild(el13, el14);
+          var el14 = dom.createTextNode(" Price\n");
+          dom.appendChild(el13, el14);
+          var el14 = dom.createComment("");
+          dom.appendChild(el13, el14);
+          var el14 = dom.createTextNode("                          ");
+          dom.appendChild(el13, el14);
+          dom.appendChild(el12, el13);
+          var el13 = dom.createTextNode("\n                        ");
+          dom.appendChild(el12, el13);
+          dom.appendChild(el11, el12);
+          var el12 = dom.createTextNode("\n                      ");
+          dom.appendChild(el11, el12);
+          dom.appendChild(el10, el11);
+          var el11 = dom.createTextNode("\n                    ");
+          dom.appendChild(el10, el11);
+          dom.appendChild(el9, el10);
+          var el10 = dom.createTextNode("\n                  ");
+          dom.appendChild(el9, el10);
+          dom.appendChild(el8, el9);
+          var el9 = dom.createTextNode("\n\n");
+          dom.appendChild(el8, el9);
+          var el9 = dom.createTextNode("\n                ");
+          dom.appendChild(el8, el9);
+          dom.appendChild(el7, el8);
+          var el8 = dom.createTextNode("\n              ");
+          dom.appendChild(el7, el8);
+          dom.appendChild(el6, el7);
+          var el7 = dom.createTextNode("\n            ");
+          dom.appendChild(el6, el7);
+          dom.appendChild(el5, el6);
+          var el6 = dom.createTextNode("\n          ");
+          dom.appendChild(el5, el6);
+          dom.appendChild(el4, el5);
+          var el5 = dom.createTextNode("\n        ");
+          dom.appendChild(el4, el5);
+          dom.appendChild(el3, el4);
+          var el4 = dom.createTextNode("\n        ");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createElement("div");
+          dom.setAttribute(el4, "class", "place--info--holder row");
+          var el5 = dom.createTextNode("\n          ");
+          dom.appendChild(el4, el5);
+          var el5 = dom.createElement("div");
+          dom.setAttribute(el5, "class", "columns");
+          var el6 = dom.createTextNode("\n            ");
+          dom.appendChild(el5, el6);
+          var el6 = dom.createElement("button");
+          dom.setAttribute(el6, "type", "submit");
+          dom.setAttribute(el6, "class", "button expanded");
+          var el7 = dom.createTextNode("Save");
+          dom.appendChild(el6, el7);
+          dom.appendChild(el5, el6);
+          var el6 = dom.createTextNode("\n          ");
+          dom.appendChild(el5, el6);
+          dom.appendChild(el4, el5);
+          var el5 = dom.createTextNode("\n        ");
+          dom.appendChild(el4, el5);
+          dom.appendChild(el3, el4);
+          var el4 = dom.createTextNode("\n      ");
+          dom.appendChild(el3, el4);
+          dom.appendChild(el2, el3);
+          var el3 = dom.createTextNode("\n    ");
+          dom.appendChild(el2, el3);
+          dom.appendChild(el1, el2);
+          var el2 = dom.createTextNode("\n  ");
+          dom.appendChild(el1, el2);
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode("\n");
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode("\n");
+          dom.appendChild(el0, el1);
+          return el0;
+        },
+        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+          var element23 = dom.childAt(fragment, [2, 1, 1]);
+          var element24 = dom.childAt(element23, [1, 1, 1, 1]);
+          var element25 = dom.childAt(element24, [1]);
+          var element26 = dom.childAt(element25, [1]);
+          var element27 = dom.childAt(element25, [3]);
+          var element28 = dom.childAt(element25, [9]);
+          var element29 = dom.childAt(element25, [11]);
+          var element30 = dom.childAt(element24, [3]);
+          var element31 = dom.childAt(element30, [5]);
+          var morphs = new Array(13);
+          morphs[0] = dom.createElementMorph(element23);
+          morphs[1] = dom.createElementMorph(element26);
+          morphs[2] = dom.createElementMorph(element27);
+          morphs[3] = dom.createMorphAt(dom.childAt(element25, [7]), 1, 1);
+          morphs[4] = dom.createElementMorph(element28);
+          morphs[5] = dom.createElementMorph(element29);
+          morphs[6] = dom.createMorphAt(dom.childAt(element29, [1]), 0, 0);
+          morphs[7] = dom.createMorphAt(dom.childAt(element30, [1, 1, 1]), 1, 1);
+          morphs[8] = dom.createMorphAt(dom.childAt(element30, [3, 2, 1, 1, 1]), 2, 2);
+          morphs[9] = dom.createMorphAt(dom.childAt(element31, [1, 1, 1, 1]), 2, 2);
+          morphs[10] = dom.createMorphAt(dom.childAt(element31, [3, 1, 1, 1]), 2, 2);
+          morphs[11] = dom.createMorphAt(dom.childAt(element30, [7, 1, 1, 1, 1]), 2, 2);
+          morphs[12] = dom.createMorphAt(dom.childAt(element30, [10, 1, 1, 1, 1]), 2, 2);
+          return morphs;
+        },
+        statements: [["element", "action", ["savePlace", ["get", "model", ["loc", [null, [12, 33], [12, 38]]]]], ["on", "submit"], ["loc", [null, [12, 12], [12, 52]]]], ["element", "action", ["deletePlace", ["get", "model", ["loc", [null, [18, 82], [18, 87]]]]], ["bubbles", "false"], ["loc", [null, [18, 59], [18, 105]]]], ["element", "action", ["cancelPlace", ["get", "model", ["loc", [null, [19, 82], [19, 87]]]]], ["bubbles", "false"], ["loc", [null, [19, 59], [19, 105]]]], ["inline", "input", [], ["type", "text", "class", "place--input", "value", ["subexpr", "@mut", [["get", "model.name", ["loc", [null, [23, 67], [23, 77]]]]], [], []]], ["loc", [null, [23, 20], [23, 79]]]], ["element", "action", ["showAddLabel"], ["bubbles", "false"], ["loc", [null, [25, 59], [25, 100]]]], ["element", "action", ["showAddLabel"], ["bubbles", "false"], ["loc", [null, [26, 53], [26, 94]]]], ["content", "model.label.name", ["loc", [null, [27, 49], [27, 69]]]], ["block", "star-rating-fa", [], ["item", ["subexpr", "@mut", [["get", "model", ["loc", [null, [37, 48], [37, 53]]]]], [], []], "rating", ["subexpr", "@mut", [["get", "model.rating", ["loc", [null, [37, 61], [37, 73]]]]], [], []], "on-click", ["subexpr", "action", ["setRating"], [], ["loc", [null, [37, 83], [37, 103]]]]], 0, null, ["loc", [null, [37, 24], [45, 43]]]], ["inline", "input", [], ["value", ["subexpr", "@mut", [["get", "model.formattedaddress", ["loc", [null, [56, 42], [56, 64]]]]], [], []], "class", "place--main-input", "type", "text"], ["loc", [null, [56, 28], [56, 105]]]], ["inline", "input", [], ["value", ["subexpr", "@mut", [["get", "model.website", ["loc", [null, [69, 42], [69, 55]]]]], [], []], "class", "place--main-input", "type", "text"], ["loc", [null, [69, 28], [69, 95]]]], ["inline", "input", [], ["value", ["subexpr", "@mut", [["get", "model.phone", ["loc", [null, [78, 42], [78, 53]]]]], [], []], "class", "place--main-input", "type", "text"], ["loc", [null, [78, 28], [78, 93]]]], ["inline", "textarea", [], ["type", "text", "cols", "60", "rows", "3", "class", "place--main-input", "value", ["subexpr", "@mut", [["get", "model.description", ["loc", [null, [90, 102], [90, 119]]]]], [], []]], ["loc", [null, [90, 28], [90, 121]]]], ["block", "star-rating-fa", [], ["item", ["subexpr", "@mut", [["get", "model", ["loc", [null, [104, 52], [104, 57]]]]], [], []], "rating", ["subexpr", "@mut", [["get", "model.pricerange", ["loc", [null, [104, 65], [104, 81]]]]], [], []], "on-click", ["subexpr", "action", ["setPrice"], [], ["loc", [null, [104, 91], [104, 110]]]]], 1, null, ["loc", [null, [104, 28], [112, 47]]]]],
+        locals: [],
+        templates: [child0, child1]
+      };
+    })();
+    var child1 = (function () {
+      var child0 = (function () {
+        return {
+          meta: {
+            "fragmentReason": false,
+            "revision": "Ember@2.3.2",
+            "loc": {
+              "source": null,
+              "start": {
+                "line": 142,
+                "column": 6
+              },
+              "end": {
+                "line": 148,
+                "column": 6
+              }
+            },
+            "moduleName": "finndis/templates/place.hbs"
+          },
+          isEmpty: false,
+          arity: 0,
+          cachedFragment: null,
+          hasRendered: false,
+          buildFragment: function buildFragment(dom) {
+            var el0 = dom.createDocumentFragment();
+            var el1 = dom.createTextNode("      ");
+            dom.appendChild(el0, el1);
+            var el1 = dom.createElement("div");
+            dom.setAttribute(el1, "class", "row");
+            var el2 = dom.createTextNode("\n        ");
+            dom.appendChild(el1, el2);
+            var el2 = dom.createElement("div");
+            dom.setAttribute(el2, "class", "columns");
+            var el3 = dom.createTextNode("\n          ");
+            dom.appendChild(el2, el3);
+            var el3 = dom.createComment("");
+            dom.appendChild(el2, el3);
+            var el3 = dom.createTextNode("\n        ");
+            dom.appendChild(el2, el3);
+            dom.appendChild(el1, el2);
+            var el2 = dom.createTextNode("\n      ");
+            dom.appendChild(el1, el2);
+            dom.appendChild(el0, el1);
+            var el1 = dom.createTextNode("\n");
+            dom.appendChild(el0, el1);
+            return el0;
+          },
+          buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+            var morphs = new Array(1);
+            morphs[0] = dom.createMorphAt(dom.childAt(fragment, [1, 1]), 1, 1);
+            return morphs;
+          },
+          statements: [["inline", "google-map", [], ["longitude", ["subexpr", "@mut", [["get", "mapLng", ["loc", [null, [145, 33], [145, 39]]]]], [], []], "latitude", ["subexpr", "@mut", [["get", "mapLat", ["loc", [null, [145, 49], [145, 55]]]]], [], []]], ["loc", [null, [145, 10], [145, 57]]]]],
+          locals: [],
+          templates: []
+        };
+      })();
+      var child1 = (function () {
+        var child0 = (function () {
+          return {
+            meta: {
+              "fragmentReason": false,
+              "revision": "Ember@2.3.2",
+              "loc": {
+                "source": null,
+                "start": {
+                  "line": 171,
+                  "column": 18
+                },
+                "end": {
+                  "line": 182,
+                  "column": 18
+                }
+              },
+              "moduleName": "finndis/templates/place.hbs"
+            },
+            isEmpty: false,
+            arity: 0,
+            cachedFragment: null,
+            hasRendered: false,
+            buildFragment: function buildFragment(dom) {
+              var el0 = dom.createDocumentFragment();
+              var el1 = dom.createTextNode("                  ");
+              dom.appendChild(el0, el1);
+              var el1 = dom.createElement("div");
+              dom.setAttribute(el1, "class", "columns small-12 medium-6");
+              var el2 = dom.createTextNode("\n                    ");
+              dom.appendChild(el1, el2);
+              var el2 = dom.createElement("div");
+              dom.setAttribute(el2, "class", "place--spacing place--address row");
+              var el3 = dom.createTextNode("\n                      ");
+              dom.appendChild(el2, el3);
+              var el3 = dom.createElement("div");
+              dom.setAttribute(el3, "class", "place--main--icon--holder small-1 columns");
+              var el4 = dom.createTextNode("\n                        ");
+              dom.appendChild(el3, el4);
+              var el4 = dom.createElement("i");
+              dom.setAttribute(el4, "class", "place--main--icon fa fa-map-marker");
+              dom.appendChild(el3, el4);
+              var el4 = dom.createTextNode("\n                      ");
+              dom.appendChild(el3, el4);
+              dom.appendChild(el2, el3);
+              var el3 = dom.createTextNode("\n                      ");
+              dom.appendChild(el2, el3);
+              var el3 = dom.createElement("div");
+              dom.setAttribute(el3, "class", "small-11 columns");
+              var el4 = dom.createTextNode("\n                        ");
+              dom.appendChild(el3, el4);
+              var el4 = dom.createComment("");
+              dom.appendChild(el3, el4);
+              var el4 = dom.createTextNode("\n                      ");
+              dom.appendChild(el3, el4);
+              dom.appendChild(el2, el3);
+              var el3 = dom.createTextNode("\n                    ");
+              dom.appendChild(el2, el3);
+              dom.appendChild(el1, el2);
+              var el2 = dom.createTextNode("\n                  ");
+              dom.appendChild(el1, el2);
+              dom.appendChild(el0, el1);
+              var el1 = dom.createTextNode("\n");
+              dom.appendChild(el0, el1);
+              return el0;
+            },
+            buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+              var morphs = new Array(1);
+              morphs[0] = dom.createMorphAt(dom.childAt(fragment, [1, 1, 3]), 1, 1);
+              return morphs;
+            },
+            statements: [["content", "model.formattedaddress", ["loc", [null, [178, 24], [178, 50]]]]],
+            locals: [],
+            templates: []
+          };
+        })();
+        var child1 = (function () {
+          return {
+            meta: {
+              "fragmentReason": false,
+              "revision": "Ember@2.3.2",
+              "loc": {
+                "source": null,
+                "start": {
+                  "line": 183,
+                  "column": 18
+                },
+                "end": {
+                  "line": 196,
+                  "column": 18
+                }
+              },
+              "moduleName": "finndis/templates/place.hbs"
+            },
+            isEmpty: false,
+            arity: 0,
+            cachedFragment: null,
+            hasRendered: false,
+            buildFragment: function buildFragment(dom) {
+              var el0 = dom.createDocumentFragment();
+              var el1 = dom.createTextNode("                  ");
+              dom.appendChild(el0, el1);
+              var el1 = dom.createElement("div");
+              dom.setAttribute(el1, "class", "columns small-12 medium-6");
+              var el2 = dom.createTextNode("\n                    ");
+              dom.appendChild(el1, el2);
+              var el2 = dom.createElement("a");
+              var el3 = dom.createTextNode("\n                      ");
+              dom.appendChild(el2, el3);
+              var el3 = dom.createElement("div");
+              dom.setAttribute(el3, "class", "place--phone row");
+              var el4 = dom.createTextNode("\n                        ");
+              dom.appendChild(el3, el4);
+              var el4 = dom.createElement("div");
+              dom.setAttribute(el4, "class", "place--main--icon--holder small-1 columns");
+              var el5 = dom.createTextNode("\n                          ");
+              dom.appendChild(el4, el5);
+              var el5 = dom.createElement("i");
+              dom.setAttribute(el5, "class", "place--main--icon fa fa-phone");
+              dom.appendChild(el4, el5);
+              var el5 = dom.createTextNode("\n                        ");
+              dom.appendChild(el4, el5);
+              dom.appendChild(el3, el4);
+              var el4 = dom.createTextNode("\n                        ");
+              dom.appendChild(el3, el4);
+              var el4 = dom.createElement("div");
+              dom.setAttribute(el4, "class", "small-11 columns");
+              var el5 = dom.createTextNode("\n                          ");
+              dom.appendChild(el4, el5);
+              var el5 = dom.createComment("");
+              dom.appendChild(el4, el5);
+              var el5 = dom.createTextNode("\n                        ");
+              dom.appendChild(el4, el5);
+              dom.appendChild(el3, el4);
+              var el4 = dom.createTextNode("\n                      ");
+              dom.appendChild(el3, el4);
+              dom.appendChild(el2, el3);
+              var el3 = dom.createTextNode("\n                    ");
+              dom.appendChild(el2, el3);
+              dom.appendChild(el1, el2);
+              var el2 = dom.createTextNode("\n                  ");
+              dom.appendChild(el1, el2);
+              dom.appendChild(el0, el1);
+              var el1 = dom.createTextNode("\n");
+              dom.appendChild(el0, el1);
+              return el0;
+            },
+            buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+              var element7 = dom.childAt(fragment, [1, 1]);
+              var morphs = new Array(2);
+              morphs[0] = dom.createAttrMorph(element7, 'href');
+              morphs[1] = dom.createMorphAt(dom.childAt(element7, [1, 3]), 1, 1);
+              return morphs;
+            },
+            statements: [["attribute", "href", ["concat", ["tel:", ["get", "model.phone", ["loc", [null, [185, 35], [185, 46]]]]]]], ["content", "model.phone", ["loc", [null, [191, 26], [191, 41]]]]],
+            locals: [],
+            templates: []
+          };
+        })();
+        return {
+          meta: {
+            "fragmentReason": false,
+            "revision": "Ember@2.3.2",
+            "loc": {
+              "source": null,
+              "start": {
+                "line": 169,
+                "column": 16
+              },
+              "end": {
+                "line": 198,
+                "column": 16
+              }
+            },
+            "moduleName": "finndis/templates/place.hbs"
+          },
+          isEmpty: false,
+          arity: 0,
+          cachedFragment: null,
+          hasRendered: false,
+          buildFragment: function buildFragment(dom) {
+            var el0 = dom.createDocumentFragment();
+            var el1 = dom.createTextNode("                ");
+            dom.appendChild(el0, el1);
+            var el1 = dom.createElement("div");
+            dom.setAttribute(el1, "class", "place--info--holder row");
+            var el2 = dom.createTextNode("\n");
+            dom.appendChild(el1, el2);
+            var el2 = dom.createComment("");
+            dom.appendChild(el1, el2);
+            var el2 = dom.createComment("");
+            dom.appendChild(el1, el2);
+            var el2 = dom.createTextNode("                ");
+            dom.appendChild(el1, el2);
+            dom.appendChild(el0, el1);
+            var el1 = dom.createTextNode("\n");
+            dom.appendChild(el0, el1);
+            return el0;
+          },
+          buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+            var element8 = dom.childAt(fragment, [1]);
+            var morphs = new Array(2);
+            morphs[0] = dom.createMorphAt(element8, 1, 1);
+            morphs[1] = dom.createMorphAt(element8, 2, 2);
+            return morphs;
+          },
+          statements: [["block", "if", [["get", "model.formattedaddress", ["loc", [null, [171, 24], [171, 46]]]]], [], 0, null, ["loc", [null, [171, 18], [182, 25]]]], ["block", "if", [["get", "model.phone", ["loc", [null, [183, 24], [183, 35]]]]], [], 1, null, ["loc", [null, [183, 18], [196, 25]]]]],
+          locals: [],
+          templates: [child0, child1]
+        };
+      })();
+      var child2 = (function () {
+        var child0 = (function () {
+          return {
+            meta: {
+              "fragmentReason": false,
+              "revision": "Ember@2.3.2",
+              "loc": {
+                "source": null,
+                "start": {
+                  "line": 203,
+                  "column": 18
+                },
+                "end": {
+                  "line": 216,
+                  "column": 18
+                }
+              },
+              "moduleName": "finndis/templates/place.hbs"
+            },
+            isEmpty: false,
+            arity: 0,
+            cachedFragment: null,
+            hasRendered: false,
+            buildFragment: function buildFragment(dom) {
+              var el0 = dom.createDocumentFragment();
+              var el1 = dom.createTextNode("                  ");
+              dom.appendChild(el0, el1);
+              var el1 = dom.createElement("div");
+              dom.setAttribute(el1, "class", "columns small-12 medium-6");
+              var el2 = dom.createTextNode("\n                    ");
+              dom.appendChild(el1, el2);
+              var el2 = dom.createElement("a");
+              var el3 = dom.createTextNode("\n                      ");
+              dom.appendChild(el2, el3);
+              var el3 = dom.createElement("div");
+              dom.setAttribute(el3, "class", "place--spacing place--website row align-middle");
+              var el4 = dom.createTextNode("\n                        ");
+              dom.appendChild(el3, el4);
+              var el4 = dom.createElement("div");
+              dom.setAttribute(el4, "class", "place--main--icon--holder small-1 columns");
+              var el5 = dom.createTextNode("\n                          ");
+              dom.appendChild(el4, el5);
+              var el5 = dom.createElement("i");
+              dom.setAttribute(el5, "class", "place--main--icon fa fa-globe");
+              dom.appendChild(el4, el5);
+              var el5 = dom.createTextNode("\n                        ");
+              dom.appendChild(el4, el5);
+              dom.appendChild(el3, el4);
+              var el4 = dom.createTextNode("\n                        ");
+              dom.appendChild(el3, el4);
+              var el4 = dom.createElement("div");
+              dom.setAttribute(el4, "class", "small-11 columns");
+              var el5 = dom.createTextNode("\n                          ");
+              dom.appendChild(el4, el5);
+              var el5 = dom.createComment("");
+              dom.appendChild(el4, el5);
+              var el5 = dom.createTextNode("\n                        ");
+              dom.appendChild(el4, el5);
+              dom.appendChild(el3, el4);
+              var el4 = dom.createTextNode("\n                      ");
+              dom.appendChild(el3, el4);
+              dom.appendChild(el2, el3);
+              var el3 = dom.createTextNode("\n                    ");
+              dom.appendChild(el2, el3);
+              dom.appendChild(el1, el2);
+              var el2 = dom.createTextNode("\n                  ");
+              dom.appendChild(el1, el2);
+              dom.appendChild(el0, el1);
+              var el1 = dom.createTextNode("\n");
+              dom.appendChild(el0, el1);
+              return el0;
+            },
+            buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+              var element5 = dom.childAt(fragment, [1, 1]);
+              var morphs = new Array(2);
+              morphs[0] = dom.createAttrMorph(element5, 'href');
+              morphs[1] = dom.createMorphAt(dom.childAt(element5, [1, 3]), 1, 1);
+              return morphs;
+            },
+            statements: [["attribute", "href", ["concat", [["get", "model.website", ["loc", [null, [205, 31], [205, 44]]]]]]], ["content", "model.website", ["loc", [null, [211, 26], [211, 43]]]]],
+            locals: [],
+            templates: []
+          };
+        })();
+        var child1 = (function () {
+          return {
+            meta: {
+              "fragmentReason": false,
+              "revision": "Ember@2.3.2",
+              "loc": {
+                "source": null,
+                "start": {
+                  "line": 217,
+                  "column": 18
+                },
+                "end": {
+                  "line": 230,
+                  "column": 18
+                }
+              },
+              "moduleName": "finndis/templates/place.hbs"
+            },
+            isEmpty: false,
+            arity: 0,
+            cachedFragment: null,
+            hasRendered: false,
+            buildFragment: function buildFragment(dom) {
+              var el0 = dom.createDocumentFragment();
+              var el1 = dom.createTextNode("                  ");
+              dom.appendChild(el0, el1);
+              var el1 = dom.createElement("div");
+              dom.setAttribute(el1, "class", "columns small-12 medium-6");
+              var el2 = dom.createTextNode("\n                    ");
+              dom.appendChild(el1, el2);
+              var el2 = dom.createElement("a");
+              dom.setAttribute(el2, "target", "_blank");
+              var el3 = dom.createTextNode("\n                      ");
+              dom.appendChild(el2, el3);
+              var el3 = dom.createElement("div");
+              dom.setAttribute(el3, "class", "place--url row align-middle");
+              var el4 = dom.createTextNode("\n                        ");
+              dom.appendChild(el3, el4);
+              var el4 = dom.createElement("div");
+              dom.setAttribute(el4, "class", "place--main--icon--holder small-1 columns");
+              var el5 = dom.createTextNode("\n                          ");
+              dom.appendChild(el4, el5);
+              var el5 = dom.createElement("i");
+              dom.setAttribute(el5, "class", "place--main--icon fa fa-google");
+              dom.appendChild(el4, el5);
+              var el5 = dom.createTextNode("\n                        ");
+              dom.appendChild(el4, el5);
+              dom.appendChild(el3, el4);
+              var el4 = dom.createTextNode("\n                        ");
+              dom.appendChild(el3, el4);
+              var el4 = dom.createElement("div");
+              dom.setAttribute(el4, "class", "small-11 columns");
+              var el5 = dom.createTextNode("\n                          Google Map\n                        ");
+              dom.appendChild(el4, el5);
+              dom.appendChild(el3, el4);
+              var el4 = dom.createTextNode("\n                      ");
+              dom.appendChild(el3, el4);
+              dom.appendChild(el2, el3);
+              var el3 = dom.createTextNode("\n                    ");
+              dom.appendChild(el2, el3);
+              dom.appendChild(el1, el2);
+              var el2 = dom.createTextNode("\n                  ");
+              dom.appendChild(el1, el2);
+              dom.appendChild(el0, el1);
+              var el1 = dom.createTextNode("\n");
+              dom.appendChild(el0, el1);
+              return el0;
+            },
+            buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+              var element4 = dom.childAt(fragment, [1, 1]);
+              var morphs = new Array(1);
+              morphs[0] = dom.createAttrMorph(element4, 'href');
+              return morphs;
+            },
+            statements: [["attribute", "href", ["concat", [["get", "model.url", ["loc", [null, [219, 31], [219, 40]]]]]]]],
+            locals: [],
+            templates: []
+          };
+        })();
+        return {
+          meta: {
+            "fragmentReason": false,
+            "revision": "Ember@2.3.2",
+            "loc": {
+              "source": null,
+              "start": {
+                "line": 201,
+                "column": 16
+              },
+              "end": {
+                "line": 232,
+                "column": 16
+              }
+            },
+            "moduleName": "finndis/templates/place.hbs"
+          },
+          isEmpty: false,
+          arity: 0,
+          cachedFragment: null,
+          hasRendered: false,
+          buildFragment: function buildFragment(dom) {
+            var el0 = dom.createDocumentFragment();
+            var el1 = dom.createTextNode("                ");
+            dom.appendChild(el0, el1);
+            var el1 = dom.createElement("div");
+            dom.setAttribute(el1, "class", "place--info--holder row");
+            var el2 = dom.createTextNode("\n");
+            dom.appendChild(el1, el2);
+            var el2 = dom.createComment("");
+            dom.appendChild(el1, el2);
+            var el2 = dom.createComment("");
+            dom.appendChild(el1, el2);
+            var el2 = dom.createTextNode("                ");
+            dom.appendChild(el1, el2);
+            dom.appendChild(el0, el1);
+            var el1 = dom.createTextNode("\n");
+            dom.appendChild(el0, el1);
+            return el0;
+          },
+          buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+            var element6 = dom.childAt(fragment, [1]);
+            var morphs = new Array(2);
+            morphs[0] = dom.createMorphAt(element6, 1, 1);
+            morphs[1] = dom.createMorphAt(element6, 2, 2);
+            return morphs;
+          },
+          statements: [["block", "if", [["get", "model.website", ["loc", [null, [203, 24], [203, 37]]]]], [], 0, null, ["loc", [null, [203, 18], [216, 25]]]], ["block", "if", [["get", "model.url", ["loc", [null, [217, 24], [217, 33]]]]], [], 1, null, ["loc", [null, [217, 18], [230, 25]]]]],
+          locals: [],
+          templates: [child0, child1]
+        };
+      })();
+      var child3 = (function () {
+        var child0 = (function () {
+          var child0 = (function () {
+            var child0 = (function () {
+              return {
+                meta: {
+                  "fragmentReason": false,
+                  "revision": "Ember@2.3.2",
+                  "loc": {
+                    "source": null,
+                    "start": {
+                      "line": 256,
+                      "column": 28
+                    },
+                    "end": {
+                      "line": 258,
+                      "column": 28
+                    }
+                  },
+                  "moduleName": "finndis/templates/place.hbs"
+                },
+                isEmpty: false,
+                arity: 0,
+                cachedFragment: null,
+                hasRendered: false,
+                buildFragment: function buildFragment(dom) {
+                  var el0 = dom.createDocumentFragment();
+                  var el1 = dom.createTextNode("                              ");
+                  dom.appendChild(el0, el1);
+                  var el1 = dom.createElement("a");
+                  dom.setAttribute(el1, "class", "price-rating fa fa-square");
+                  dom.appendChild(el0, el1);
+                  var el1 = dom.createTextNode("\n");
+                  dom.appendChild(el0, el1);
+                  return el0;
+                },
+                buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+                  var element3 = dom.childAt(fragment, [1]);
+                  var morphs = new Array(1);
+                  morphs[0] = dom.createElementMorph(element3);
+                  return morphs;
+                },
+                statements: [["element", "action", [["get", "set", ["loc", [null, [257, 76], [257, 79]]]], ["get", "star.rating", ["loc", [null, [257, 80], [257, 91]]]]], [], ["loc", [null, [257, 67], [257, 93]]]]],
+                locals: [],
+                templates: []
+              };
+            })();
+            var child1 = (function () {
+              return {
+                meta: {
+                  "fragmentReason": false,
+                  "revision": "Ember@2.3.2",
+                  "loc": {
+                    "source": null,
+                    "start": {
+                      "line": 258,
+                      "column": 28
+                    },
+                    "end": {
+                      "line": 260,
+                      "column": 28
+                    }
+                  },
+                  "moduleName": "finndis/templates/place.hbs"
+                },
+                isEmpty: false,
+                arity: 0,
+                cachedFragment: null,
+                hasRendered: false,
+                buildFragment: function buildFragment(dom) {
+                  var el0 = dom.createDocumentFragment();
+                  var el1 = dom.createTextNode("                              ");
+                  dom.appendChild(el0, el1);
+                  var el1 = dom.createElement("a");
+                  dom.setAttribute(el1, "class", "price-rating fa fa-square-o");
+                  dom.appendChild(el0, el1);
+                  var el1 = dom.createTextNode("\n");
+                  dom.appendChild(el0, el1);
+                  return el0;
+                },
+                buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+                  var element2 = dom.childAt(fragment, [1]);
+                  var morphs = new Array(1);
+                  morphs[0] = dom.createElementMorph(element2);
+                  return morphs;
+                },
+                statements: [["element", "action", [["get", "set", ["loc", [null, [259, 78], [259, 81]]]], ["get", "star.rating", ["loc", [null, [259, 82], [259, 93]]]]], [], ["loc", [null, [259, 69], [259, 95]]]]],
+                locals: [],
+                templates: []
+              };
+            })();
+            return {
+              meta: {
+                "fragmentReason": false,
+                "revision": "Ember@2.3.2",
+                "loc": {
+                  "source": null,
+                  "start": {
+                    "line": 255,
+                    "column": 26
+                  },
+                  "end": {
+                    "line": 261,
+                    "column": 26
+                  }
+                },
+                "moduleName": "finndis/templates/place.hbs"
+              },
+              isEmpty: false,
+              arity: 1,
+              cachedFragment: null,
+              hasRendered: false,
+              buildFragment: function buildFragment(dom) {
+                var el0 = dom.createDocumentFragment();
+                var el1 = dom.createComment("");
+                dom.appendChild(el0, el1);
+                return el0;
+              },
+              buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+                var morphs = new Array(1);
+                morphs[0] = dom.createMorphAt(fragment, 0, 0, contextualElement);
+                dom.insertBoundary(fragment, 0);
+                dom.insertBoundary(fragment, null);
+                return morphs;
+              },
+              statements: [["block", "if", [["get", "star.full", ["loc", [null, [256, 34], [256, 43]]]]], [], 0, 1, ["loc", [null, [256, 28], [260, 35]]]]],
+              locals: ["star"],
+              templates: [child0, child1]
+            };
+          })();
+          return {
+            meta: {
+              "fragmentReason": false,
+              "revision": "Ember@2.3.2",
+              "loc": {
+                "source": null,
+                "start": {
+                  "line": 254,
+                  "column": 24
+                },
+                "end": {
+                  "line": 262,
+                  "column": 24
+                }
+              },
+              "moduleName": "finndis/templates/place.hbs"
+            },
+            isEmpty: false,
+            arity: 2,
+            cachedFragment: null,
+            hasRendered: false,
+            buildFragment: function buildFragment(dom) {
+              var el0 = dom.createDocumentFragment();
+              var el1 = dom.createComment("");
+              dom.appendChild(el0, el1);
+              return el0;
+            },
+            buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+              var morphs = new Array(1);
+              morphs[0] = dom.createMorphAt(fragment, 0, 0, contextualElement);
+              dom.insertBoundary(fragment, 0);
+              dom.insertBoundary(fragment, null);
+              return morphs;
+            },
+            statements: [["block", "each", [["get", "stars", ["loc", [null, [255, 34], [255, 39]]]]], [], 0, null, ["loc", [null, [255, 26], [261, 35]]]]],
+            locals: ["stars", "set"],
+            templates: [child0]
+          };
+        })();
+        return {
+          meta: {
+            "fragmentReason": false,
+            "revision": "Ember@2.3.2",
+            "loc": {
+              "source": null,
+              "start": {
+                "line": 247,
+                "column": 18
+              },
+              "end": {
+                "line": 266,
+                "column": 18
+              }
+            },
+            "moduleName": "finndis/templates/place.hbs"
+          },
+          isEmpty: false,
+          arity: 0,
+          cachedFragment: null,
+          hasRendered: false,
+          buildFragment: function buildFragment(dom) {
+            var el0 = dom.createDocumentFragment();
+            var el1 = dom.createTextNode("                  ");
+            dom.appendChild(el0, el1);
+            var el1 = dom.createElement("div");
+            dom.setAttribute(el1, "class", "columns small-12 medium-6");
+            var el2 = dom.createTextNode("\n                    ");
+            dom.appendChild(el1, el2);
+            var el2 = dom.createElement("div");
+            dom.setAttribute(el2, "class", "place--price row align-middle");
+            var el3 = dom.createTextNode("\n                      ");
+            dom.appendChild(el2, el3);
+            var el3 = dom.createElement("div");
+            dom.setAttribute(el3, "class", "place--main--icon--holder small-1 columns");
+            var el4 = dom.createTextNode("\n                        ");
+            dom.appendChild(el3, el4);
+            var el4 = dom.createElement("i");
+            dom.setAttribute(el4, "class", "place--main--icon fa fa-usd");
+            dom.appendChild(el3, el4);
+            var el4 = dom.createTextNode("\n                      ");
+            dom.appendChild(el3, el4);
+            dom.appendChild(el2, el3);
+            var el3 = dom.createTextNode("\n                      ");
+            dom.appendChild(el2, el3);
+            var el3 = dom.createElement("div");
+            dom.setAttribute(el3, "class", "small-11 columns");
+            var el4 = dom.createTextNode("\n");
+            dom.appendChild(el3, el4);
+            var el4 = dom.createComment("");
+            dom.appendChild(el3, el4);
+            var el4 = dom.createTextNode("                      ");
+            dom.appendChild(el3, el4);
+            dom.appendChild(el2, el3);
+            var el3 = dom.createTextNode("\n                    ");
+            dom.appendChild(el2, el3);
+            dom.appendChild(el1, el2);
+            var el2 = dom.createTextNode("\n                  ");
+            dom.appendChild(el1, el2);
+            dom.appendChild(el0, el1);
+            var el1 = dom.createTextNode("\n");
+            dom.appendChild(el0, el1);
+            return el0;
+          },
+          buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+            var morphs = new Array(1);
+            morphs[0] = dom.createMorphAt(dom.childAt(fragment, [1, 1, 3]), 1, 1);
+            return morphs;
+          },
+          statements: [["block", "star-rating-fa", [], ["item", ["subexpr", "@mut", [["get", "model", ["loc", [null, [254, 48], [254, 53]]]]], [], []], "rating", ["subexpr", "@mut", [["get", "model.pricerange", ["loc", [null, [254, 61], [254, 77]]]]], [], []], "on-click", ["subexpr", "action", ["setPrice"], [], ["loc", [null, [254, 87], [254, 106]]]]], 0, null, ["loc", [null, [254, 24], [262, 43]]]]],
+          locals: [],
+          templates: [child0]
+        };
+      })();
+      var child4 = (function () {
+        return {
+          meta: {
+            "fragmentReason": false,
+            "revision": "Ember@2.3.2",
+            "loc": {
+              "source": null,
+              "start": {
+                "line": 269,
+                "column": 16
+              },
+              "end": {
+                "line": 282,
+                "column": 16
+              }
+            },
+            "moduleName": "finndis/templates/place.hbs"
+          },
+          isEmpty: false,
+          arity: 0,
+          cachedFragment: null,
+          hasRendered: false,
+          buildFragment: function buildFragment(dom) {
+            var el0 = dom.createDocumentFragment();
+            var el1 = dom.createTextNode("                ");
+            dom.appendChild(el0, el1);
+            var el1 = dom.createElement("div");
+            dom.setAttribute(el1, "class", "place--info--holder row");
+            var el2 = dom.createTextNode("\n                  ");
+            dom.appendChild(el1, el2);
+            var el2 = dom.createElement("div");
+            dom.setAttribute(el2, "class", "columns small-12 medium-6");
+            var el3 = dom.createTextNode("\n                    ");
+            dom.appendChild(el2, el3);
+            var el3 = dom.createElement("div");
+            dom.setAttribute(el3, "class", "place--description row");
+            var el4 = dom.createTextNode("\n                      ");
+            dom.appendChild(el3, el4);
+            var el4 = dom.createElement("div");
+            dom.setAttribute(el4, "class", "place--main--icon--holder small-1 columns");
+            var el5 = dom.createTextNode("\n                        ");
+            dom.appendChild(el4, el5);
+            var el5 = dom.createElement("i");
+            dom.setAttribute(el5, "class", "place--main--icon fa fa-info");
+            dom.appendChild(el4, el5);
+            var el5 = dom.createTextNode("\n                      ");
+            dom.appendChild(el4, el5);
+            dom.appendChild(el3, el4);
+            var el4 = dom.createTextNode("\n                      ");
+            dom.appendChild(el3, el4);
+            var el4 = dom.createElement("div");
+            dom.setAttribute(el4, "class", "small-11 columns");
+            var el5 = dom.createTextNode("\n                        ");
+            dom.appendChild(el4, el5);
+            var el5 = dom.createComment("");
+            dom.appendChild(el4, el5);
+            var el5 = dom.createTextNode("\n                      ");
+            dom.appendChild(el4, el5);
+            dom.appendChild(el3, el4);
+            var el4 = dom.createTextNode("\n                    ");
+            dom.appendChild(el3, el4);
+            dom.appendChild(el2, el3);
+            var el3 = dom.createTextNode("\n                  ");
+            dom.appendChild(el2, el3);
+            dom.appendChild(el1, el2);
+            var el2 = dom.createTextNode("\n                ");
+            dom.appendChild(el1, el2);
+            dom.appendChild(el0, el1);
+            var el1 = dom.createTextNode("\n");
+            dom.appendChild(el0, el1);
+            return el0;
+          },
+          buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+            var morphs = new Array(1);
+            morphs[0] = dom.createMorphAt(dom.childAt(fragment, [1, 1, 1, 3]), 1, 1);
+            return morphs;
+          },
+          statements: [["content", "model.description", ["loc", [null, [277, 24], [277, 45]]]]],
+          locals: [],
+          templates: []
+        };
+      })();
+      var child5 = (function () {
+        var child0 = (function () {
+          var child0 = (function () {
+            return {
+              meta: {
+                "fragmentReason": false,
+                "revision": "Ember@2.3.2",
+                "loc": {
+                  "source": null,
+                  "start": {
+                    "line": 288,
+                    "column": 26
+                  },
+                  "end": {
+                    "line": 290,
+                    "column": 26
+                  }
+                },
+                "moduleName": "finndis/templates/place.hbs"
+              },
+              isEmpty: false,
+              arity: 0,
+              cachedFragment: null,
+              hasRendered: false,
+              buildFragment: function buildFragment(dom) {
+                var el0 = dom.createDocumentFragment();
+                var el1 = dom.createTextNode("                            ");
+                dom.appendChild(el0, el1);
+                var el1 = dom.createElement("a");
+                dom.setAttribute(el1, "class", "star-rating fa fa-star");
+                dom.appendChild(el0, el1);
+                var el1 = dom.createTextNode("\n");
+                dom.appendChild(el0, el1);
+                return el0;
+              },
+              buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+                var element1 = dom.childAt(fragment, [1]);
+                var morphs = new Array(1);
+                morphs[0] = dom.createElementMorph(element1);
+                return morphs;
+              },
+              statements: [["element", "action", [["get", "set", ["loc", [null, [289, 71], [289, 74]]]], ["get", "star.rating", ["loc", [null, [289, 75], [289, 86]]]]], [], ["loc", [null, [289, 62], [289, 88]]]]],
+              locals: [],
+              templates: []
+            };
+          })();
+          var child1 = (function () {
+            return {
+              meta: {
+                "fragmentReason": false,
+                "revision": "Ember@2.3.2",
+                "loc": {
+                  "source": null,
+                  "start": {
+                    "line": 290,
+                    "column": 26
+                  },
+                  "end": {
+                    "line": 292,
+                    "column": 26
+                  }
+                },
+                "moduleName": "finndis/templates/place.hbs"
+              },
+              isEmpty: false,
+              arity: 0,
+              cachedFragment: null,
+              hasRendered: false,
+              buildFragment: function buildFragment(dom) {
+                var el0 = dom.createDocumentFragment();
+                var el1 = dom.createTextNode("                            ");
+                dom.appendChild(el0, el1);
+                var el1 = dom.createElement("a");
+                dom.setAttribute(el1, "class", "star-rating fa fa-star-o");
+                dom.appendChild(el0, el1);
+                var el1 = dom.createTextNode("\n");
+                dom.appendChild(el0, el1);
+                return el0;
+              },
+              buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+                var element0 = dom.childAt(fragment, [1]);
+                var morphs = new Array(1);
+                morphs[0] = dom.createElementMorph(element0);
+                return morphs;
+              },
+              statements: [["element", "action", [["get", "set", ["loc", [null, [291, 73], [291, 76]]]], ["get", "star.rating", ["loc", [null, [291, 77], [291, 88]]]]], [], ["loc", [null, [291, 64], [291, 90]]]]],
+              locals: [],
+              templates: []
+            };
+          })();
+          return {
+            meta: {
+              "fragmentReason": false,
+              "revision": "Ember@2.3.2",
+              "loc": {
+                "source": null,
+                "start": {
+                  "line": 287,
+                  "column": 24
+                },
+                "end": {
+                  "line": 293,
+                  "column": 24
+                }
+              },
+              "moduleName": "finndis/templates/place.hbs"
+            },
+            isEmpty: false,
+            arity: 1,
+            cachedFragment: null,
+            hasRendered: false,
+            buildFragment: function buildFragment(dom) {
+              var el0 = dom.createDocumentFragment();
+              var el1 = dom.createComment("");
+              dom.appendChild(el0, el1);
+              return el0;
+            },
+            buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+              var morphs = new Array(1);
+              morphs[0] = dom.createMorphAt(fragment, 0, 0, contextualElement);
+              dom.insertBoundary(fragment, 0);
+              dom.insertBoundary(fragment, null);
+              return morphs;
+            },
+            statements: [["block", "if", [["get", "star.full", ["loc", [null, [288, 32], [288, 41]]]]], [], 0, 1, ["loc", [null, [288, 26], [292, 33]]]]],
+            locals: ["star"],
+            templates: [child0, child1]
+          };
+        })();
+        return {
+          meta: {
+            "fragmentReason": false,
+            "revision": "Ember@2.3.2",
+            "loc": {
+              "source": null,
+              "start": {
+                "line": 286,
+                "column": 22
+              },
+              "end": {
+                "line": 294,
+                "column": 22
+              }
+            },
+            "moduleName": "finndis/templates/place.hbs"
+          },
+          isEmpty: false,
+          arity: 2,
+          cachedFragment: null,
+          hasRendered: false,
+          buildFragment: function buildFragment(dom) {
+            var el0 = dom.createDocumentFragment();
+            var el1 = dom.createComment("");
+            dom.appendChild(el0, el1);
+            return el0;
+          },
+          buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+            var morphs = new Array(1);
+            morphs[0] = dom.createMorphAt(fragment, 0, 0, contextualElement);
+            dom.insertBoundary(fragment, 0);
+            dom.insertBoundary(fragment, null);
+            return morphs;
+          },
+          statements: [["block", "each", [["get", "stars", ["loc", [null, [287, 32], [287, 37]]]]], [], 0, null, ["loc", [null, [287, 24], [293, 33]]]]],
+          locals: ["stars", "set"],
+          templates: [child0]
+        };
+      })();
+      return {
+        meta: {
+          "fragmentReason": false,
+          "revision": "Ember@2.3.2",
+          "loc": {
+            "source": null,
+            "start": {
+              "line": 136,
+              "column": 0
+            },
+            "end": {
+              "line": 307,
+              "column": 0
+            }
+          },
+          "moduleName": "finndis/templates/place.hbs"
+        },
+        isEmpty: false,
+        arity: 0,
+        cachedFragment: null,
+        hasRendered: false,
+        buildFragment: function buildFragment(dom) {
+          var el0 = dom.createDocumentFragment();
+          var el1 = dom.createTextNode("\n");
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode("  ");
+          dom.appendChild(el0, el1);
+          var el1 = dom.createElement("div");
+          dom.setAttribute(el1, "class", "place_details __display row");
+          var el2 = dom.createTextNode("\n    ");
+          dom.appendChild(el1, el2);
+          var el2 = dom.createElement("div");
+          dom.setAttribute(el2, "class", "__display medium-12 columns");
+          var el3 = dom.createTextNode("\n\n");
+          dom.appendChild(el2, el3);
+          var el3 = dom.createComment("");
+          dom.appendChild(el2, el3);
+          var el3 = dom.createTextNode("\n      ");
+          dom.appendChild(el2, el3);
+          var el3 = dom.createElement("div");
+          dom.setAttribute(el3, "class", "row");
+          var el4 = dom.createTextNode("\n        ");
+          dom.appendChild(el3, el4);
+          var el4 = dom.createElement("div");
+          dom.setAttribute(el4, "class", "columns");
+          var el5 = dom.createTextNode("\n          ");
+          dom.appendChild(el4, el5);
+          var el5 = dom.createElement("div");
+          dom.setAttribute(el5, "class", "place--holder");
+          var el6 = dom.createTextNode("\n            ");
+          dom.appendChild(el5, el6);
+          var el6 = dom.createElement("article");
+          dom.setAttribute(el6, "class", "place");
+          var el7 = dom.createTextNode("\n              ");
+          dom.appendChild(el6, el7);
+          var el7 = dom.createElement("header");
+          dom.setAttribute(el7, "class", "place--header");
+          var el8 = dom.createTextNode("\n                ");
+          dom.appendChild(el7, el8);
+          var el8 = dom.createElement("a");
+          dom.setAttribute(el8, "href", "#");
+          dom.setAttribute(el8, "class", "button share-button");
+          var el9 = dom.createElement("i");
+          dom.setAttribute(el9, "class", "place--action--icon fa fa-share-alt");
+          dom.appendChild(el8, el9);
+          var el9 = dom.createTextNode("Share");
+          dom.appendChild(el8, el9);
+          dom.appendChild(el7, el8);
+          var el8 = dom.createTextNode("\n                ");
+          dom.appendChild(el7, el8);
+          var el8 = dom.createElement("a");
+          dom.setAttribute(el8, "href", "#");
+          dom.setAttribute(el8, "class", "button edit-button");
+          var el9 = dom.createElement("i");
+          dom.setAttribute(el9, "class", "place--action--icon fa fa-pencil-square-o");
+          dom.appendChild(el8, el9);
+          var el9 = dom.createTextNode("Edit");
+          dom.appendChild(el8, el9);
+          dom.appendChild(el7, el8);
+          var el8 = dom.createTextNode("\n\n                ");
+          dom.appendChild(el7, el8);
+          var el8 = dom.createComment("");
+          dom.appendChild(el7, el8);
+          var el8 = dom.createTextNode("\n                ");
+          dom.appendChild(el7, el8);
+          var el8 = dom.createElement("i");
+          dom.setAttribute(el8, "class", "place--labels--icon fa fa-tag");
+          dom.appendChild(el7, el8);
+          var el8 = dom.createTextNode("\n                ");
+          dom.appendChild(el7, el8);
+          var el8 = dom.createElement("ul");
+          dom.setAttribute(el8, "class", "place--labels clearfix");
+          var el9 = dom.createTextNode("\n                  ");
+          dom.appendChild(el8, el9);
+          var el9 = dom.createElement("li");
+          dom.setAttribute(el9, "class", "place--labelitem");
+          var el10 = dom.createComment("");
+          dom.appendChild(el9, el10);
+          dom.appendChild(el8, el9);
+          var el9 = dom.createTextNode("\n                  ");
+          dom.appendChild(el8, el9);
+          var el9 = dom.createElement("li");
+          dom.setAttribute(el9, "class", "place--labelitem");
+          var el10 = dom.createTextNode("\n                    ");
+          dom.appendChild(el9, el10);
+          var el10 = dom.createElement("i");
+          dom.setAttribute(el10, "class", "place--add--icon fa fa-plus");
+          dom.appendChild(el9, el10);
+          var el10 = dom.createTextNode("\n                  ");
+          dom.appendChild(el9, el10);
+          dom.appendChild(el8, el9);
+          var el9 = dom.createTextNode("\n                ");
+          dom.appendChild(el8, el9);
+          dom.appendChild(el7, el8);
+          var el8 = dom.createTextNode("\n              ");
+          dom.appendChild(el7, el8);
+          dom.appendChild(el6, el7);
+          var el7 = dom.createTextNode("\n\n              ");
+          dom.appendChild(el6, el7);
+          var el7 = dom.createElement("main");
+          dom.setAttribute(el7, "class", "place--main");
+          var el8 = dom.createTextNode("\n");
+          dom.appendChild(el7, el8);
+          var el8 = dom.createComment("");
+          dom.appendChild(el7, el8);
+          var el8 = dom.createTextNode("\n\n");
+          dom.appendChild(el7, el8);
+          var el8 = dom.createComment("");
+          dom.appendChild(el7, el8);
+          var el8 = dom.createTextNode("\n                ");
+          dom.appendChild(el7, el8);
+          var el8 = dom.createElement("div");
+          dom.setAttribute(el8, "class", "place--info--holder row");
+          var el9 = dom.createTextNode("\n                  ");
+          dom.appendChild(el8, el9);
+          var el9 = dom.createElement("div");
+          dom.setAttribute(el9, "class", "columns small-12 medium-6");
+          var el10 = dom.createTextNode("\n                    ");
+          dom.appendChild(el9, el10);
+          var el10 = dom.createElement("a");
+          dom.setAttribute(el10, "target", "_blank");
+          var el11 = dom.createTextNode("\n                      ");
+          dom.appendChild(el10, el11);
+          var el11 = dom.createElement("div");
+          dom.setAttribute(el11, "class", "place--spacing place--direction align-middle row");
+          var el12 = dom.createTextNode("\n                        ");
+          dom.appendChild(el11, el12);
+          var el12 = dom.createElement("div");
+          dom.setAttribute(el12, "class", "place--main--icon--holder small-1 columns");
+          var el13 = dom.createTextNode("\n                          ");
+          dom.appendChild(el12, el13);
+          var el13 = dom.createElement("i");
+          dom.setAttribute(el13, "class", "place--main--icon fa fa-location-arrow");
+          dom.appendChild(el12, el13);
+          var el13 = dom.createTextNode("\n                        ");
+          dom.appendChild(el12, el13);
+          dom.appendChild(el11, el12);
+          var el12 = dom.createTextNode("\n                        ");
+          dom.appendChild(el11, el12);
+          var el12 = dom.createElement("div");
+          dom.setAttribute(el12, "class", "small-11 columns");
+          var el13 = dom.createTextNode("\n                          Get direction\n                        ");
+          dom.appendChild(el12, el13);
+          dom.appendChild(el11, el12);
+          var el12 = dom.createTextNode("\n                      ");
+          dom.appendChild(el11, el12);
+          dom.appendChild(el10, el11);
+          var el11 = dom.createTextNode("\n                    ");
+          dom.appendChild(el10, el11);
+          dom.appendChild(el9, el10);
+          var el10 = dom.createTextNode("\n                  ");
+          dom.appendChild(el9, el10);
+          dom.appendChild(el8, el9);
+          var el9 = dom.createTextNode("\n");
+          dom.appendChild(el8, el9);
+          var el9 = dom.createComment("");
+          dom.appendChild(el8, el9);
+          var el9 = dom.createTextNode("                ");
+          dom.appendChild(el8, el9);
+          dom.appendChild(el7, el8);
+          var el8 = dom.createTextNode("\n\n");
+          dom.appendChild(el7, el8);
+          var el8 = dom.createComment("");
+          dom.appendChild(el7, el8);
+          var el8 = dom.createTextNode("                ");
+          dom.appendChild(el7, el8);
+          var el8 = dom.createElement("div");
+          dom.setAttribute(el8, "class", "place--info--holder row");
+          var el9 = dom.createTextNode("\n                  ");
+          dom.appendChild(el8, el9);
+          var el9 = dom.createElement("div");
+          dom.setAttribute(el9, "class", "columns");
+          var el10 = dom.createTextNode("\n                    ");
+          dom.appendChild(el9, el10);
+          var el10 = dom.createElement("div");
+          dom.setAttribute(el10, "class", "place--rating");
+          var el11 = dom.createTextNode("\n");
+          dom.appendChild(el10, el11);
+          var el11 = dom.createComment("");
+          dom.appendChild(el10, el11);
+          var el11 = dom.createTextNode("                    ");
+          dom.appendChild(el10, el11);
+          dom.appendChild(el9, el10);
+          var el10 = dom.createTextNode("\n                  ");
+          dom.appendChild(el9, el10);
+          dom.appendChild(el8, el9);
+          var el9 = dom.createTextNode("\n                ");
+          dom.appendChild(el8, el9);
+          dom.appendChild(el7, el8);
+          var el8 = dom.createTextNode("\n              ");
+          dom.appendChild(el7, el8);
+          dom.appendChild(el6, el7);
+          var el7 = dom.createTextNode("\n            ");
+          dom.appendChild(el6, el7);
+          dom.appendChild(el5, el6);
+          var el6 = dom.createTextNode("\n          ");
+          dom.appendChild(el5, el6);
+          dom.appendChild(el4, el5);
+          var el5 = dom.createTextNode("\n        ");
+          dom.appendChild(el4, el5);
+          dom.appendChild(el3, el4);
+          var el4 = dom.createTextNode("\n      ");
+          dom.appendChild(el3, el4);
+          dom.appendChild(el2, el3);
+          var el3 = dom.createTextNode("\n    ");
+          dom.appendChild(el2, el3);
+          dom.appendChild(el1, el2);
+          var el2 = dom.createTextNode("\n  ");
+          dom.appendChild(el1, el2);
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode("\n");
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode("\n");
+          dom.appendChild(el0, el1);
+          return el0;
+        },
+        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+          var element9 = dom.childAt(fragment, [2, 1]);
+          var element10 = dom.childAt(element9, [3, 1, 1, 1]);
+          var element11 = dom.childAt(element10, [1]);
+          var element12 = dom.childAt(element11, [1]);
+          var element13 = dom.childAt(element11, [3]);
+          var element14 = dom.childAt(element11, [7]);
+          var element15 = dom.childAt(element11, [9]);
+          var element16 = dom.childAt(element10, [3]);
+          var element17 = dom.childAt(element16, [5]);
+          var element18 = dom.childAt(element17, [1, 1]);
+          var morphs = new Array(13);
+          morphs[0] = dom.createMorphAt(element9, 1, 1);
+          morphs[1] = dom.createElementMorph(element12);
+          morphs[2] = dom.createElementMorph(element13);
+          morphs[3] = dom.createMorphAt(element11, 5, 5);
+          morphs[4] = dom.createElementMorph(element14);
+          morphs[5] = dom.createElementMorph(element15);
+          morphs[6] = dom.createMorphAt(dom.childAt(element15, [1]), 0, 0);
+          morphs[7] = dom.createMorphAt(element16, 1, 1);
+          morphs[8] = dom.createMorphAt(element16, 3, 3);
+          morphs[9] = dom.createAttrMorph(element18, 'href');
+          morphs[10] = dom.createMorphAt(element17, 3, 3);
+          morphs[11] = dom.createMorphAt(element16, 7, 7);
+          morphs[12] = dom.createMorphAt(dom.childAt(element16, [9, 1, 1]), 1, 1);
+          return morphs;
+        },
+        statements: [["block", "if", [["get", "model.locationlat", ["loc", [null, [142, 12], [142, 29]]]]], [], 0, null, ["loc", [null, [142, 6], [148, 13]]]], ["element", "action", ["sharePlace"], [], ["loc", [null, [155, 56], [155, 79]]]], ["element", "action", ["toggleEdition"], [], ["loc", [null, [156, 55], [156, 81]]]], ["inline", "input", [], ["class", "place--title __input", "type", "text", "placeholder", "Name", "value", ["subexpr", "@mut", [["get", "model.name", ["loc", [null, [158, 90], [158, 100]]]]], [], []]], ["loc", [null, [158, 16], [158, 102]]]], ["element", "action", ["showAddLabel"], ["bubbles", "false"], ["loc", [null, [159, 57], [159, 98]]]], ["element", "action", ["showAddLabel"], ["bubbles", "false"], ["loc", [null, [160, 51], [160, 92]]]], ["content", "model.label.name", ["loc", [null, [161, 47], [161, 67]]]], ["block", "if", [["get", "hasPhoneOrAddress", ["loc", [null, [169, 22], [169, 39]]]]], [], 1, null, ["loc", [null, [169, 16], [198, 23]]]], ["block", "if", [["get", "hasUrlOrWebsite", ["loc", [null, [201, 22], [201, 37]]]]], [], 2, null, ["loc", [null, [201, 16], [232, 23]]]], ["attribute", "href", ["concat", ["http://maps.google.com/maps?daddr=", ["get", "model.locationlat", ["loc", [null, [236, 65], [236, 82]]]], ",", ["get", "model.locationlng", ["loc", [null, [236, 87], [236, 104]]]], "&ll="]]], ["block", "if", [["get", "model.pricerange", ["loc", [null, [247, 24], [247, 40]]]]], [], 3, null, ["loc", [null, [247, 18], [266, 25]]]], ["block", "if", [["get", "model.description", ["loc", [null, [269, 22], [269, 39]]]]], [], 4, null, ["loc", [null, [269, 16], [282, 23]]]], ["block", "star-rating-fa", [], ["item", ["subexpr", "@mut", [["get", "model", ["loc", [null, [286, 46], [286, 51]]]]], [], []], "rating", ["subexpr", "@mut", [["get", "model.rating", ["loc", [null, [286, 59], [286, 71]]]]], [], []], "on-click", ["subexpr", "action", ["setRating"], [], ["loc", [null, [286, 81], [286, 101]]]]], 5, null, ["loc", [null, [286, 22], [294, 41]]]]],
+        locals: [],
+        templates: [child0, child1, child2, child3, child4, child5]
+      };
+    })();
+    var child2 = (function () {
+      return {
+        meta: {
+          "fragmentReason": false,
+          "revision": "Ember@2.3.2",
+          "loc": {
+            "source": null,
+            "start": {
+              "line": 310,
+              "column": 2
+            },
+            "end": {
+              "line": 312,
+              "column": 2
+            }
+          },
+          "moduleName": "finndis/templates/place.hbs"
+        },
+        isEmpty: false,
+        arity: 0,
+        cachedFragment: null,
+        hasRendered: false,
+        buildFragment: function buildFragment(dom) {
+          var el0 = dom.createDocumentFragment();
+          var el1 = dom.createTextNode("    ");
+          dom.appendChild(el0, el1);
+          var el1 = dom.createComment("");
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode("\n");
+          dom.appendChild(el0, el1);
+          return el0;
+        },
+        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+          var morphs = new Array(1);
+          morphs[0] = dom.createMorphAt(fragment, 1, 1, contextualElement);
+          return morphs;
+        },
+        statements: [["content", "tool-box", ["loc", [null, [311, 4], [311, 16]]]]],
+        locals: [],
+        templates: []
+      };
+    })();
+    return {
+      meta: {
+        "fragmentReason": {
+          "name": "missing-wrapper",
+          "problems": ["wrong-type", "multiple-nodes"]
+        },
+        "revision": "Ember@2.3.2",
+        "loc": {
+          "source": null,
+          "start": {
+            "line": 1,
+            "column": 0
+          },
+          "end": {
+            "line": 315,
+            "column": 0
+          }
+        },
+        "moduleName": "finndis/templates/place.hbs"
+      },
+      isEmpty: false,
+      arity: 0,
+      cachedFragment: null,
+      hasRendered: false,
+      buildFragment: function buildFragment(dom) {
+        var el0 = dom.createDocumentFragment();
+        var el1 = dom.createComment("");
+        dom.appendChild(el0, el1);
+        var el1 = dom.createTextNode("\n\n");
+        dom.appendChild(el0, el1);
+        var el1 = dom.createElement("div");
+        dom.setAttribute(el1, "class", "page-wrapper row big");
+        var el2 = dom.createTextNode("\n  ");
+        dom.appendChild(el1, el2);
+        var el2 = dom.createElement("div");
+        dom.setAttribute(el2, "class", "columns");
+        var el3 = dom.createTextNode("\n    ");
+        dom.appendChild(el2, el3);
+        var el3 = dom.createComment("");
+        dom.appendChild(el2, el3);
+        var el3 = dom.createTextNode("\n\n");
+        dom.appendChild(el2, el3);
+        var el3 = dom.createComment("");
+        dom.appendChild(el2, el3);
+        var el3 = dom.createTextNode("\n\n");
+        dom.appendChild(el2, el3);
+        var el3 = dom.createComment("");
+        dom.appendChild(el2, el3);
+        var el3 = dom.createTextNode("  ");
+        dom.appendChild(el2, el3);
+        dom.appendChild(el1, el2);
+        var el2 = dom.createTextNode("\n");
+        dom.appendChild(el1, el2);
+        dom.appendChild(el0, el1);
+        var el1 = dom.createTextNode("\n");
+        dom.appendChild(el0, el1);
+        return el0;
+      },
+      buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+        var element32 = dom.childAt(fragment, [2, 1]);
+        var morphs = new Array(4);
+        morphs[0] = dom.createMorphAt(fragment, 0, 0, contextualElement);
+        morphs[1] = dom.createMorphAt(element32, 1, 1);
+        morphs[2] = dom.createMorphAt(element32, 3, 3);
+        morphs[3] = dom.createMorphAt(element32, 5, 5);
+        dom.insertBoundary(fragment, 0);
+        return morphs;
+      },
+      statements: [["content", "main-header", ["loc", [null, [1, 0], [1, 15]]]], ["inline", "label-panel", [], ["labelPanelDisplayed", ["subexpr", "@mut", [["get", "labelPanelDisplayed", ["loc", [null, [5, 38], [5, 57]]]]], [], []], "model", ["subexpr", "@mut", [["get", "model", ["loc", [null, [5, 64], [5, 69]]]]], [], []], "autoSaveLabel", true], ["loc", [null, [5, 4], [5, 90]]]], ["block", "if", [["get", "isEditing", ["loc", [null, [7, 6], [7, 15]]]]], [], 0, 1, ["loc", [null, [7, 0], [307, 7]]]], ["block", "if", [["get", "session.isAuthenticated", ["loc", [null, [310, 8], [310, 31]]]]], [], 2, null, ["loc", [null, [310, 2], [312, 9]]]]],
+      locals: [],
+      templates: [child0, child1, child2]
+    };
+  })());
+});
 define("finndis/templates/places", ["exports"], function (exports) {
   exports["default"] = Ember.HTMLBars.template((function () {
     var child0 = (function () {
@@ -9090,11 +11982,11 @@ define("finndis/templates/places", ["exports"], function (exports) {
                 "loc": {
                   "source": null,
                   "start": {
-                    "line": 11,
+                    "line": 13,
                     "column": 18
                   },
                   "end": {
-                    "line": 20,
+                    "line": 22,
                     "column": 18
                   }
                 },
@@ -9145,7 +12037,7 @@ define("finndis/templates/places", ["exports"], function (exports) {
                 morphs[0] = dom.createMorphAt(dom.childAt(fragment, [1, 3]), 1, 1);
                 return morphs;
               },
-              statements: [["content", "place.formattedaddress", ["loc", [null, [17, 24], [17, 50]]]]],
+              statements: [["content", "place.formattedaddress", ["loc", [null, [19, 24], [19, 50]]]]],
               locals: [],
               templates: []
             };
@@ -9158,11 +12050,11 @@ define("finndis/templates/places", ["exports"], function (exports) {
                 "loc": {
                   "source": null,
                   "start": {
-                    "line": 22,
+                    "line": 24,
                     "column": 18
                   },
                   "end": {
-                    "line": 31,
+                    "line": 33,
                     "column": 18
                   }
                 },
@@ -9213,7 +12105,7 @@ define("finndis/templates/places", ["exports"], function (exports) {
                 morphs[0] = dom.createMorphAt(dom.childAt(fragment, [1, 3]), 1, 1);
                 return morphs;
               },
-              statements: [["content", "place.phone", ["loc", [null, [28, 24], [28, 39]]]]],
+              statements: [["content", "place.phone", ["loc", [null, [30, 24], [30, 39]]]]],
               locals: [],
               templates: []
             };
@@ -9225,11 +12117,11 @@ define("finndis/templates/places", ["exports"], function (exports) {
               "loc": {
                 "source": null,
                 "start": {
-                  "line": 7,
+                  "line": 9,
                   "column": 12
                 },
                 "end": {
-                  "line": 37,
+                  "line": 39,
                   "column": 12
                 }
               },
@@ -9299,7 +12191,7 @@ define("finndis/templates/places", ["exports"], function (exports) {
               morphs[4] = dom.createMorphAt(dom.childAt(element1, [5]), 2, 2);
               return morphs;
             },
-            statements: [["attribute", "id", ["concat", ["card_", ["get", "index", ["loc", [null, [8, 34], [8, 39]]]]]]], ["content", "place.name", ["loc", [null, [9, 40], [9, 54]]]], ["block", "if", [["get", "place.formattedaddress", ["loc", [null, [11, 24], [11, 46]]]]], [], 0, null, ["loc", [null, [11, 18], [20, 25]]]], ["block", "if", [["get", "place.phone", ["loc", [null, [22, 24], [22, 35]]]]], [], 1, null, ["loc", [null, [22, 18], [31, 25]]]], ["content", "place.label.name", ["loc", [null, [33, 56], [33, 76]]]]],
+            statements: [["attribute", "id", ["concat", ["card_", ["get", "index", ["loc", [null, [10, 34], [10, 39]]]]]]], ["content", "place.name", ["loc", [null, [11, 40], [11, 54]]]], ["block", "if", [["get", "place.formattedaddress", ["loc", [null, [13, 24], [13, 46]]]]], [], 0, null, ["loc", [null, [13, 18], [22, 25]]]], ["block", "if", [["get", "place.phone", ["loc", [null, [24, 24], [24, 35]]]]], [], 1, null, ["loc", [null, [24, 18], [33, 25]]]], ["content", "place.label.name", ["loc", [null, [35, 56], [35, 76]]]]],
             locals: [],
             templates: [child0, child1]
           };
@@ -9311,11 +12203,11 @@ define("finndis/templates/places", ["exports"], function (exports) {
             "loc": {
               "source": null,
               "start": {
-                "line": 6,
+                "line": 8,
                 "column": 10
               },
               "end": {
-                "line": 38,
+                "line": 40,
                 "column": 10
               }
             },
@@ -9338,7 +12230,7 @@ define("finndis/templates/places", ["exports"], function (exports) {
             dom.insertBoundary(fragment, null);
             return morphs;
           },
-          statements: [["block", "link-to", ["place", ["get", "place", ["loc", [null, [7, 31], [7, 36]]]]], [], 0, null, ["loc", [null, [7, 12], [37, 24]]]]],
+          statements: [["block", "link-to", ["place", ["get", "place", ["loc", [null, [9, 31], [9, 36]]]]], [], 0, null, ["loc", [null, [9, 12], [39, 24]]]]],
           locals: [],
           templates: [child0]
         };
@@ -9350,11 +12242,11 @@ define("finndis/templates/places", ["exports"], function (exports) {
           "loc": {
             "source": null,
             "start": {
-              "line": 5,
+              "line": 7,
               "column": 8
             },
             "end": {
-              "line": 39,
+              "line": 41,
               "column": 8
             }
           },
@@ -9377,7 +12269,7 @@ define("finndis/templates/places", ["exports"], function (exports) {
           dom.insertBoundary(fragment, null);
           return morphs;
         },
-        statements: [["block", "masonry-item", [], ["item", ["subexpr", "@mut", [["get", "place", ["loc", [null, [6, 31], [6, 36]]]]], [], []], "grid", ["subexpr", "@mut", [["get", "grid", ["loc", [null, [6, 42], [6, 46]]]]], [], []]], 0, null, ["loc", [null, [6, 10], [38, 27]]]]],
+        statements: [["block", "masonry-item", [], ["item", ["subexpr", "@mut", [["get", "place", ["loc", [null, [8, 31], [8, 36]]]]], [], []], "grid", ["subexpr", "@mut", [["get", "grid", ["loc", [null, [8, 42], [8, 46]]]]], [], []]], 0, null, ["loc", [null, [8, 10], [40, 27]]]]],
         locals: ["place", "index", "grid"],
         templates: [child0]
       };
@@ -9390,11 +12282,11 @@ define("finndis/templates/places", ["exports"], function (exports) {
           "loc": {
             "source": null,
             "start": {
-              "line": 45,
+              "line": 47,
               "column": 4
             },
             "end": {
-              "line": 47,
+              "line": 49,
               "column": 4
             }
           },
@@ -9419,7 +12311,7 @@ define("finndis/templates/places", ["exports"], function (exports) {
           morphs[0] = dom.createMorphAt(fragment, 1, 1, contextualElement);
           return morphs;
         },
-        statements: [["content", "tool-box", ["loc", [null, [46, 6], [46, 18]]]]],
+        statements: [["inline", "tool-box", [], ["toolShowMap", true], ["loc", [null, [48, 6], [48, 35]]]]],
         locals: [],
         templates: []
       };
@@ -9427,7 +12319,8 @@ define("finndis/templates/places", ["exports"], function (exports) {
     return {
       meta: {
         "fragmentReason": {
-          "name": "triple-curlies"
+          "name": "missing-wrapper",
+          "problems": ["wrong-type", "multiple-nodes"]
         },
         "revision": "Ember@2.3.2",
         "loc": {
@@ -9437,7 +12330,7 @@ define("finndis/templates/places", ["exports"], function (exports) {
             "column": 0
           },
           "end": {
-            "line": 50,
+            "line": 52,
             "column": 0
           }
         },
@@ -9449,6 +12342,10 @@ define("finndis/templates/places", ["exports"], function (exports) {
       hasRendered: false,
       buildFragment: function buildFragment(dom) {
         var el0 = dom.createDocumentFragment();
+        var el1 = dom.createComment("");
+        dom.appendChild(el0, el1);
+        var el1 = dom.createTextNode("\n\n");
+        dom.appendChild(el0, el1);
         var el1 = dom.createElement("div");
         dom.setAttribute(el1, "class", "page-wrapper row");
         var el2 = dom.createTextNode("\n  ");
@@ -9492,15 +12389,17 @@ define("finndis/templates/places", ["exports"], function (exports) {
         return el0;
       },
       buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
-        var element2 = dom.childAt(fragment, [0, 1]);
+        var element2 = dom.childAt(fragment, [2, 1]);
         var element3 = dom.childAt(element2, [1, 1]);
-        var morphs = new Array(3);
-        morphs[0] = dom.createMorphAt(element3, 1, 1);
-        morphs[1] = dom.createMorphAt(element3, 3, 3);
-        morphs[2] = dom.createMorphAt(element2, 3, 3);
+        var morphs = new Array(4);
+        morphs[0] = dom.createMorphAt(fragment, 0, 0, contextualElement);
+        morphs[1] = dom.createMorphAt(element3, 1, 1);
+        morphs[2] = dom.createMorphAt(element3, 3, 3);
+        morphs[3] = dom.createMorphAt(element2, 3, 3);
+        dom.insertBoundary(fragment, 0);
         return morphs;
       },
-      statements: [["block", "masonry-grid", [], ["items", ["subexpr", "@mut", [["get", "sortedPlaces", ["loc", [null, [5, 30], [5, 42]]]]], [], []], "customLayout", true], 0, null, ["loc", [null, [5, 8], [39, 25]]]], ["content", "outlet", ["loc", [null, [41, 8], [41, 18]]]], ["block", "if", [["get", "session.isAuthenticated", ["loc", [null, [45, 10], [45, 33]]]]], [], 1, null, ["loc", [null, [45, 4], [47, 11]]]]],
+      statements: [["inline", "main-header", [], ["menuShowLogo", true], ["loc", [null, [1, 0], [1, 33]]]], ["block", "masonry-grid", [], ["items", ["subexpr", "@mut", [["get", "sortedPlaces", ["loc", [null, [7, 30], [7, 42]]]]], [], []], "customLayout", true], 0, null, ["loc", [null, [7, 8], [41, 25]]]], ["content", "outlet", ["loc", [null, [43, 8], [43, 18]]]], ["block", "if", [["get", "session.isAuthenticated", ["loc", [null, [47, 10], [47, 33]]]]], [], 1, null, ["loc", [null, [47, 4], [49, 11]]]]],
       locals: [],
       templates: [child0, child1]
     };
@@ -9516,11 +12415,11 @@ define("finndis/templates/search", ["exports"], function (exports) {
           "loc": {
             "source": null,
             "start": {
-              "line": 9,
+              "line": 11,
               "column": 4
             },
             "end": {
-              "line": 11,
+              "line": 13,
               "column": 4
             }
           },
@@ -9545,7 +12444,7 @@ define("finndis/templates/search", ["exports"], function (exports) {
           morphs[0] = dom.createMorphAt(fragment, 1, 1, contextualElement);
           return morphs;
         },
-        statements: [["content", "tool-box", ["loc", [null, [10, 6], [10, 18]]]]],
+        statements: [["content", "tool-box", ["loc", [null, [12, 6], [12, 18]]]]],
         locals: [],
         templates: []
       };
@@ -9553,7 +12452,8 @@ define("finndis/templates/search", ["exports"], function (exports) {
     return {
       meta: {
         "fragmentReason": {
-          "name": "triple-curlies"
+          "name": "missing-wrapper",
+          "problems": ["wrong-type", "multiple-nodes"]
         },
         "revision": "Ember@2.3.2",
         "loc": {
@@ -9563,7 +12463,7 @@ define("finndis/templates/search", ["exports"], function (exports) {
             "column": 0
           },
           "end": {
-            "line": 14,
+            "line": 16,
             "column": 0
           }
         },
@@ -9575,6 +12475,10 @@ define("finndis/templates/search", ["exports"], function (exports) {
       hasRendered: false,
       buildFragment: function buildFragment(dom) {
         var el0 = dom.createDocumentFragment();
+        var el1 = dom.createComment("");
+        dom.appendChild(el0, el1);
+        var el1 = dom.createTextNode("\n\n");
+        dom.appendChild(el0, el1);
         var el1 = dom.createElement("div");
         dom.setAttribute(el1, "class", "page-wrapper row");
         var el2 = dom.createTextNode("\n  ");
@@ -9614,13 +12518,15 @@ define("finndis/templates/search", ["exports"], function (exports) {
         return el0;
       },
       buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
-        var element0 = dom.childAt(fragment, [0, 1]);
-        var morphs = new Array(2);
-        morphs[0] = dom.createMorphAt(dom.childAt(element0, [1, 1]), 1, 1);
-        morphs[1] = dom.createMorphAt(element0, 3, 3);
+        var element0 = dom.childAt(fragment, [2, 1]);
+        var morphs = new Array(3);
+        morphs[0] = dom.createMorphAt(fragment, 0, 0, contextualElement);
+        morphs[1] = dom.createMorphAt(dom.childAt(element0, [1, 1]), 1, 1);
+        morphs[2] = dom.createMorphAt(element0, 3, 3);
+        dom.insertBoundary(fragment, 0);
         return morphs;
       },
-      statements: [["content", "search-box", ["loc", [null, [5, 8], [5, 22]]]], ["block", "if", [["get", "session.isAuthenticated", ["loc", [null, [9, 10], [9, 33]]]]], [], 0, null, ["loc", [null, [9, 4], [11, 11]]]]],
+      statements: [["content", "main-header", ["loc", [null, [1, 0], [1, 15]]]], ["content", "search-box", ["loc", [null, [7, 8], [7, 22]]]], ["block", "if", [["get", "session.isAuthenticated", ["loc", [null, [11, 10], [11, 33]]]]], [], 0, null, ["loc", [null, [11, 4], [13, 11]]]]],
       locals: [],
       templates: [child0]
     };
@@ -10714,7 +13620,7 @@ catch(err) {
 /* jshint ignore:start */
 
 if (!runningTests) {
-  require("finndis/app")["default"].create({"LOG_ACTIVE_GENERATION":true,"LOG_VIEW_LOOKUPS":true,"name":"finndis","version":"0.0.0+"});
+  require("finndis/app")["default"].create({"LOG_ACTIVE_GENERATION":true,"LOG_VIEW_LOOKUPS":true,"name":"finndis","version":"0.0.0+4ccfd60b"});
 }
 
 /* jshint ignore:end */

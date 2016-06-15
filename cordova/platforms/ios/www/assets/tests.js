@@ -58,7 +58,7 @@ define('finndis/tests/components/google-map.jshint', ['exports'], function (expo
   QUnit.module('JSHint - components/google-map.js');
   QUnit.test('should pass jshint', function (assert) {
     assert.expect(1);
-    assert.ok(false, 'components/google-map.js should pass jshint.\ncomponents/google-map.js: line 15, col 9, \'marker\' is defined but never used.\ncomponents/google-map.js: line 30, col 9, \'marker\' is defined but never used.\ncomponents/google-map.js: line 11, col 15, \'google\' is not defined.\ncomponents/google-map.js: line 15, col 22, \'google\' is not defined.\ncomponents/google-map.js: line 26, col 15, \'google\' is not defined.\ncomponents/google-map.js: line 30, col 22, \'google\' is not defined.\n\n6 errors');
+    assert.ok(false, 'components/google-map.js should pass jshint.\ncomponents/google-map.js: line 27, col 9, \'marker\' is defined but never used.\ncomponents/google-map.js: line 43, col 9, \'marker\' is defined but never used.\ncomponents/google-map.js: line 12, col 15, \'google\' is not defined.\ncomponents/google-map.js: line 16, col 22, \'google\' is not defined.\ncomponents/google-map.js: line 16, col 53, \'google\' is not defined.\ncomponents/google-map.js: line 23, col 16, \'google\' is not defined.\ncomponents/google-map.js: line 25, col 18, \'google\' is not defined.\ncomponents/google-map.js: line 27, col 22, \'google\' is not defined.\ncomponents/google-map.js: line 39, col 15, \'google\' is not defined.\ncomponents/google-map.js: line 43, col 22, \'google\' is not defined.\n\n10 errors');
   });
 });
 define('finndis/tests/components/google-search.jshint', ['exports'], function (exports) {
@@ -67,7 +67,16 @@ define('finndis/tests/components/google-search.jshint', ['exports'], function (e
   QUnit.module('JSHint - components/google-search.js');
   QUnit.test('should pass jshint', function (assert) {
     assert.expect(1);
-    assert.ok(false, 'components/google-search.js should pass jshint.\ncomponents/google-search.js: line 125, col 31, Expected \'===\' and instead saw \'==\'.\ncomponents/google-search.js: line 99, col 13, \'marker\' is defined but never used.\ncomponents/google-search.js: line 344, col 11, \'keyword\' is already defined.\ncomponents/google-search.js: line 557, col 11, \'searchBox\' is defined but never used.\ncomponents/google-search.js: line 74, col 26, \'google\' is not defined.\ncomponents/google-search.js: line 94, col 19, \'google\' is not defined.\ncomponents/google-search.js: line 97, col 22, \'google\' is not defined.\ncomponents/google-search.js: line 99, col 26, \'google\' is not defined.\ncomponents/google-search.js: line 108, col 29, \'google\' is not defined.\ncomponents/google-search.js: line 109, col 22, \'google\' is not defined.\ncomponents/google-search.js: line 110, col 22, \'google\' is not defined.\ncomponents/google-search.js: line 136, col 28, \'google\' is not defined.\ncomponents/google-search.js: line 147, col 31, \'google\' is not defined.\ncomponents/google-search.js: line 150, col 32, \'google\' is not defined.\ncomponents/google-search.js: line 155, col 15, \'google\' is not defined.\ncomponents/google-search.js: line 158, col 34, \'google\' is not defined.\ncomponents/google-search.js: line 348, col 21, \'google\' is not defined.\ncomponents/google-search.js: line 351, col 28, \'google\' is not defined.\ncomponents/google-search.js: line 364, col 29, \'google\' is not defined.\ncomponents/google-search.js: line 377, col 28, \'google\' is not defined.\ncomponents/google-search.js: line 387, col 30, \'google\' is not defined.\ncomponents/google-search.js: line 392, col 13, \'google\' is not defined.\ncomponents/google-search.js: line 395, col 32, \'google\' is not defined.\ncomponents/google-search.js: line 550, col 21, \'google\' is not defined.\ncomponents/google-search.js: line 553, col 28, \'google\' is not defined.\ncomponents/google-search.js: line 557, col 27, \'google\' is not defined.\ncomponents/google-search.js: line 570, col 29, \'google\' is not defined.\ncomponents/google-search.js: line 583, col 28, \'google\' is not defined.\ncomponents/google-search.js: line 593, col 30, \'google\' is not defined.\ncomponents/google-search.js: line 598, col 13, \'google\' is not defined.\ncomponents/google-search.js: line 601, col 32, \'google\' is not defined.\ncomponents/google-search.js: line 76, col 5, \'$\' is not defined.\ncomponents/google-search.js: line 84, col 5, \'$\' is not defined.\ncomponents/google-search.js: line 116, col 9, \'$\' is not defined.\ncomponents/google-search.js: line 117, col 9, \'$\' is not defined.\ncomponents/google-search.js: line 314, col 7, \'$\' is not defined.\ncomponents/google-search.js: line 322, col 11, \'$\' is not defined.\ncomponents/google-search.js: line 323, col 9, \'$\' is not defined.\ncomponents/google-search.js: line 614, col 41, \'label\' is not defined.\n\n39 errors');
+    assert.ok(false, 'components/google-search.js should pass jshint.\ncomponents/google-search.js: line 72, col 10, Duplicate key \'types\'.\ncomponents/google-search.js: line 107, col 13, \'keyword\' is already defined.\ncomponents/google-search.js: line 187, col 19, \'geocoder\' is defined but never used.\ncomponents/google-search.js: line 185, col 65, \'val\' is defined but never used.\ncomponents/google-search.js: line 193, col 12, Missing semicolon.\ncomponents/google-search.js: line 241, col 33, Expected \'===\' and instead saw \'==\'.\ncomponents/google-search.js: line 260, col 19, \'service\' is defined but never used.\ncomponents/google-search.js: line 140, col 15, \'marker\' is defined but never used.\ncomponents/google-search.js: line 316, col 28, Expected \'===\' and instead saw \'==\'.\ncomponents/google-search.js: line 330, col 39, \'elem\' is defined but never used.\ncomponents/google-search.js: line 78, col 5, \'$\' is not defined.\ncomponents/google-search.js: line 85, col 5, \'$\' is not defined.\ncomponents/google-search.js: line 166, col 11, \'$\' is not defined.\ncomponents/google-search.js: line 317, col 13, \'$\' is not defined.\ncomponents/google-search.js: line 481, col 7, \'$\' is not defined.\ncomponents/google-search.js: line 490, col 11, \'$\' is not defined.\ncomponents/google-search.js: line 491, col 9, \'$\' is not defined.\ncomponents/google-search.js: line 499, col 7, \'$\' is not defined.\ncomponents/google-search.js: line 123, col 21, \'google\' is not defined.\ncomponents/google-search.js: line 127, col 28, \'google\' is not defined.\ncomponents/google-search.js: line 127, col 59, \'google\' is not defined.\ncomponents/google-search.js: line 134, col 22, \'google\' is not defined.\ncomponents/google-search.js: line 136, col 24, \'google\' is not defined.\ncomponents/google-search.js: line 140, col 28, \'google\' is not defined.\ncomponents/google-search.js: line 143, col 21, \'google\' is not defined.\ncomponents/google-search.js: line 152, col 32, \'google\' is not defined.\ncomponents/google-search.js: line 159, col 32, \'google\' is not defined.\ncomponents/google-search.js: line 161, col 29, \'google\' is not defined.\ncomponents/google-search.js: line 164, col 31, \'google\' is not defined.\ncomponents/google-search.js: line 184, col 21, \'google\' is not defined.\ncomponents/google-search.js: line 185, col 11, \'google\' is not defined.\ncomponents/google-search.js: line 187, col 34, \'google\' is not defined.\ncomponents/google-search.js: line 199, col 11, \'google\' is not defined.\ncomponents/google-search.js: line 207, col 13, \'google\' is not defined.\ncomponents/google-search.js: line 212, col 13, \'google\' is not defined.\ncomponents/google-search.js: line 219, col 32, \'google\' is not defined.\ncomponents/google-search.js: line 221, col 30, \'google\' is not defined.\ncomponents/google-search.js: line 223, col 35, \'google\' is not defined.\ncomponents/google-search.js: line 227, col 34, \'google\' is not defined.\ncomponents/google-search.js: line 250, col 30, \'google\' is not defined.\ncomponents/google-search.js: line 260, col 33, \'google\' is not defined.\ncomponents/google-search.js: line 277, col 28, \'google\' is not defined.\ncomponents/google-search.js: line 290, col 30, \'google\' is not defined.\ncomponents/google-search.js: line 296, col 13, \'google\' is not defined.\ncomponents/google-search.js: line 298, col 32, \'google\' is not defined.\ncomponents/google-search.js: line 501, col 11, \'self\' is not defined.\ncomponents/google-search.js: line 502, col 11, \'self\' is not defined.\n\n47 errors');
+  });
+});
+define('finndis/tests/components/label-panel.jshint', ['exports'], function (exports) {
+  'use strict';
+
+  QUnit.module('JSHint - components/label-panel.js');
+  QUnit.test('should pass jshint', function (assert) {
+    assert.expect(1);
+    assert.ok(false, 'components/label-panel.js should pass jshint.\ncomponents/label-panel.js: line 24, col 9, \'$\' is not defined.\ncomponents/label-panel.js: line 30, col 7, \'$\' is not defined.\n\n2 errors');
   });
 });
 define('finndis/tests/components/login-form.jshint', ['exports'], function (exports) {
@@ -94,7 +103,16 @@ define('finndis/tests/components/menu-panel.jshint', ['exports'], function (expo
   QUnit.module('JSHint - components/menu-panel.js');
   QUnit.test('should pass jshint', function (assert) {
     assert.expect(1);
-    assert.ok(false, 'components/menu-panel.js should pass jshint.\ncomponents/menu-panel.js: line 14, col 31, \'event\' is defined but never used.\ncomponents/menu-panel.js: line 14, col 5, \'$\' is not defined.\ncomponents/menu-panel.js: line 15, col 17, \'$\' is not defined.\ncomponents/menu-panel.js: line 17, col 17, \'$\' is not defined.\ncomponents/menu-panel.js: line 18, col 14, \'$\' is not defined.\ncomponents/menu-panel.js: line 21, col 14, \'$\' is not defined.\ncomponents/menu-panel.js: line 22, col 12, \'$\' is not defined.\ncomponents/menu-panel.js: line 38, col 7, \'$\' is not defined.\ncomponents/menu-panel.js: line 43, col 7, \'$\' is not defined.\n\n9 errors');
+    assert.ok(false, 'components/menu-panel.js should pass jshint.\ncomponents/menu-panel.js: line 14, col 33, \'event\' is defined but never used.\ncomponents/menu-panel.js: line 14, col 7, \'$\' is not defined.\ncomponents/menu-panel.js: line 15, col 19, \'$\' is not defined.\ncomponents/menu-panel.js: line 17, col 19, \'$\' is not defined.\ncomponents/menu-panel.js: line 18, col 16, \'$\' is not defined.\ncomponents/menu-panel.js: line 21, col 16, \'$\' is not defined.\ncomponents/menu-panel.js: line 22, col 14, \'$\' is not defined.\ncomponents/menu-panel.js: line 38, col 7, \'$\' is not defined.\ncomponents/menu-panel.js: line 43, col 7, \'$\' is not defined.\n\n9 errors');
+  });
+});
+define('finndis/tests/components/place-map.jshint', ['exports'], function (exports) {
+  'use strict';
+
+  QUnit.module('JSHint - components/place-map.js');
+  QUnit.test('should pass jshint', function (assert) {
+    assert.expect(1);
+    assert.ok(false, 'components/place-map.js should pass jshint.\ncomponents/place-map.js: line 66, col 10, Duplicate key \'types\'.\ncomponents/place-map.js: line 146, col 28, Expected \'===\' and instead saw \'==\'.\ncomponents/place-map.js: line 179, col 21, \'model\' is defined but never used.\ncomponents/place-map.js: line 73, col 5, \'$\' is not defined.\ncomponents/place-map.js: line 82, col 5, \'$\' is not defined.\ncomponents/place-map.js: line 147, col 13, \'$\' is not defined.\ncomponents/place-map.js: line 160, col 11, \'$\' is not defined.\ncomponents/place-map.js: line 161, col 9, \'$\' is not defined.\ncomponents/place-map.js: line 169, col 7, \'$\' is not defined.\ncomponents/place-map.js: line 107, col 21, \'google\' is not defined.\ncomponents/place-map.js: line 111, col 28, \'google\' is not defined.\ncomponents/place-map.js: line 111, col 59, \'google\' is not defined.\ncomponents/place-map.js: line 118, col 22, \'google\' is not defined.\ncomponents/place-map.js: line 120, col 24, \'google\' is not defined.\ncomponents/place-map.js: line 133, col 30, \'google\' is not defined.\ncomponents/place-map.js: line 139, col 13, \'google\' is not defined.\ncomponents/place-map.js: line 171, col 11, \'self\' is not defined.\ncomponents/place-map.js: line 172, col 11, \'self\' is not defined.\n\n18 errors');
   });
 });
 define('finndis/tests/components/search-box.jshint', ['exports'], function (exports) {
@@ -124,6 +142,15 @@ define('finndis/tests/components/star-rating-fa.jshint', ['exports'], function (
     assert.ok(true, 'components/star-rating-fa.js should pass jshint.');
   });
 });
+define('finndis/tests/components/start-guide.jshint', ['exports'], function (exports) {
+  'use strict';
+
+  QUnit.module('JSHint - components/start-guide.js');
+  QUnit.test('should pass jshint', function (assert) {
+    assert.expect(1);
+    assert.ok(true, 'components/start-guide.js should pass jshint.');
+  });
+});
 define('finndis/tests/components/tool-box.jshint', ['exports'], function (exports) {
   'use strict';
 
@@ -131,15 +158,6 @@ define('finndis/tests/components/tool-box.jshint', ['exports'], function (export
   QUnit.test('should pass jshint', function (assert) {
     assert.expect(1);
     assert.ok(true, 'components/tool-box.js should pass jshint.');
-  });
-});
-define('finndis/tests/controllers/add-place.jshint', ['exports'], function (exports) {
-  'use strict';
-
-  QUnit.module('JSHint - controllers/add-place.js');
-  QUnit.test('should pass jshint', function (assert) {
-    assert.expect(1);
-    assert.ok(false, 'controllers/add-place.js should pass jshint.\ncontrollers/add-place.js: line 33, col 19, \'addressstreet\' is defined but never used.\ncontrollers/add-place.js: line 160, col 21, \'model\' is defined but never used.\ncontrollers/add-place.js: line 240, col 11, \'errors\' is defined but never used.\ncontrollers/add-place.js: line 29, col 30, \'google\' is not defined.\ncontrollers/add-place.js: line 31, col 28, \'google\' is not defined.\ncontrollers/add-place.js: line 144, col 7, \'$\' is not defined.\ncontrollers/add-place.js: line 149, col 7, \'$\' is not defined.\n\n7 errors');
   });
 });
 define('finndis/tests/controllers/application.jshint', ['exports'], function (exports) {
@@ -158,6 +176,15 @@ define('finndis/tests/controllers/edit-labels.jshint', ['exports'], function (ex
   QUnit.test('should pass jshint', function (assert) {
     assert.expect(1);
     assert.ok(true, 'controllers/edit-labels.js should pass jshint.');
+  });
+});
+define('finndis/tests/controllers/help.jshint', ['exports'], function (exports) {
+  'use strict';
+
+  QUnit.module('JSHint - controllers/help.js');
+  QUnit.test('should pass jshint', function (assert) {
+    assert.expect(1);
+    assert.ok(true, 'controllers/help.js should pass jshint.');
   });
 });
 define('finndis/tests/controllers/label.jshint', ['exports'], function (exports) {
@@ -193,7 +220,7 @@ define('finndis/tests/controllers/place.jshint', ['exports'], function (exports)
   QUnit.module('JSHint - controllers/place.js');
   QUnit.test('should pass jshint', function (assert) {
     assert.expect(1);
-    assert.ok(false, 'controllers/place.js should pass jshint.\ncontrollers/place.js: line 67, col 21, \'model\' is defined but never used.\ncontrollers/place.js: line 74, col 21, \'model\' is defined but never used.\ncontrollers/place.js: line 49, col 7, \'$\' is not defined.\ncontrollers/place.js: line 88, col 28, \'google\' is not defined.\ncontrollers/place.js: line 92, col 26, \'google\' is not defined.\n\n5 errors');
+    assert.ok(false, 'controllers/place.js should pass jshint.\ncontrollers/place.js: line 58, col 21, \'model\' is defined but never used.\ncontrollers/place.js: line 65, col 21, \'model\' is defined but never used.\ncontrollers/place.js: line 38, col 7, \'$\' is not defined.\ncontrollers/place.js: line 49, col 7, \'$\' is not defined.\ncontrollers/place.js: line 79, col 28, \'google\' is not defined.\ncontrollers/place.js: line 83, col 26, \'google\' is not defined.\n\n6 errors');
   });
 });
 define('finndis/tests/controllers/places.jshint', ['exports'], function (exports) {
@@ -1095,6 +1122,155 @@ define('finndis/tests/integration/components/google-search-test.jshint', ['expor
     assert.ok(true, 'integration/components/google-search-test.js should pass jshint.');
   });
 });
+define('finndis/tests/integration/components/label-panel-test', ['exports', 'ember-qunit'], function (exports, _emberQunit) {
+
+  (0, _emberQunit.moduleForComponent)('label-panel', 'Integration | Component | label panel', {
+    integration: true
+  });
+
+  (0, _emberQunit.test)('it renders', function (assert) {
+    // Set any properties with this.set('myProperty', 'value');
+    // Handle any actions with this.on('myAction', function(val) { ... });"
+
+    this.render(Ember.HTMLBars.template((function () {
+      return {
+        meta: {
+          'fragmentReason': {
+            'name': 'missing-wrapper',
+            'problems': ['wrong-type']
+          },
+          'revision': 'Ember@2.3.2',
+          'loc': {
+            'source': null,
+            'start': {
+              'line': 1,
+              'column': 0
+            },
+            'end': {
+              'line': 1,
+              'column': 15
+            }
+          }
+        },
+        isEmpty: false,
+        arity: 0,
+        cachedFragment: null,
+        hasRendered: false,
+        buildFragment: function buildFragment(dom) {
+          var el0 = dom.createDocumentFragment();
+          var el1 = dom.createComment('');
+          dom.appendChild(el0, el1);
+          return el0;
+        },
+        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+          var morphs = new Array(1);
+          morphs[0] = dom.createMorphAt(fragment, 0, 0, contextualElement);
+          dom.insertBoundary(fragment, 0);
+          dom.insertBoundary(fragment, null);
+          return morphs;
+        },
+        statements: [['content', 'label-panel', ['loc', [null, [1, 0], [1, 15]]]]],
+        locals: [],
+        templates: []
+      };
+    })()));
+
+    assert.equal(this.$().text().trim(), '');
+
+    // Template block usage:"
+    this.render(Ember.HTMLBars.template((function () {
+      var child0 = (function () {
+        return {
+          meta: {
+            'fragmentReason': false,
+            'revision': 'Ember@2.3.2',
+            'loc': {
+              'source': null,
+              'start': {
+                'line': 2,
+                'column': 4
+              },
+              'end': {
+                'line': 4,
+                'column': 4
+              }
+            }
+          },
+          isEmpty: false,
+          arity: 0,
+          cachedFragment: null,
+          hasRendered: false,
+          buildFragment: function buildFragment(dom) {
+            var el0 = dom.createDocumentFragment();
+            var el1 = dom.createTextNode('      template block text\n');
+            dom.appendChild(el0, el1);
+            return el0;
+          },
+          buildRenderNodes: function buildRenderNodes() {
+            return [];
+          },
+          statements: [],
+          locals: [],
+          templates: []
+        };
+      })();
+
+      return {
+        meta: {
+          'fragmentReason': {
+            'name': 'missing-wrapper',
+            'problems': ['wrong-type']
+          },
+          'revision': 'Ember@2.3.2',
+          'loc': {
+            'source': null,
+            'start': {
+              'line': 1,
+              'column': 0
+            },
+            'end': {
+              'line': 5,
+              'column': 2
+            }
+          }
+        },
+        isEmpty: false,
+        arity: 0,
+        cachedFragment: null,
+        hasRendered: false,
+        buildFragment: function buildFragment(dom) {
+          var el0 = dom.createDocumentFragment();
+          var el1 = dom.createTextNode('\n');
+          dom.appendChild(el0, el1);
+          var el1 = dom.createComment('');
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode('  ');
+          dom.appendChild(el0, el1);
+          return el0;
+        },
+        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+          var morphs = new Array(1);
+          morphs[0] = dom.createMorphAt(fragment, 1, 1, contextualElement);
+          return morphs;
+        },
+        statements: [['block', 'label-panel', [], [], 0, null, ['loc', [null, [2, 4], [4, 20]]]]],
+        locals: [],
+        templates: [child0]
+      };
+    })()));
+
+    assert.equal(this.$().text().trim(), 'template block text');
+  });
+});
+define('finndis/tests/integration/components/label-panel-test.jshint', ['exports'], function (exports) {
+  'use strict';
+
+  QUnit.module('JSHint - integration/components/label-panel-test.js');
+  QUnit.test('should pass jshint', function (assert) {
+    assert.expect(1);
+    assert.ok(true, 'integration/components/label-panel-test.js should pass jshint.');
+  });
+});
 define('finndis/tests/integration/components/login-form-test', ['exports', 'ember-qunit'], function (exports, _emberQunit) {
 
   (0, _emberQunit.moduleForComponent)('login-form', 'Integration | Component | login form', {
@@ -1540,6 +1716,155 @@ define('finndis/tests/integration/components/menu-panel-test.jshint', ['exports'
   QUnit.test('should pass jshint', function (assert) {
     assert.expect(1);
     assert.ok(true, 'integration/components/menu-panel-test.js should pass jshint.');
+  });
+});
+define('finndis/tests/integration/components/place-map-test', ['exports', 'ember-qunit'], function (exports, _emberQunit) {
+
+  (0, _emberQunit.moduleForComponent)('place-map', 'Integration | Component | place map', {
+    integration: true
+  });
+
+  (0, _emberQunit.test)('it renders', function (assert) {
+    // Set any properties with this.set('myProperty', 'value');
+    // Handle any actions with this.on('myAction', function(val) { ... });"
+
+    this.render(Ember.HTMLBars.template((function () {
+      return {
+        meta: {
+          'fragmentReason': {
+            'name': 'missing-wrapper',
+            'problems': ['wrong-type']
+          },
+          'revision': 'Ember@2.3.2',
+          'loc': {
+            'source': null,
+            'start': {
+              'line': 1,
+              'column': 0
+            },
+            'end': {
+              'line': 1,
+              'column': 13
+            }
+          }
+        },
+        isEmpty: false,
+        arity: 0,
+        cachedFragment: null,
+        hasRendered: false,
+        buildFragment: function buildFragment(dom) {
+          var el0 = dom.createDocumentFragment();
+          var el1 = dom.createComment('');
+          dom.appendChild(el0, el1);
+          return el0;
+        },
+        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+          var morphs = new Array(1);
+          morphs[0] = dom.createMorphAt(fragment, 0, 0, contextualElement);
+          dom.insertBoundary(fragment, 0);
+          dom.insertBoundary(fragment, null);
+          return morphs;
+        },
+        statements: [['content', 'place-map', ['loc', [null, [1, 0], [1, 13]]]]],
+        locals: [],
+        templates: []
+      };
+    })()));
+
+    assert.equal(this.$().text().trim(), '');
+
+    // Template block usage:"
+    this.render(Ember.HTMLBars.template((function () {
+      var child0 = (function () {
+        return {
+          meta: {
+            'fragmentReason': false,
+            'revision': 'Ember@2.3.2',
+            'loc': {
+              'source': null,
+              'start': {
+                'line': 2,
+                'column': 4
+              },
+              'end': {
+                'line': 4,
+                'column': 4
+              }
+            }
+          },
+          isEmpty: false,
+          arity: 0,
+          cachedFragment: null,
+          hasRendered: false,
+          buildFragment: function buildFragment(dom) {
+            var el0 = dom.createDocumentFragment();
+            var el1 = dom.createTextNode('      template block text\n');
+            dom.appendChild(el0, el1);
+            return el0;
+          },
+          buildRenderNodes: function buildRenderNodes() {
+            return [];
+          },
+          statements: [],
+          locals: [],
+          templates: []
+        };
+      })();
+
+      return {
+        meta: {
+          'fragmentReason': {
+            'name': 'missing-wrapper',
+            'problems': ['wrong-type']
+          },
+          'revision': 'Ember@2.3.2',
+          'loc': {
+            'source': null,
+            'start': {
+              'line': 1,
+              'column': 0
+            },
+            'end': {
+              'line': 5,
+              'column': 2
+            }
+          }
+        },
+        isEmpty: false,
+        arity: 0,
+        cachedFragment: null,
+        hasRendered: false,
+        buildFragment: function buildFragment(dom) {
+          var el0 = dom.createDocumentFragment();
+          var el1 = dom.createTextNode('\n');
+          dom.appendChild(el0, el1);
+          var el1 = dom.createComment('');
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode('  ');
+          dom.appendChild(el0, el1);
+          return el0;
+        },
+        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+          var morphs = new Array(1);
+          morphs[0] = dom.createMorphAt(fragment, 1, 1, contextualElement);
+          return morphs;
+        },
+        statements: [['block', 'place-map', [], [], 0, null, ['loc', [null, [2, 4], [4, 18]]]]],
+        locals: [],
+        templates: [child0]
+      };
+    })()));
+
+    assert.equal(this.$().text().trim(), 'template block text');
+  });
+});
+define('finndis/tests/integration/components/place-map-test.jshint', ['exports'], function (exports) {
+  'use strict';
+
+  QUnit.module('JSHint - integration/components/place-map-test.js');
+  QUnit.test('should pass jshint', function (assert) {
+    assert.expect(1);
+    assert.ok(true, 'integration/components/place-map-test.js should pass jshint.');
   });
 });
 define('finndis/tests/integration/components/search-box-test', ['exports', 'ember-qunit'], function (exports, _emberQunit) {
@@ -1989,6 +2314,155 @@ define('finndis/tests/integration/components/signup-panel-test.jshint', ['export
     assert.ok(true, 'integration/components/signup-panel-test.js should pass jshint.');
   });
 });
+define('finndis/tests/integration/components/start-guide-test', ['exports', 'ember-qunit'], function (exports, _emberQunit) {
+
+  (0, _emberQunit.moduleForComponent)('start-guide', 'Integration | Component | start guide', {
+    integration: true
+  });
+
+  (0, _emberQunit.test)('it renders', function (assert) {
+    // Set any properties with this.set('myProperty', 'value');
+    // Handle any actions with this.on('myAction', function(val) { ... });"
+
+    this.render(Ember.HTMLBars.template((function () {
+      return {
+        meta: {
+          'fragmentReason': {
+            'name': 'missing-wrapper',
+            'problems': ['wrong-type']
+          },
+          'revision': 'Ember@2.3.2',
+          'loc': {
+            'source': null,
+            'start': {
+              'line': 1,
+              'column': 0
+            },
+            'end': {
+              'line': 1,
+              'column': 15
+            }
+          }
+        },
+        isEmpty: false,
+        arity: 0,
+        cachedFragment: null,
+        hasRendered: false,
+        buildFragment: function buildFragment(dom) {
+          var el0 = dom.createDocumentFragment();
+          var el1 = dom.createComment('');
+          dom.appendChild(el0, el1);
+          return el0;
+        },
+        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+          var morphs = new Array(1);
+          morphs[0] = dom.createMorphAt(fragment, 0, 0, contextualElement);
+          dom.insertBoundary(fragment, 0);
+          dom.insertBoundary(fragment, null);
+          return morphs;
+        },
+        statements: [['content', 'start-guide', ['loc', [null, [1, 0], [1, 15]]]]],
+        locals: [],
+        templates: []
+      };
+    })()));
+
+    assert.equal(this.$().text().trim(), '');
+
+    // Template block usage:"
+    this.render(Ember.HTMLBars.template((function () {
+      var child0 = (function () {
+        return {
+          meta: {
+            'fragmentReason': false,
+            'revision': 'Ember@2.3.2',
+            'loc': {
+              'source': null,
+              'start': {
+                'line': 2,
+                'column': 4
+              },
+              'end': {
+                'line': 4,
+                'column': 4
+              }
+            }
+          },
+          isEmpty: false,
+          arity: 0,
+          cachedFragment: null,
+          hasRendered: false,
+          buildFragment: function buildFragment(dom) {
+            var el0 = dom.createDocumentFragment();
+            var el1 = dom.createTextNode('      template block text\n');
+            dom.appendChild(el0, el1);
+            return el0;
+          },
+          buildRenderNodes: function buildRenderNodes() {
+            return [];
+          },
+          statements: [],
+          locals: [],
+          templates: []
+        };
+      })();
+
+      return {
+        meta: {
+          'fragmentReason': {
+            'name': 'missing-wrapper',
+            'problems': ['wrong-type']
+          },
+          'revision': 'Ember@2.3.2',
+          'loc': {
+            'source': null,
+            'start': {
+              'line': 1,
+              'column': 0
+            },
+            'end': {
+              'line': 5,
+              'column': 2
+            }
+          }
+        },
+        isEmpty: false,
+        arity: 0,
+        cachedFragment: null,
+        hasRendered: false,
+        buildFragment: function buildFragment(dom) {
+          var el0 = dom.createDocumentFragment();
+          var el1 = dom.createTextNode('\n');
+          dom.appendChild(el0, el1);
+          var el1 = dom.createComment('');
+          dom.appendChild(el0, el1);
+          var el1 = dom.createTextNode('  ');
+          dom.appendChild(el0, el1);
+          return el0;
+        },
+        buildRenderNodes: function buildRenderNodes(dom, fragment, contextualElement) {
+          var morphs = new Array(1);
+          morphs[0] = dom.createMorphAt(fragment, 1, 1, contextualElement);
+          return morphs;
+        },
+        statements: [['block', 'start-guide', [], [], 0, null, ['loc', [null, [2, 4], [4, 20]]]]],
+        locals: [],
+        templates: [child0]
+      };
+    })()));
+
+    assert.equal(this.$().text().trim(), 'template block text');
+  });
+});
+define('finndis/tests/integration/components/start-guide-test.jshint', ['exports'], function (exports) {
+  'use strict';
+
+  QUnit.module('JSHint - integration/components/start-guide-test.js');
+  QUnit.test('should pass jshint', function (assert) {
+    assert.expect(1);
+    assert.ok(true, 'integration/components/start-guide-test.js should pass jshint.');
+  });
+});
 define('finndis/tests/integration/components/tool-box-test', ['exports', 'ember-qunit'], function (exports, _emberQunit) {
 
   (0, _emberQunit.moduleForComponent)('tool-box', 'Integration | Component | tool box', {
@@ -2293,7 +2767,7 @@ define('finndis/tests/models/label.jshint', ['exports'], function (exports) {
   QUnit.module('JSHint - models/label.js');
   QUnit.test('should pass jshint', function (assert) {
     assert.expect(1);
-    assert.ok(true, 'models/label.js should pass jshint.');
+    assert.ok(false, 'models/label.js should pass jshint.\nmodels/label.js: line 8, col 14, \'Ember\' is not defined.\n\n1 error');
   });
 });
 define('finndis/tests/models/place.jshint', ['exports'], function (exports) {
@@ -2357,6 +2831,15 @@ define('finndis/tests/routes/edit-labels.jshint', ['exports'], function (exports
   QUnit.test('should pass jshint', function (assert) {
     assert.expect(1);
     assert.ok(true, 'routes/edit-labels.js should pass jshint.');
+  });
+});
+define('finndis/tests/routes/help.jshint', ['exports'], function (exports) {
+  'use strict';
+
+  QUnit.module('JSHint - routes/help.js');
+  QUnit.test('should pass jshint', function (assert) {
+    assert.expect(1);
+    assert.ok(true, 'routes/help.js should pass jshint.');
   });
 });
 define('finndis/tests/routes/index.jshint', ['exports'], function (exports) {
@@ -2600,6 +3083,27 @@ define('finndis/tests/unit/routes/edit-labels-test.jshint', ['exports'], functio
     assert.ok(true, 'unit/routes/edit-labels-test.js should pass jshint.');
   });
 });
+define('finndis/tests/unit/routes/help-test', ['exports', 'ember-qunit'], function (exports, _emberQunit) {
+
+  (0, _emberQunit.moduleFor)('route:help', 'Unit | Route | help', {
+    // Specify the other units that are required for this test.
+    // needs: ['controller:foo']
+  });
+
+  (0, _emberQunit.test)('it exists', function (assert) {
+    var route = this.subject();
+    assert.ok(route);
+  });
+});
+define('finndis/tests/unit/routes/help-test.jshint', ['exports'], function (exports) {
+  'use strict';
+
+  QUnit.module('JSHint - unit/routes/help-test.js');
+  QUnit.test('should pass jshint', function (assert) {
+    assert.expect(1);
+    assert.ok(true, 'unit/routes/help-test.js should pass jshint.');
+  });
+});
 define('finndis/tests/unit/routes/home-test', ['exports', 'ember-qunit'], function (exports, _emberQunit) {
 
   (0, _emberQunit.moduleFor)('route:home', 'Unit | Route | home', {
@@ -2724,6 +3228,27 @@ define('finndis/tests/unit/routes/place-test.jshint', ['exports'], function (exp
   QUnit.test('should pass jshint', function (assert) {
     assert.expect(1);
     assert.ok(true, 'unit/routes/place-test.js should pass jshint.');
+  });
+});
+define('finndis/tests/unit/routes/places-map-test', ['exports', 'ember-qunit'], function (exports, _emberQunit) {
+
+  (0, _emberQunit.moduleFor)('route:places-map', 'Unit | Route | places map', {
+    // Specify the other units that are required for this test.
+    // needs: ['controller:foo']
+  });
+
+  (0, _emberQunit.test)('it exists', function (assert) {
+    var route = this.subject();
+    assert.ok(route);
+  });
+});
+define('finndis/tests/unit/routes/places-map-test.jshint', ['exports'], function (exports) {
+  'use strict';
+
+  QUnit.module('JSHint - unit/routes/places-map-test.js');
+  QUnit.test('should pass jshint', function (assert) {
+    assert.expect(1);
+    assert.ok(true, 'unit/routes/places-map-test.js should pass jshint.');
   });
 });
 define('finndis/tests/unit/routes/places-test', ['exports', 'ember-qunit'], function (exports, _emberQunit) {
