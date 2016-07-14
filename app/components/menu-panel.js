@@ -9,22 +9,22 @@ export default Ember.Component.extend({
     return labels;
   }),
 
-  didInsertElement: function() {
-      var lastScrollTop = 0;
-      $(window).scroll(function(event){
-         var st = $(this).scrollTop();
-         if (st > lastScrollTop && st > 150){
-             if( !$('#navigation').hasClass('__hidden') ){
-               $('#navigation').addClass('__hidden');
-             }
-         } else {
-           if( $('#navigation').hasClass('__hidden') ){
-             $('#navigation').removeClass('__hidden');
-           }
-         }
-         lastScrollTop = st;
-      });
-  },
+  // didInsertElement: function() {
+  //     var lastScrollTop = 0;
+  //     $(window).scroll(function(event){
+  //        var st = $(this).scrollTop();
+  //        if (st > lastScrollTop && st > 150){
+  //            if( !$('#navigation').hasClass('__hidden') ){
+  //              $('#navigation').addClass('__hidden');
+  //            }
+  //        } else {
+  //          if( $('#navigation').hasClass('__hidden') ){
+  //            $('#navigation').removeClass('__hidden');
+  //          }
+  //        }
+  //        lastScrollTop = st;
+  //     });
+  // },
 
   actions: {
 

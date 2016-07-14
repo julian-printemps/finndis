@@ -32,9 +32,6 @@
         }
     },
     "installed_plugins": {
-        "cordova-plugin-whitelist": {
-            "PACKAGE_NAME": "com.printemps.finndis"
-        },
         "cordova-plugin-compat": {
             "PACKAGE_NAME": "com.printemps.finndis"
         },
@@ -42,6 +39,9 @@
             "PACKAGE_NAME": "com.printemps.finndis"
         },
         "cordova-plugin-inappbrowser": {
+            "PACKAGE_NAME": "com.printemps.finndis"
+        },
+        "cordova-plugin-whitelist": {
             "PACKAGE_NAME": "com.printemps.finndis"
         }
     },
@@ -90,9 +90,9 @@
         }
     ],
     "plugin_metadata": {
-        "cordova-plugin-whitelist": "1.2.2",
         "cordova-plugin-compat": "1.0.0",
         "cordova-plugin-geolocation": "2.2.0",
-        "cordova-plugin-inappbrowser": "1.4.0"
+        "cordova-plugin-inappbrowser": "1.4.0",
+        "cordova-plugin-whitelist": "1.2.2"
     }
 }

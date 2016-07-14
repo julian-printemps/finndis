@@ -7,6 +7,10 @@
     background: transparent;
     border-bottom: 1px solid $place-header-color;
   }
+
+  .place_map & {
+    top: 1rem;
+  }
 }
 
 .edit-button {
@@ -41,6 +45,9 @@
   right: 0;
   color: $close-panel-color;
   @include setTransition();
+
+  // iOS
+  top: 2rem;
 
   &:hover, &:active, &:focus  {
     background: transparent;

@@ -17,11 +17,11 @@ body {
 }
 
 .page-wrapper {
-  padding-top: 4rem;
-  padding-bottom: 3rem;
+  padding-top: 0;
+  padding-bottom: 5rem;
 
-  &.big {
-    padding-top: 3rem;
-    padding-bottom: 2rem;
-  }
+  // &.big {
+  //   padding-top: 3rem;
+  //   padding-bottom: 1rem;
+  // }
 }

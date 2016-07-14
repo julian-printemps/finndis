@@ -130,6 +130,7 @@ export default Ember.Component.extend({
             mapTypeControl: false,
             scaleControl: true,
             zoomControl: true,
+            disableDoubleClickZoom: true,
             zoomControlOptions: {
               style: google.maps.ZoomControlStyle.LARGE
             },
@@ -181,32 +182,34 @@ export default Ember.Component.extend({
           /*
           ** POI click
           */
-          var set = google.maps.InfoWindow.prototype.set;
-          google.maps.InfoWindow.prototype.set = function (key, val) {
-            if (key === 'map' && ! this.get('noSuppress')) {
-              var geocoder = new google.maps.Geocoder();
-              var location = this.getPosition();
-              placeMarker(location);
-              return;
-            }
-            set.apply(this, arguments);
-          }
+          // var set = google.maps.InfoWindow.prototype.set;
+          // google.maps.InfoWindow.prototype.set = function (key, val) {
+          //   if (key === 'map' && ! this.get('noSuppress')) {
+          //     var geocoder = new google.maps.Geocoder();
+          //     var location = this.getPosition();
+          //     console.log(this);
+          //     // placeMarkerUser(this);
+          //     return;
+          //   }
+          //   set.apply(this, arguments);
+          // }
 
+          map.setClickableIcons(false);
 
           /*
-          ** Add marker on click & save new custon place
+          ** Add marker on click & save new custom place
           */
-          google.maps.event.addListener(map, 'click', function(event) {
-            placeMarker(event.latLng);
+          google.maps.event.addListener(map, 'dblclick', function(event) {
+            placeMarkerUser(event.latLng);
           });
 
-          function placeMarker(location) {
+          function placeMarkerUser(location) {
             markerUser.setPosition(location);
 
             loadPlace(location);
             google.maps.event.addListener(markerUser, 'click', function() {
               self.set('placePanelDisplayed', 'show');
-              loadPlace(event.latLng);
+              // loadPlace(event.latLng);
             });
 
             google.maps.event.addListener(markerUser, 'dragend', function(event) {
@@ -325,6 +328,7 @@ export default Ember.Component.extend({
     setPlaceMaps(result) {
       var self = this;
 
+      // Check if the place exist
       self.get('store').query('place', { filter: { uid: self.get('session.uid'), mapid: result.place_id } }).then(function(currentPlace) {
         var placeCount = 0;
         currentPlace.forEach(function(elem) {
@@ -339,13 +343,7 @@ export default Ember.Component.extend({
         }
       });
 
-      self.send('loadPlaceMaps', result);
-    },
-
-
-    loadPlaceMaps(result) {
-      var self = this;
-
+      // Set the main information
       if(result.place_id){
         self.set('place.mapid', result.place_id);
       }
@@ -377,12 +375,7 @@ export default Ember.Component.extend({
       self.set('place.formattedaddress', result.formatted_address);
 
       // Set current address
-      self.send('setAddress', result.address_components);
-    },
-
-
-    setAddress(addressComponents) {
-      var self = this;
+      var addressComponents = result.address_components;
       addressComponents.forEach(function(component){
         switch (component.types[0]) {
           case "street_address":
@@ -473,7 +466,12 @@ export default Ember.Component.extend({
             break;
         }
       });
+
+      console.log(self.get('place'));
     },
+
+
+
 
 
     showSearchPanel() {

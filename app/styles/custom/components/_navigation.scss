@@ -9,10 +9,11 @@
   }
 
   &--holder {
-    position: fixed;
+    position: relative;
     z-index: 900;
     width: 100%;
     top: 0;
+    padding-top: 1.5rem;
     background-color: $nav-background-color;
     // border-bottom: 1px solid $nav-font-color;
     -webkit-box-shadow: 0 1px 10px 0 rgba(0,0,0,0.5);
@@ -21,7 +22,7 @@
     @include setTransition();
 
     &.__hidden {
-      top: -3rem;
+      top: -5rem;
       @include setTransition();
     }
   }
