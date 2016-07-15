@@ -7,7 +7,6 @@ export default Ember.Component.extend({
     this._super(...arguments);
     var self = this;
     var map = '';
-    var finndis = "assets/images/finndis-icon.png";
 
     map = new google.maps.Map(document.getElementById('map'), {
       zoom: 16,
@@ -27,7 +26,6 @@ export default Ember.Component.extend({
     var marker = new google.maps.Marker({
       map: map,
       position: {lat: parseFloat(self.get('latitude')), lng: parseFloat(self.get('longitude'))},
-      icon: finndis
     });
   },
 

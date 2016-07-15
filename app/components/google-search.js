@@ -97,7 +97,6 @@ export default Ember.Component.extend({
       var map = '';
       var input = document.getElementById('searchKeyword');
       input.value = '';
-      var finndis = "assets/images/finndis-icon.svg";
 
       // For search around
       if( param === undefined ){
@@ -153,7 +152,6 @@ export default Ember.Component.extend({
           var markerUser = new google.maps.Marker({
             draggable: true,
             map: map,
-            icon: finndis
           });
 
 
@@ -293,7 +291,6 @@ export default Ember.Component.extend({
             var marker = new google.maps.Marker({
               map: map,
               position: place.geometry.location,
-              icon: finndis
             });
 
             google.maps.event.addListener(marker, 'click', function() {

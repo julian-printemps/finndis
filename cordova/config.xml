@@ -2,7 +2,7 @@
 <widget id="com.printemps.finndis" version="0.0.1" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
     <name>Finndis</name>
     <description>
-        A sample Apache Cordova application that responds to the deviceready event.
+        Simplify your life by saving all the places you want to remember
     </description>
     <author email="julian.printemps@gmail.com" href="">
         Julian Printemps

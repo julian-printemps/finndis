@@ -4,9 +4,14 @@ export default Ember.Controller.extend({
   store: Ember.inject.service(),
   session: Ember.inject.service('session'),
   labelsController: Ember.inject.controller('labels'),
+  isDisplayed: false,
+  newLabel: '',
 
-  sortProps: ['numericId:desc'],
-  sortedLabels: Ember.computed.sort('model', 'sortProps'),
+  // sortProps: ['numericId:desc'],
+  // sortedLabels: Ember.computed.sort('model', 'sortProps'),
+
+  // sortProperties: ['numericId'],
+  // sortAscending: false,
 
   isEditing: false,
   labelName: '',
@@ -22,18 +27,21 @@ export default Ember.Controller.extend({
       this.set('labelName', label.get('name'));
     },
 
-    saveLabel(id) {
-      var label = this.get('store').peekRecord('label', id );
-      label.set('name', this.get('labelName'));
-      label.set('isEditing', false);
-      label.save();
+    updateLabel(id) {
+      var self = this;
+      this.get('store').findRecord('label', id).then(function(label) {
+        label.set('name', self.get('labelName'));
+        label.set('isEditing', false);
+        label.save();
+      });
     },
 
     deleteLabel(id) {
-      var label = this.get('store').peekRecord('label', id );
-      label.deleteRecord();
-      label.get('isDeleted');
-      label.save();
+      this.get('store').findRecord('label', id ).then(function(label) {
+        label.deleteRecord();
+        label.get('isDeleted'); // => true
+        label.save(); // => DELETE to /posts/1
+      });
     }
   }
 });

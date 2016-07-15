@@ -4,32 +4,49 @@
   <div class="columns">
     <div class="row">
       <div class="medium-6 medium-offset-3 columns">
+
         <div class="row">
-          <div class="medium-12 columns">
-            <div class="row">
-              <div class="columns medium-12">
-                {{#link-to "edit-labels" class="button"}}Edit{{/link-to}}
-              </div>
-            </div>
+          <div class="columns small-12 medium-12">
+            {{add-label}}
           </div>
         </div>
 
         <div class="row">
-          <div class="columns">
+          <div class="medium-12 columns">
             <ul class="label--list">
-              {{#each session.user.labels as |label|}}
-                <li id="{{label.labelId}}" class="label-editor--holder">
-                  {{#link-to "label" label}}
-                  <div class="label--listitem label-editor row">
-                    <div class="label--icon-holder medium-1 columns">
-                      <i class="label--icon fa fa-tag"></i>
+              {{#each sortedLabels as |label|}}
+
+                {{#if label.isEditing}}
+                  <li id="{{label.labelId}}" class="label-editor--holder edition">
+                    <div class="label--listitem label-editor row">
+                      <div class="label-editor--delete label--icon-holder medium-1 columns" {{action "deleteLabel" label.id on="click"}}>
+                        <i class="fa fa-trash"></i>
+                      </div>
+                      <div class="medium-10 columns">
+                        <form {{action "updateLabel" label.id on="submit"}}>
+                          {{input type="text" class="label-editor--input" value=labelName}}
+                        </form>
+                      </div>
+                      <div class="label-editor--save label--icon-holder medium-1 columns" {{action "updateLabel" label.id on="click"}}>
+                        <i class="fa fa-check"></i>
+                      </div>
                     </div>
-                    <div class="medium-11 columns">
-                      {{label.name}}
+                  </li>
+                {{else}}
+                  <li id="{{label.labelId}}" class="label-editor--holder" {{action "toggleEdition" label.id on="click"}}>
+                    <div class="label--listitem label-editor row">
+                      <div class="label--icon-holder medium-1 columns">
+                        <i class="label--icon fa fa-tag"></i>
+                      </div>
+                      <div class="medium-10 columns">
+                        {{label.name}}
+                      </div>
+                      <div class="label--icon-holder medium-1 columns">
+                        <i class="fa fa-pencil"></i>
+                      </div>
                     </div>
-                  </div>
-                  {{/link-to}}
-                </li>
+                  </li>
+                {{/if}}
               {{/each}}
             </ul>
           </div>

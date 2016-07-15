@@ -13,7 +13,6 @@ Router.map(function() {
   this.route('label', {path: 'labels/:label_id'});
   this.route('users', {path: '/profile'});
   this.route('search');
-  this.route('edit-labels', {path: 'labels/edit'});
   this.route('login', {path: '/'});
   this.route('map');
   this.route('help');

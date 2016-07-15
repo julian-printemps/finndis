@@ -93,7 +93,6 @@ export default Ember.Component.extend({
       var self = this;
       var map = '';
       var model = this.get('model');
-      var finndis = "assets/images/finndis-icon.png";
       this.send('closeMenuPanel');
 
       if (navigator.geolocation) {
@@ -132,8 +131,7 @@ export default Ember.Component.extend({
           function addMarker(place) {
             var marker = new google.maps.Marker({
               map: map,
-              position: {lat: parseFloat(place.get('locationlat')), lng: parseFloat(place.get('locationlng'))},
-              icon: finndis
+              position: {lat: parseFloat(place.get('locationlat')), lng: parseFloat(place.get('locationlng'))}
             });
 
             google.maps.event.addListener(marker, 'click', function() {

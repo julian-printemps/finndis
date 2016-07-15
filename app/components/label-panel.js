@@ -10,7 +10,6 @@ export default Ember.Component.extend({
   sortProps: ['numericId:desc'],
   sortedLabels: Ember.computed.sort('userLabels', 'sortProps'),
 
-
   actions: {
     updateLabel(labelValue) {
       var self = this;

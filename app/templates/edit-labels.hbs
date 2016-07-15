@@ -14,7 +14,7 @@
         <div class="row">
           <div class="medium-12 columns">
             <ul class="label--list">
-              {{#each sortedLabels as |label|}}
+              {{#each model as |label|}}
 
                 {{#if label.isEditing}}
                   <li id="{{label.labelId}}" class="label-editor--holder edition">
@@ -23,11 +23,11 @@
                         <i class="fa fa-trash"></i>
                       </div>
                       <div class="medium-10 columns">
-                        <form {{action "saveLabel" label.id on="submit"}}>
+                        <form {{action "updateLabel" label.id on="submit"}}>
                           {{input type="text" class="label-editor--input" value=labelName}}
                         </form>
                       </div>
-                      <div class="label-editor--save label--icon-holder medium-1 columns" {{action "saveLabel" label.id on="click"}}>
+                      <div class="label-editor--save label--icon-holder medium-1 columns" {{action "updateLabel" label.id on="click"}}>
                         <i class="fa fa-check"></i>
                       </div>
                     </div>
