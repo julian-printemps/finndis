@@ -8,3 +8,29 @@
   background-position: 50% 50%;
   background-repeat: no-repeat;
 }
+
+.save_overlay {
+  position: absolute;
+  z-index: 0;
+  opacity: 0;
+  width: 250px;
+  top: calc(50% - 125px);
+  left: calc(50% - 125px);
+  padding: 2rem 2rem;
+  color: $color-black;
+  text-align: center;
+  font-size: 2rem;
+  font-weight: bold;
+  background-color: $color-white;
+  @include setTransition();
+
+  &.show {
+    z-index: 850;
+    opacity: 1;
+    @include setTransition();
+  }
+
+  &--icon {
+    color: $color-gold;
+  }
+}

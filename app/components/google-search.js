@@ -21,6 +21,7 @@ export default Ember.Component.extend({
   placePanelDisplayed: '',
   queryType: '',
   warningMessage: '',
+  placeSaved: '',
 
 
   place: {
@@ -504,6 +505,14 @@ export default Ember.Component.extend({
       this.set('labelAddButton', '');
     },
 
+    showPlaceSaved() {
+      var self = this;
+      this.set('placeSaved', 'show');
+      setTimeout(function(){
+        self.set('placeSaved', '');
+      }, 2500);
+    },
+
 
     savePlace() {
       var self = this;
@@ -557,7 +566,11 @@ export default Ember.Component.extend({
       });
 
       newPlace.save().then(function() {
-        self.get('routing').transitionTo('places');
+        self.set('place.label', '');
+        self.set('searchPanelIsDisplayed', false);
+        self.set('placePanelDisplayed', '');
+        self.send('showPlaceSaved');
+        // self.get('routing').transitionTo('places');
       });
     }
   }

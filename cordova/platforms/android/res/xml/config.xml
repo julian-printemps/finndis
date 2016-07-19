@@ -14,7 +14,7 @@
     <allow-intent href="market:*" />
     <name>Finndis</name>
     <description>
-        A sample Apache Cordova application that responds to the deviceready event.
+        Simplify your life by saving all the places you want to remember
     </description>
     <author email="julian.printemps@gmail.com" href="">
         Julian Printemps

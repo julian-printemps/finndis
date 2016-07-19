@@ -26,17 +26,12 @@
 
 .map_search {
   position: absolute;
+  z-index: 100;
   top: 2rem;
   left: 0;
   width: 100%;
-
-  // Android / web
-  // top: 2rem;
-  // height: calc(100% - 82px);
-
-  // iOS
-  top: 3.5rem;
-  height: calc(100% - 112px);
+  top: 2rem;
+  height: calc(100% - 88px);
 }
 
 // Special field for Maps
@@ -48,19 +43,13 @@
   z-index: 800;
   left: 20px;
 
-  //Android / web
-  // top: 3.1rem !important;
-
-  // iOS
-  top: 5.1rem !important;
-
   @media screen and #{breakpoint(medium)} {
     width: 50%;
   }
 }
 
 .pac-container {
-  top: 121px !important;
+  top: 96px !important;
 }
 
 

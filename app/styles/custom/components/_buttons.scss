@@ -46,9 +46,6 @@
   color: $close-panel-color;
   @include setTransition();
 
-  // iOS
-  top: 2rem;
-
   &:hover, &:active, &:focus  {
     background: transparent;
     border-bottom: none;
