@@ -7,7 +7,7 @@ module.exports = function(environment) {
     baseURL: '/',
     // locationType: 'auto',
     defaultLocationType: 'auto',
-    host: 'https://blooming-caverns-80676.herokuapp.com/',
+    // host: 'https://blooming-caverns-80676.herokuapp.com/',
     EmberENV: {
       FEATURES: {
         // Here you can enable experimental features on an ember canary build
