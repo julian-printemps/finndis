@@ -5,9 +5,9 @@
     "ember-cli-shims": "0.1.0",
     "ember-cli-test-loader": "0.2.2",
     "ember-qunit-notifications": "0.1.0",
-    "masonry": "^4.0.0",
-    "imagesloaded": "^4.1.0",
-    "foundation-sites": "~6.1.0",
+    "masonry": "^4.1.1",
+    "imagesloaded": "^4.1.1",
+    "foundation-sites": "^6.2.1",
     "auth0-lock": "^7.10.2",
     "jsrsasign": "^5.0.1"
   }

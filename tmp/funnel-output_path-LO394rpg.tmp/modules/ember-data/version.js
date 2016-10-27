@@ -1,1 +1,0 @@
-/Users/julian/web/workspace/ember/placist/placist/tmp/creator-output_path-EZmBxsx9.tmp/version.js

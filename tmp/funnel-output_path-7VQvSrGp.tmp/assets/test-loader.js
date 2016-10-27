@@ -1,1 +1,0 @@
-/Users/julian/web/workspace/placist/placist/tmp/funnel-input_base_path-PLe6q6Kj.tmp/0/bower_components/ember-cli-test-loader/test-loader.js

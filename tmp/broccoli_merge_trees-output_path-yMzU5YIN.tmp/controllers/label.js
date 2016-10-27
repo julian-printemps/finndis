@@ -1,1 +1,0 @@
-/Users/julian/web/workspace/ember/placist/placist/app/controllers/label.js

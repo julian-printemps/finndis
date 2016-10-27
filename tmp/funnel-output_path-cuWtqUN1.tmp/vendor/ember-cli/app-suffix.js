@@ -1,1 +1,0 @@
-/Users/julian/web/workspace/ember/placist/placist/tmp/funnel-input_base_path-OTYQLe2q.tmp/0//app-suffix.js

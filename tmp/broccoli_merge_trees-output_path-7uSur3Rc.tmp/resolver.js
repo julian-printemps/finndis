@@ -1,1 +1,0 @@
-/Users/julian/web/workspace/placist/placist/app/resolver.js

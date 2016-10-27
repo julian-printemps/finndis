@@ -1,1 +1,0 @@
-/Users/julian/web/workspace/ember/placist/placist/tmp/funnel-input_base_path-aZQrXZk9.tmp/0/initializer-factory.js

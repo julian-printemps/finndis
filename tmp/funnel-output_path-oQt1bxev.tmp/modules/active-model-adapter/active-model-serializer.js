@@ -1,1 +1,0 @@
-/Users/julian/web/workspace/placist/placist/tmp/funnel-input_base_path-3EEYijcN.tmp/0/active-model-serializer.js

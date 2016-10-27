@@ -1,1 +1,0 @@
-/Users/julian/web/workspace/placist/placist/tmp/funnel-input_base_path-owihEEuG.tmp/0/instance-initializers/pagefront-beacon.js
