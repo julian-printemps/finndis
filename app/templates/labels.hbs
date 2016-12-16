@@ -1,4 +1,4 @@
-{{main-header}}
+{{main-header menuBack=true}}
 
 <div class="page-wrapper row">
   <div class="columns">
@@ -19,7 +19,7 @@
                 {{#if label.isEditing}}
                   <li id="{{label.labelId}}" class="label-editor--holder edition">
                     <div class="label--listitem label-editor row">
-                      <div class="label-editor--delete label--icon-holder medium-1 columns" {{action "deleteLabel" label.id on="click"}}>
+                      <div class="label-editor--delete label--icon-holder medium-1 columns" {{action "deleteLabel" label on="click"}}>
                         <i class="fa fa-trash"></i>
                       </div>
                       <div class="medium-10 columns">

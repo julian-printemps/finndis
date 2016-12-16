@@ -102,3 +102,31 @@
     margin-bottom: 0;
     padding: 0.99em 1em;
 }
+
+
+// default button
+.button {
+  background-color: transparent;
+
+  &:hover, &:focus, &:active {
+    background-color: darken($nav-background-color, 5);
+    color: $color-white;
+  }
+
+  &_login {
+    background-color: $nav-background-color;
+  }
+
+  &_label {
+    background-color: $nav-background-color;
+
+    &.label_edition {
+      background-color: transparent;
+
+      &:hover, &:focus, &:active {
+        background-color: darken($nav-background-color, 5);
+        color: $color-white;
+      }
+    }
+  }
+}

@@ -11,7 +11,7 @@
     <div class="row">
       <div class="medium-12 columns">
         <ul class="label--list">
-          {{#each sortedLabels as |label|}}
+          {{#each sortedLabels2 as |label|}}
             <li class="label-editor--holder">
               <label class="label--listitem--label">
                 <div class="label--listitem label-editor collapse align-middle row">
@@ -22,12 +22,14 @@
                     {{label.name}}
                   </div>
                   <div class="label--icon-holder small-1 columns">
-                    {{radio-button
+                    {{input type="checkbox" id=label.id name="label" checked=label.isChecked}}
+
+                    {{!-- {{radio-button
                       id=label.id
                       value=label.id
                       groupValue=labelValue
                       changed="updateLabel"
-                      name="label"}}
+                      name="label"}} --}}
                   </div>
                 </div>
               </label>

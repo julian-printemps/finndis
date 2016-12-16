@@ -15,7 +15,4 @@ App = Ember.Application.extend({
 
 loadInitializers(App, config.modulePrefix);
 
-//Initialize Rails CSRF
-loadInitializers(App, 'rails-csrf');
-
 export default App;

@@ -16,12 +16,16 @@
       margin-top: 0;
       word-break: break-all;
 
-      & .columns, & .row {
-        margin-left: 0;
-        margin-right: 0;
-        padding-left: 0;
-        padding-right: 0;
+      & .columns {
+        position: relative;
       }
+
+      // & .columns, & .row {
+      //   margin-left: 0;
+      //   margin-right: 0;
+      //   padding-left: 0;
+      //   padding-right: 0;
+      // }
     }
   }
 
@@ -33,6 +37,15 @@
     color: $place-header-color;
     background-color: $place-header-backgound-color;
     font-size: rem-calc(14px);
+
+    .__display & {
+      padding-top: 0;
+      
+      & .columns {
+        position: relative;
+        padding-top: 2rem;
+      }
+    }
   }
 
   &--title {

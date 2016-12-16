@@ -4,10 +4,10 @@ module.exports = function(environment) {
   var ENV = {
     modulePrefix: 'finndis',
     environment: environment,
-    baseURL: '/',
-    // locationType: 'auto',
-    defaultLocationType: 'auto',
-    host: 'https://blooming-caverns-80676.herokuapp.com/',
+    rootURL: '/',
+    locationType: 'auto',
+    // defaultLocationType: 'auto',
+    // host: 'https://blooming-caverns-80676.herokuapp.com/',
     EmberENV: {
       FEATURES: {
         // Here you can enable experimental features on an ember canary build
@@ -30,7 +30,7 @@ module.exports = function(environment) {
     'font-src': "'self' data: https://cdn.auth0.com",
     'style-src': "'self' 'unsafe-inline'",
     'script-src': "'self' 'unsafe-eval' 'unsafe-inline' https://cdn.auth0.com",
-    'connect-src': "'self' http://localhost:* jsan.eu.auth0.com"
+    'connect-src': "'self' http://localhost:* jsan.eu.auth0.com https://blooming-caverns-80676.herokuapp.com/"
   };
 
   ENV['ember-simple-auth'] = {

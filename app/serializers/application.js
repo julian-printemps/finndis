@@ -29,6 +29,8 @@ export default DS.JSONAPISerializer.extend({
      }
      return acc;
 
+     console.log(acc);
+
     }, attr);
   }
 

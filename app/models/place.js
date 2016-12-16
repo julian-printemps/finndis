@@ -75,7 +75,7 @@ export default DS.Model.extend(Validations, {
   description: DS.attr('string'),
   pricerange: DS.attr('string'),
   uid: DS.attr('string'),
-  label:  DS.belongsTo('label'),
+  labelsPlaces: DS.hasMany('labels-place', { async: true }),
   isEditing: DS.attr('boolean', {defaultValue: false}),
   numericId: Ember.computed(function() {
     if(this.get('id')) {

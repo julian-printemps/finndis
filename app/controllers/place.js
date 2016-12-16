@@ -31,6 +31,13 @@ export default Ember.Controller.extend({
   }),
 
 
+  placeLabels: Ember.computed(function() {
+    var labels = this.get('model.LabelsPlaces.label');
+    console.log('lol');
+    return labels;
+  }),
+
+
   actions: {
 
     showAddLabel() {
@@ -210,7 +217,6 @@ export default Ember.Controller.extend({
         self.set('isEditing', false);
         self.transitionToRoute('places');
       });
-
     },
 
   }

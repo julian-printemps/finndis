@@ -3,28 +3,38 @@
   <div class="row">
     <div class="columns small-12">
       <nav class="row navigation">
-        {{#if menuShowLogo}}
-        <div class="navigation--title columns">
-          <h1 class="site-title"><strong class="logo">{{#link-to "places"}}<img class="logo--svg"src="assets/images/finndis-icon.svg" alt="Finndis"> Finndis{{/link-to}}</strong></h1>
-        </div>
-        {{else}}
+        {{#if menuPlace}}
         <div class="columns navigation--button-holder left">
           <ul class="dropdown menu navigation--list">
             <li class="navigation--listitem">{{#link-to "places" class="navigation--link no_text"}}<i class="navigation--icon no_text fa fa-arrow-left"></i>{{/link-to}}</li>
           </ul>
         </div>
+        {{else}}
+        <div class="navigation--title columns">
+          <ul class=" menu navigation--list">
+            <li class="navigation--listitem" {{action "showMenuPanel" on="click"}}><a class="navigation--link"><i class="navigation--icon fa fa-bars"></i>Menu</a></li>
+          </ul>
+        </div>
         {{/if}}
         <div class="shrink columns end navigation--button-holder">
-          {{#if menuHideAddNew}}
-            <ul class="dropdown menu navigation--list">
-              <li class="navigation--listitem" {{action "showMenuPanel" on="click"}}><a class="navigation--link"><i class="navigation--icon fa fa-bars"></i>Menu</a></li>
-            </ul>
-          {{else}}
-            <ul class="dropdown menu navigation--list">
+          <ul class="dropdown menu navigation--list">
+            {{#if menuBack}}
+              <li class="navigation--listitem">{{#link-to "places" class="navigation--link no_text"}}<i class="navigation--icon fa fa-arrow-left"></i>Back{{/link-to}}</li>
+            {{else}}
               <li class="navigation--listitem">{{#link-to "add-place" class="navigation--link"}}<i class="navigation--icon fa fa-plus"></i>New{{/link-to}}</li>
-              <li class="navigation--listitem" {{action "showMenuPanel" on="click"}}><a class="navigation--link"><i class="navigation--icon fa fa-bars"></i>Menu</a></li>
-            </ul>
-          {{/if}}
+              {{#if toolShowMap}}
+                <li class="navigation--listitem">
+                  {{#link-to "map" class="navigation--link"}}<i class="navigation--icon fa fa-map-marker"></i>Map{{/link-to}}
+                </li>
+              {{/if}}
+              {{#if toolShowList}}
+                <li class="navigation--listitem">
+                  {{#link-to "places" class="navigation--link"}}<i class="navigation--icon fa fa-th-list"></i>List{{/link-to}}
+                </li>
+              {{/if}}
+
+            {{/if}}
+          </ul>
         </div>
       </nav>
     </div>
@@ -36,88 +46,92 @@
 {{!-- Menu panel --}}
 <nav id="panel-menu" class="panel-menu panel left {{labelPanelClass}}">
 
-  {{!-- User --}}
-  <div class="panel--section user-section">
-    {{!-- Close button --}}
+  <div class="panel-menu--inner">
+
+    {{!-- User --}}
+    <div class="panel--section user-section">
+      {{!-- Close button --}}
       <a class="close-button" {{action "closeMenuPanel"}}><i class="fa fa-times"></i></a>
-    {{!-- end Close button --}}
 
-    {{#link-to "places" class="navigation--user-link"}}
-      <div class="row align-middle">
-        <div class="small-3 columns">
-          <img class="user-section--image" src="{{session.data.authenticated.profile.picture}}">
+      {{#link-to "places" class="navigation--user-link"}}
+        <div class="row">
+          <div class="columns">
+            <h1 class="site-title"><strong class="logo">{{#link-to "places"}}<img class="logo--svg"src="assets/images/finndis-icon.svg" alt="Finndis"> Finndis{{/link-to}}</strong></h1>
+          </div>
         </div>
-        <div class="small-9 columns">
-          <span class="user-section--name">{{session.data.authenticated.profile.name}}</span>
+        <div class="row align-middle">
+          <div class="small-3 columns">
+            <img class="user-section--image" src="{{session.data.authenticated.profile.picture}}">
+          </div>
+          <div class="small-9 columns">
+            <span class="user-section--name">{{session.data.authenticated.profile.name}}</span>
+          </div>
         </div>
-      </div>
-    {{/link-to}}
+      {{/link-to}}
 
-    <div class="row" {{action "closeMenuPanel" on="click"}}>
-      <div class="small-4 columns">
-        <a class="button user-button left" {{action "logout"}}>Logout <i class="fa fa-sign-out"></i></a>
-      </div>
-      <div class="small-4 columns">
-        {{#link-to "places" class="button user-button right"}}<i class="fa fa-home"></i> Home{{/link-to}}
+      <div class="row" {{action "closeMenuPanel" on="click"}}>
+        <div class="small-4 columns">
+          <a class="button user-button left" {{action "logout"}}>Logout <i class="fa fa-sign-out"></i></a>
+        </div>
+        {{!-- <div class="small-4 columns">
+          {{#link-to "places" class="button user-button right"}}<i class="fa fa-home"></i> Home{{/link-to}}
+        </div> --}}
       </div>
     </div>
+    {{!-- end User --}}
 
 
-
-  </div>
-  {{!-- end User --}}
-
-
-  {{!-- Places --}}
-  <div class="panel--section" {{action "closeMenuPanel" on="click"}}>
-    {{#link-to "places" class="navigation--link"}}<i class="navigation--icon fa fa-map-marker"></i>My places{{/link-to}}
-  </div>
-  {{!-- end Places --}}
+    {{!-- Places --}}
+    <div class="panel--section" {{action "closeMenuPanel" on="click"}}>
+      {{#link-to "places" class="navigation--link"}}<i class="navigation--icon fa fa-map-marker"></i>My places{{/link-to}}
+    </div>
+    {{!-- end Places --}}
 
 
-  {{!-- Map --}}
-  <div class="panel--section" {{action "closeMenuPanel" on="click"}}>
-    {{#link-to "add-place" class="navigation--link"}}<i class="navigation--icon fa fa-plus"></i>Add new{{/link-to}}
-  </div>
-  {{!-- end Map --}}
+    {{!-- Map --}}
+    <div class="panel--section" {{action "closeMenuPanel" on="click"}}>
+      {{#link-to "add-place" class="navigation--link"}}<i class="navigation--icon fa fa-plus"></i>Add new{{/link-to}}
+    </div>
+    {{!-- end Map --}}
 
 
-  {{!-- Search --}}
-  <div class="panel--section" {{action "closeMenuPanel" on="click"}}>
-    {{#link-to "search" class="navigation--link"}}<i class="navigation--icon fa fa-search"></i>Search in finndis{{/link-to}}
-  </div>
-  {{!-- end Search --}}
+    {{!-- Search --}}
+    {{!-- <div class="panel--section" {{action "closeMenuPanel" on="click"}}>
+      {{#link-to "search" class="navigation--link"}}<i class="navigation--icon fa fa-search"></i>Search in finndis{{/link-to}}
+    </div> --}}
+    {{!-- end Search --}}
 
 
-  {{!-- Help --}}
-  <div class="panel--section" {{action "closeMenuPanel" on="click"}}>
-    {{#link-to "help" class="navigation--link"}}<i class="navigation--icon fa fa-question"></i>Help{{/link-to}}
-  </div>
-  {{!-- end Help --}}
+    {{!-- Help --}}
+    <div class="panel--section" {{action "closeMenuPanel" on="click"}}>
+      {{#link-to "help" class="navigation--link"}}<i class="navigation--icon fa fa-question"></i>Help{{/link-to}}
+    </div>
+    {{!-- end Help --}}
 
-  {{!-- Label list --}}
-  <div class="panel--section label-section" {{action "closeMenuPanel" on="click"}}>
-    <h3 class="panel--section--title">Labels</h3>
-    {{#link-to "labels" class="edit-button"}}Edit{{/link-to}}
+    {{!-- Label list --}}
+    <div class="panel--section label-section" {{action "closeMenuPanel" on="click"}}>
+      <h3 class="panel--section--title">Labels</h3>
+      {{#link-to "labels" class="edit-button"}}Edit{{/link-to}}
 
-    <ul class="label--list">
-      {{#each userLabels as |label|}}
-        <li id="{{label.labelId}}" class="label-editor--holder">
-          {{#link-to "label" label}}
-          <div class="label--listitem label-editor row">
-            <div class="label--icon-holder small-2 columns">
-              <i class="label--icon fa fa-tag"></i>
+      <ul class="label--list">
+        {{#each userLabels as |label|}}
+          <li id="{{label.labelId}}" class="label-editor--holder">
+            {{#link-to "label" label}}
+            <div class="label--listitem label-editor row">
+              <div class="label--icon-holder small-2 columns">
+                <i class="label--icon fa fa-tag"></i>
+              </div>
+              <div class="small-10 columns">
+                {{label.name}}
+              </div>
             </div>
-            <div class="small-10 columns">
-              {{label.name}}
-            </div>
-          </div>
-          {{/link-to}}
-        </li>
-      {{/each}}
-    </ul>
-  </div>
-  {{!-- End label list --}}
+            {{/link-to}}
+          </li>
+        {{/each}}
+      </ul>
+    </div>
+    {{!-- End label list --}}
 
+  </div>
 </nav>
 <a class="panel-overlay left __nav {{labelPanelClass}}" {{action "closeMenuPanel"}}></a>

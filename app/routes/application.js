@@ -5,7 +5,11 @@ export default Ember.Route.extend(ApplicationRouteMixin, {
 
   actions: {
     login () {
-      var lockOptions = {authParams:{scope: 'openid'}};
+      var lockOptions = {
+        auth: {
+          params: { scope: 'openid' }
+        }
+      };
       this.get('session').authenticate('simple-auth-authenticator:lock', lockOptions);
     },
 

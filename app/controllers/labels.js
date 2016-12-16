@@ -6,7 +6,7 @@ export default Ember.Controller.extend({
   labelsController: Ember.inject.controller('labels'),
 
   userLabels: Ember.computed(function() {
-    return this.get('store').peekAll('label');
+    return this.get('store').findAll('label');
   }),
   sortProps: ['numericId:desc'],
   sortedLabels: Ember.computed.sort('userLabels', 'sortProps'),
@@ -34,12 +34,19 @@ export default Ember.Controller.extend({
       });
     },
 
-    deleteLabel(id) {
-      this.get('store').findRecord('label', id ).then(function(label) {
-        label.deleteRecord();
-        label.get('isDeleted'); // => true
-        label.save(); // => DELETE to /posts/1
+    deleteLabel(model) {
+      model.get('places').then(function(places){
+        places.forEach(function(place){
+          place.set('label', null);
+          place.save();
+        });
+
+        model.deleteRecord();
+        model.get('isDeleted');
+        model.save();
       });
-    }
+
+    },
+
   }
 });

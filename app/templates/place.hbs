@@ -1,8 +1,7 @@
-{{main-header}}
+{{main-header menuBack=true}}
 
-<div class="page-wrapper row big">
-  <div class="columns">
-    {{label-panel labelPanelDisplayed=labelPanelDisplayed model=model autoSaveLabel=true}}
+<div class="page-wrapper big">
+  {{label-panel labelPanelDisplayed=labelPanelDisplayed model=model autoSaveLabel=true}}
 
 {{#if isEditing}}
 
@@ -24,7 +23,9 @@
                   </h2>
                   <i class="place--labels--icon fa fa-tag" {{action "showAddLabel" bubbles="false"}}></i>
                   <ul class="place--labels clearfix" {{action "showAddLabel" bubbles="false"}}>
-                    <li class="place--labelitem">{{model.label.name}}</li>
+                    {{#each model.labelsPlaces as |label|}}
+                      <li class="place--labelitem">{{label.label.name}}</li>
+                    {{/each}}
                     <li class="place--labelitem">
                       <i class="place--add--icon fa fa-plus"></i>
                     </li>
@@ -136,36 +137,37 @@
 {{else}}
 
   {{!-- Display mode --}}
-  <div class="place_details __display row">
-    <div class="__display medium-12 columns">
+  <div class="place_details __display">
 
       {{#if model.locationlat}}
-      <div class="row">
-        <div class="columns">
-          {{google-map longitude=mapLng latitude=mapLat}}
-        </div>
-      </div>
+        {{google-map longitude=mapLng latitude=mapLat}}
       {{/if}}
 
-      <div class="row">
-        <div class="columns">
-          <div class="place--holder">
-            <article class="place">
-              <header class="place--header">
+      <div class="place--holder">
+        <article class="place">
+          <header class="place--header">
+            <div class="row">
+              <div class="columns">
                 <a href="#" class="button share-button" {{action "sharePlace"}}><i class="place--action--icon fa fa-share-alt"></i>Share</a>
                 <a href="#" class="button edit-button" {{action "toggleEdition"}}><i class="place--action--icon fa fa-pencil-square-o"></i>Edit</a>
 
                 {{input class="place--title __input" type="text" placeholder="Name" value=model.name}}
                 <i class="place--labels--icon fa fa-tag" {{action "showAddLabel" bubbles="false"}}></i>
                 <ul class="place--labels clearfix" {{action "showAddLabel" bubbles="false"}}>
-                  <li class="place--labelitem">{{model.label.name}}</li>
+                  {{#each model.labelsPlaces as |label|}}
+                    <li class="place--labelitem">{{label.label.name}}</li>
+                  {{/each}}
                   <li class="place--labelitem">
                     <i class="place--add--icon fa fa-plus" ></i>
                   </li>
                 </ul>
-              </header>
+              </div>
+            </div>
+          </header>
 
-              <main class="place--main">
+          <main class="place--main">
+            <div class="row">
+              <div class="columns">
                 {{#if hasPhoneOrAddress}}
                 <div class="place--info--holder row">
                   {{#if model.formattedaddress}}
@@ -283,7 +285,7 @@
                 <div class="place--info--holder row">
                   <div class="columns">
                     <div class="place--rating">
-                      {{#star-rating-fa  item=model rating=model.rating on-click=(action "setRating")  as |stars set|}}
+                      {{#star-rating-fa item=model rating=model.rating on-click=(action "setRating")  as |stars set|}}
                         {{#each stars as |star|}}
                           {{#if star.full}}
                             <a class="star-rating fa fa-star" {{action set star.rating}}></a>
@@ -295,12 +297,13 @@
                     </div>
                   </div>
                 </div>
-              </main>
-            </article>
-          </div>
-        </div>
+              </div>
+            </div>
+          </main>
+        </article>
+
+
       </div>
-    </div>
   </div>
   {{!-- End Display mode --}}
 
@@ -310,5 +313,4 @@
   {{#if session.isAuthenticated}}
     {{tool-box}}
   {{/if}}
-  </div>
 </div>

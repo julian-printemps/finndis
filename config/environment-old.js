@@ -6,6 +6,7 @@ module.exports = function(environment) {
     environment: environment,
     baseURL: '/',
     locationType: 'auto',
+    // defaultLocationType: 'auto',
     host: 'https://blooming-caverns-80676.herokuapp.com/',
     EmberENV: {
       FEATURES: {
@@ -14,13 +15,14 @@ module.exports = function(environment) {
       }
     },
 
-    contentSecurityPolicy: {
-      'connect-src': "*"
-    },
-
     APP: {
       // Here you can pass flags/options to your application instance
       // when it is created
+    },
+
+    cordova: {
+      rebuildOnChange: false,
+      emulate: false
     }
   };
 
@@ -28,13 +30,13 @@ module.exports = function(environment) {
     'font-src': "'self' data: https://cdn.auth0.com",
     'style-src': "'self' 'unsafe-inline'",
     'script-src': "'self' 'unsafe-eval' 'unsafe-inline' https://cdn.auth0.com",
-    'connect-src': "'self' http://localhost:* jsan.eu.auth0.com"
+    'connect-src': "'self' http://localhost:* jsan.eu.auth0.com https://blooming-caverns-80676.herokuapp.com/"
   };
 
   ENV['ember-simple-auth'] = {
-    authenticationRoute: '/home',
-    routeAfterAuthentication: '/',
-    routeIfAlreadyAuthenticated: '/'
+    authenticationRoute: '/',
+    routeAfterAuthentication: '/home',
+    routeIfAlreadyAuthenticated: '/home'
   };
 
   ENV['auth0-ember-simple-auth'] = {
@@ -44,10 +46,10 @@ module.exports = function(environment) {
 
   if (environment === 'development') {
     // ENV.APP.LOG_RESOLVER = true;
-    // ENV.APP.LOG_ACTIVE_GENERATION = true;
+    ENV.APP.LOG_ACTIVE_GENERATION = true;
     // ENV.APP.LOG_TRANSITIONS = true;
     // ENV.APP.LOG_TRANSITIONS_INTERNAL = true;
-    // ENV.APP.LOG_VIEW_LOOKUPS = true;
+    ENV.APP.LOG_VIEW_LOOKUPS = true;
   }
 
   if (environment === 'test') {

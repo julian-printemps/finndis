@@ -63,7 +63,6 @@ export default Ember.Component.extend({
     openinghours: '',
     permanentlyclosed: '',
     rating: '',
-    types: '',
     url: '',
     website: '',
     description: '',
@@ -96,15 +95,16 @@ export default Ember.Component.extend({
     searchMaps(param){
       var self = this;
       var map = '';
+      var keyword = '';
       var input = document.getElementById('searchKeyword');
       input.value = '';
 
       // For search around
       if( param === undefined ){
-        var keyword = null;
+        keyword = null;
       }
       else {
-        var keyword = param.get('name');
+        keyword = param.get('name');
         self.set('queryType', keyword);
       }
 
@@ -240,7 +240,7 @@ export default Ember.Component.extend({
           */
           searchBox.addListener('places_changed', function() {
             var places = searchBox.getPlaces();
-            if (places.length == 0) {
+            if (places.length === 0) {
               return;
             }
             // Clear out the old markers.
@@ -314,7 +314,7 @@ export default Ember.Component.extend({
 
         },
         function (error) {
-          if (error.code == error.PERMISSION_DENIED){
+          if (error.code === error.PERMISSION_DENIED){
             $('#load_overlay').hide();
             self.set('showErrorLocation', true);
           }
@@ -329,7 +329,7 @@ export default Ember.Component.extend({
       // Check if the place exist
       self.get('store').query('place', { filter: { uid: self.get('session.uid'), mapid: result.place_id } }).then(function(currentPlace) {
         var placeCount = 0;
-        currentPlace.forEach(function(elem) {
+        currentPlace.forEach(function() {
           placeCount++;
         });
 
@@ -489,6 +489,7 @@ export default Ember.Component.extend({
     },
 
     showLabelAdd() {
+      var self = this;
       this.set('labelAdd', '__edition');
       this.set('labelAddButton', '__hidden');
 

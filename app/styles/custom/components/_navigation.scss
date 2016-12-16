@@ -39,8 +39,6 @@
 
     &:hover, &:focus, &:active {
       background-color: darken($nav-background-color, 5);
-      // color: darken($nav-font-color, 10);
-      // border-bottom: 1px solid $nav-font-color;;
       @include setTransition();
     }
 

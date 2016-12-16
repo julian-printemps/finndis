@@ -1,4 +1,4 @@
-{{main-header menuShowLogo=true}}
+{{main-header toolShowMap=true}}
 
 <div class="page-wrapper row">
   <div class="columns">
@@ -32,7 +32,10 @@
                     </div>
                   {{/if}}
                   <div class="card--icon--holder card--section">
-                    <i class="card--icon fa fa-tag"></i>{{place.label.name}}
+                    <i class="card--icon fa fa-tag"></i>
+                    {{#each place.labelsPlaces as |label|}}
+                      <li>{{label.label.name}}</li>
+                    {{/each}}
                   </div>
                 </main>
               </article>
@@ -45,7 +48,7 @@
     </div>
 
     {{#if session.isAuthenticated}}
-      {{tool-box toolShowMap=true}}
+      {{tool-box}}
     {{/if}}
   </div>
 </div>
